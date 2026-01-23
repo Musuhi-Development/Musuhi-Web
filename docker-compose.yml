@@ -1,0 +1,45 @@
+
+services:
+  next-app:
+    container_name: musuhi_next_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=mysql://musuhi_user:musuhi_password@db:3306/musuhi_db
+      - NEXT_PUBLIC_SUPABASE_URL=
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    tty: true
+    command: >
+      sh -c "npm install && npm run dev"
+
+  db:
+    container_name: musuhi_mariadb
+    image: mariadb:10.6
+    restart: always
+    environment:
+      MYSQL_DATABASE: musuhi_db
+      MYSQL_USER: musuhi_user
+      MYSQL_PASSWORD: musuhi_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "musuhi_user", "-p'musuhi_password'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
