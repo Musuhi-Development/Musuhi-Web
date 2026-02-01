@@ -10,7 +10,7 @@ services:
       - /usr/src/app/node_modules
       - /usr/src/app/.next
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "musuhi_user", "-p'musuhi_password'"]
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "musuhi_user", "-pmusuhi_password"]
       interval: 10s
       timeout: 5s
       retries: 5
