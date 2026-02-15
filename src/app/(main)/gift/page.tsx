@@ -76,7 +76,10 @@ export default function GiftPage() {
 
         {activeTab === "yosegaki" && (
             <div className="space-y-4">
-                 <button className="w-full flex items-center justify-between bg-white border border-dashed border-orange-300 p-4 rounded-xl text-orange-500 font-bold hover:bg-orange-50 transition-colors">
+                 <button 
+                    onClick={() => window.location.href = '/gift/yosegaki/new'}
+                    className="w-full flex items-center justify-between bg-white border border-dashed border-orange-300 p-4 rounded-xl text-orange-500 font-bold hover:bg-orange-50 transition-colors"
+                 >
                     <span className="flex items-center gap-2"><Plus size={20}/> 新しい寄せ書きを作る</span>
                     <ChevronRight size={20} />
                  </button>
@@ -90,6 +93,19 @@ export default function GiftPage() {
                             <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">募集中</span>
                         </div>
                         <p className="text-xs text-gray-500 mb-3">締切: 2024年2月15日</p>
+                        
+                        {/* 送信者の寄せ音声を表示（トップのみ） */}
+                        <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">最新の寄せ音声</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-200"></div>
+                                <div className="flex-1">
+                                    <p className="text-xs font-medium text-gray-800">山田さん</p>
+                                    <p className="text-[10px] text-gray-500">おめでとうメッセージ • 02:15</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div className="flex items-center gap-2">
                             <div className="flex -space-x-2">
                                 <div className="w-6 h-6 rounded-full bg-gray-200 border border-white"></div>

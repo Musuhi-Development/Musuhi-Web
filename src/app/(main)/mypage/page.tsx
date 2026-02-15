@@ -1,14 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Settings, Users, ChevronRight, Edit3 } from "lucide-react";
 
 export default function MyPage() {
+  const router = useRouter();
+
   return (
     <div className="pb-24">
       {/* Profile Header */}
       <div className="bg-white p-6 pb-8 border-b">
          <div className="flex justify-end mb-4">
-             <button className="text-gray-400 hover:text-gray-600">
+             <button 
+               onClick={() => router.push('/mypage/settings')}
+               className="text-gray-400 hover:text-gray-600"
+             >
                  <Settings size={22} />
              </button>
          </div>
@@ -41,7 +47,10 @@ export default function MyPage() {
 
       {/* Menu List */}
       <div className="mt-4 bg-white border-y border-gray-100 divide-y divide-gray-100">
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => router.push('/mypage/connections')}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          >
               <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
                       <Users size={16} />
@@ -51,7 +60,10 @@ export default function MyPage() {
               <ChevronRight size={18} className="text-gray-400" />
           </button>
           
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => router.push('/mypage/settings')}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          >
               <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
                       <Settings size={16} />

@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Heart, MessageCircle, Share2, Play, Users } from "lucide-react";
+import { clsx } from "clsx";
 
 const dummyPosts = [
   {
@@ -12,6 +14,7 @@ const dummyPosts = [
     likes: 24,
     comments: 5,
     description: "めっちゃ緊張したけど弾いてみました。聞いてください！",
+    scope: "public", // public or friends
   },
   {
     id: 2,
@@ -22,24 +25,63 @@ const dummyPosts = [
     likes: 12,
     comments: 0,
     description: "今日のテーマは「継続」について。",
+    scope: "friends",
+  },
+  {
+    id: 3,
+    user: "Sakura_Mom",
+    time: "8時間前",
+    title: "子育ての思い出",
+    duration: "03:30",
+    likes: 45,
+    comments: 12,
+    description: "娘が初めて歩いた日のことを話してみました",
+    scope: "public",
   },
 ];
 
 export default function BoardPage() {
+  const [activeScope, setActiveScope] = useState<"all" | "friends">("all");
+
+  const filteredPosts = activeScope === "all" 
+    ? dummyPosts 
+    : dummyPosts.filter(post => post.scope === "friends");
+
   return (
     <div className="pb-24">
       <header className="sticky top-0 bg-white z-30 p-4 shadow-sm border-b">
         <h1 className="text-xl font-bold text-gray-800">ボイスボード</h1>
       </header>
 
-      {/* Tabs */}
-      <div className="flex p-2 bg-gray-50 gap-2 overflow-x-auto">
-          <button className="px-4 py-1.5 bg-black text-white text-sm rounded-full font-medium">おすすめ</button>
-          <button className="px-4 py-1.5 text-gray-600 text-sm rounded-full font-medium hover:bg-white">フォロー中</button>
+      {/* Tabs with Scope Filter */}
+      <div className="flex p-2 bg-gray-50 gap-2 overflow-x-auto border-b">
+          <button 
+            onClick={() => setActiveScope("all")}
+            className={clsx(
+              "px-4 py-1.5 text-sm rounded-full font-medium whitespace-nowrap transition-colors",
+              activeScope === "all" ? "bg-black text-white" : "text-gray-600 hover:bg-white"
+            )}
+          >
+            全体
+          </button>
+          <button 
+            onClick={() => setActiveScope("friends")}
+            className={clsx(
+              "px-4 py-1.5 text-sm rounded-full font-medium whitespace-nowrap transition-colors",
+              activeScope === "friends" ? "bg-black text-white" : "text-gray-600 hover:bg-white"
+            )}
+          >
+            家族・友人/知人
+          </button>
       </div>
 
       <div className="divide-y divide-gray-100">
-        {dummyPosts.map((post) => (
+        {filteredPosts.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <p>投稿がありません</p>
+          </div>
+        ) : (
+          filteredPosts.map((post) => (
             <article key={post.id} className="p-4 bg-white">
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full bg-gray-200"></div>
@@ -85,7 +127,8 @@ export default function BoardPage() {
                     </button>
                 </div>
             </article>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

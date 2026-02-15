@@ -1,8 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Search, List, Calendar, MapPin, Lock, Globe, Users } from "lucide-react";
+import { Search, List, Calendar, MapPin, Lock, Globe, Users, Volume2, Gift } from "lucide-react";
 import { clsx } from "clsx";
+
+// AIが推定する動物アイコン（デモ用の絵文字マッピング）
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "🐶",
+  "感謝": "🐱",
+  "楽しい": "🐰",
+  "幸せ": "🐻",
+  "ワクワク": "🐨",
+  "応援": "🦁",
+  "励まし": "🐼",
+  "疲れた": "🐨",
+  "悲しい": "🐧",
+  "イライラ": "🦊",
+};
 
 // Dummy Data
 const dummyJournals = [
@@ -15,6 +29,7 @@ const dummyJournals = [
     thumbnail: null,
     location: "東京都渋谷区",
     visibility: "private", // private, friends, public
+    isGift: false,
   },
   {
     id: 2,
@@ -25,6 +40,7 @@ const dummyJournals = [
     thumbnail: "bg-orange-100",
     location: "東京都港区",
     visibility: "friends",
+    isGift: true,
   },
   {
     id: 3,
@@ -35,6 +51,7 @@ const dummyJournals = [
     thumbnail: null,
     location: null,
     visibility: "private",
+    isGift: false,
   },
 ];
 
@@ -100,39 +117,63 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-3">
                 <h2 className="font-semibold text-gray-800 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                    今月の分析
+                    今日の分析
                 </h2>
                 <span className="text-xs text-orange-600 font-medium">詳細を見る &gt;</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-white/60 rounded-lg p-2">
-                    <p className="text-xs text-gray-500">ジャーナル数</p>
-                    <p className="text-xl font-bold text-gray-800">12<span className="text-xs font-normal ml-1">件</span></p>
+            <div className="grid grid-cols-3 gap-3 text-center mb-3">
+                <div className="bg-white/70 rounded-lg p-3">
+                    <div className="text-3xl mb-1">😊</div>
+                    <p className="text-xs text-gray-500">今日の気分</p>
+                    <p className="text-sm font-bold text-orange-600">良好</p>
                 </div>
-                <div className="bg-white/60 rounded-lg p-2">
-                    <p className="text-xs text-gray-500">主な感情</p>
-                    <p className="text-xl font-bold text-orange-500">感謝</p>
+                <div className="bg-white/70 rounded-lg p-3">
+                    <div className="text-3xl mb-1">🐱</div>
+                    <p className="text-xs text-gray-500">感情動物</p>
+                    <p className="text-sm font-bold text-gray-800">ネコ</p>
+                </div>
+                <div className="bg-white/70 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">ジャーナル</p>
+                    <p className="text-xl font-bold text-gray-800">2<span className="text-xs font-normal ml-0.5">件</span></p>
                 </div>
             </div>
-            <div className="mt-3 bg-white/60 p-3 rounded-lg">
+            <div className="bg-white/60 p-3 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">AIコメント</p>
                 <p className="text-xs text-gray-700 leading-relaxed">
-                    今月は感謝の言葉が多く記録されています。周りの人との繋がりを大切にしている様子が伺えます。
+                    今日は感謝の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
                 </p>
             </div>
         </section>
 
         {/* Timeline */}
         <div className="space-y-4">
-            {dummyJournals.map((journal) => (
+            {dummyJournals.map((journal) => {
+                // AIが推定する動物アイコンを取得
+                const animalIcon = journal.emotions.length > 0 
+                  ? emotionToAnimal[journal.emotions[0]] || "🎵"
+                  : "🎵";
+
+                return (
                 <article key={journal.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="flex p-3 gap-3">
-                         {/* Thumbnail Placeholder */}
+                         {/* Thumbnail with AI Animal Icon or Image */}
                         <div className={clsx(
-                            "w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-400",
-                            journal.thumbnail ? journal.thumbnail : "bg-gray-100"
+                            "w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center relative",
+                            journal.thumbnail ? journal.thumbnail : "bg-gradient-to-br from-orange-100 to-pink-100"
                         )}>
-                           {!journal.thumbnail && <span className="text-[10px]">No Image</span>}
+                           {journal.thumbnail ? (
+                             <div className="w-full h-full" />
+                           ) : (
+                             <span className="text-4xl">{animalIcon}</span>
+                           )}
+                           {/* Audio/Gift icon overlay on right bottom */}
+                           <div className="absolute bottom-1 right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
+                             {journal.isGift ? (
+                               <Gift size={14} className="text-orange-500" />
+                             ) : (
+                               <Volume2 size={14} className="text-blue-500" />
+                             )}
+                           </div>
                         </div>
                         
                         <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -164,7 +205,8 @@ export default function HomePage() {
                         </div>
                     </div>
                 </article>
-            ))}
+                );
+            })}
         </div>
       </div>
     </div>
