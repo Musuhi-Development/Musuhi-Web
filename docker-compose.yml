@@ -11,32 +11,36 @@ services:
       - /usr/src/app/.next
     ports:
       - "3001:3000"
+      - "5555:5555"  # Prisma Studio
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=mysql://musuhi_user:musuhi_password@db:3306/musuhi_db
+      - DATABASE_URL=postgresql://musuhi_user:musuhi_password@db:5432/musuhi_db?schema=public
       - NEXT_PUBLIC_SUPABASE_URL=
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=
     tty: true
     command: >
-      sh -c "npm install && npm run dev"
+      sh -c "npm install && 
+             npx prisma generate && 
+             npx prisma db push && 
+             npx prisma studio --port 5555 --hostname 0.0.0.0 & 
+             npm run dev"
 
   db:
-    container_name: musuhi_mariadb
-    image: mariadb:10.6
+    container_name: musuhi_postgres
+    image: postgres:16-alpine
     restart: always
     environment:
-      MYSQL_DATABASE: musuhi_db
-      MYSQL_USER: musuhi_user
-      MYSQL_PASSWORD: musuhi_password
-      MYSQL_ROOT_PASSWORD: root_password
+      POSTGRES_DB: musuhi_db
+      POSTGRES_USER: musuhi_user
+      POSTGRES_PASSWORD: musuhi_password
     ports:
-      - "3307:3306"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "musuhi_user", "-pmusuhi_password"]
+      test: ["CMD-SHELL", "pg_isready -U musuhi_user -d musuhi_db"]
       interval: 10s
       timeout: 5s
       retries: 5

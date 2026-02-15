@@ -1,7 +1,10 @@
-# 1. ビルドステージ
-FROM node:20-alpine AS builder
+# 開発環境用Dockerfile
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
+
+# OpenSSLをインストール（Prisma用）
+RUN apk add --no-cache openssl
 
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
@@ -9,23 +12,10 @@ COPY package*.json ./
 # 依存関係をインストール
 RUN npm install
 
-# ソースコードをコピー
-COPY . .
+# 起動スクリプトをコピー
+COPY start.sh ./
+RUN chmod +x start.sh
 
-# Next.jsアプリをビルド
-RUN npm run build
+EXPOSE 3000 5555
 
-# 2. プロダクションステージ
-FROM node:20-alpine
-
-WORKDIR /usr/src/app
-
-# ビルドステージからビルド済みファイルとnode_modulesをコピー
-COPY --from=builder /usr/src/app/.next ./.next
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/package.json ./package.json
-COPY --from=builder /usr/src/app/public ./public
-
-EXPOSE 3000
-
-CMD ["npm", "start"]
+CMD ["./start.sh"]
