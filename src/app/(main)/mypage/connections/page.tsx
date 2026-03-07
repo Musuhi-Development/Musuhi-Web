@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, Mail, Calendar, MessageSquare, ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
+import PageHeader from "@/components/shared/PageHeader";
 
 type FilterTab = "all" | "email" | "sns" | "birthday";
 
@@ -58,16 +59,12 @@ export default function ConnectionsPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-gray-50">
-      <header className="sticky top-0 bg-white z-30 border-b">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-500">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-bold text-gray-800 flex-1">つながりリスト</h1>
-        </div>
-        
+      <PageHeader title="つながりリスト" showBackButton={true} />
+      
+      {/* Search & Filter Section */}
+      <div className="bg-white border-b">
         {/* Search */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pt-3 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input

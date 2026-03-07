@@ -15,10 +15,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env.local
     environment:
       - DATABASE_URL=postgresql://musuhi_user:musuhi_password@db:5432/musuhi_db?schema=public
-      - NEXT_PUBLIC_SUPABASE_URL=
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    # ↑ ローカルDB使用時はこの設定を有効化（Supabase使用時はコメントアウト）
     tty: true
     command: >
       sh -c "npm install && 
@@ -27,6 +28,7 @@ services:
              npx prisma studio --port 5555 --hostname 0.0.0.0 & 
              npm run dev"
 
+  # ローカルPostgreSQL
   db:
     container_name: musuhi_postgres
     image: postgres:16-alpine

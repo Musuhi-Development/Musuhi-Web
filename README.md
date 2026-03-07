@@ -1,6 +1,49 @@
 # Musuhi-Web
 
-このプロジェクトは、Next.jsとDocker、PostgreSQL、Prismaを使用して構築されたボイスメッセージングアプリケーションです。
+声で記録し、声で繋がる。ボイスダイアリー & ギフトプラットフォーム
+
+## 🚀 クイックスタート
+
+### 前提条件
+- Docker & Docker Compose
+- Supabaseアカウント（無料）
+
+### セットアップ（5分）
+
+1. **リポジトリをクローン**
+   ```bash
+   git clone https://github.com/Musuhi-Development/Musuhi-Web.git
+   cd Musuhi-Web
+   ```
+
+2. **Supabaseプロジェクトを作成**
+   
+   詳細は [SETUP_GUIDE.md](SETUP_GUIDE.md) を参照
+
+3. **環境変数を設定**
+   ```bash
+   cp .env.example .env.local
+   # エディタで .env.local を開き、Supabase認証情報を入力
+   ```
+
+4. **アプリケーションを起動**
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **テストユーザーを作成**
+   
+   [SUPABASE_USER_GUIDE.md](SUPABASE_USER_GUIDE.md) の手順に従ってSupabase Dashboardでユーザーを作成
+
+6. **ログイン**
+   
+   http://localhost:3001/login にアクセス
+
+## 📚 ドキュメント
+
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - 完全なセットアップガイド
+- **[SUPABASE_USER_GUIDE.md](SUPABASE_USER_GUIDE.md)** - ユーザー作成とログイン手順
+- **[API_IMPLEMENTATION.md](API_IMPLEMENTATION.md)** - API仕様書
 
 ## 目次
 
@@ -18,37 +61,60 @@
 
 ## 01. 概要
 
-Musuhiは、声を手軽に録音し、アルバムとして残したり、大切な人へギフトとして贈ったり、仲間と共有したりできるサービスです。
+Musuhiは、声を手軽に録音し、アルバムとして残したり、大切な人へギフトとして贈ったり、仲間と共有できるプラットフォームです。
+
+### 主な機能
+- 🎙️ **ボイスダイアリー** - 日々の思いを声で記録
+- 🎁 **ボイスギフト** - 大切な人に声のメッセージを贈る
+- 👥 **寄せ音声** - 複数人でメッセージを集めて1つのギフトに
+- 📢 **ボイスボード** - コミュニティで声を共有
 
 ## 02. 技術スタック
 
-- **フロントエンド:** Next.js (App Router), React, TypeScript
-- **データベース:** PostgreSQL
-- **ORM:** Prisma
-- **インフラストラクチャ:** Docker, Docker Compose
-- **その他:** Supabase (認証連携予定), etc.
+- **フロントエンド:** Next.js 16 (App Router), React 19, TypeScript
+- **スタイリング:** Tailwind CSS 4
+- **データベース:** PostgreSQL 16
+- **ORM:** Prisma 5
+- **認証:** Supabase Auth
+- **インフラ:** Docker, Docker Compose
+- **その他:** Lucide React (アイコン)
 
 ## 03. 環境構築
 
 ### 3.1 前提条件
 
-- Docker
-- Docker Compose
+- Docker & Docker Compose
+- Node.js 18+ (ローカル開発する場合)
+- Supabaseアカウント
 
 ### 3.2 セットアップ手順
 
-1. **リポジトリをクローンします。**
-   ```bash
-   git clone https://github.com/Musuhi-Development/Musuhi-Web.git
-   cd Musuhi-Web
-   ```
+#### ステップ1: リポジトリクローン
+```bash
+git clone https://github.com/Musuhi-Development/Musuhi-Web.git
+cd Musuhi-Web
+```
 
-2. **環境変数を設定します。**
-   `.env.local` ファイルを作成し、SupabaseのURLとAnonキーを設定してください。（現在は空でも動作します）
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=
-   ```
+#### ステップ2: Supabaseプロジェクト作成
+
+1. https://supabase.com でプロジェクト作成
+2. Project Settings → API から認証情報を取得
+3. Authentication → URL Configuration で Redirect URL を設定
+
+詳細: [SETUP_GUIDE.md](SETUP_GUIDE.md)
+
+#### ステップ3: 環境変数設定
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local` を編集：
+```env
+NEXT_PUBLIC_SUPABASE_URL="https://your-project-id.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+```
 
 3. **Dockerコンテナをビルドして起動します。**
    ```bash

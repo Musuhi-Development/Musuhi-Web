@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Globe, Bell, Lock, Palette } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -11,14 +12,7 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-gray-50">
-      <header className="sticky top-0 bg-white z-30 border-b px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-500">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-bold text-gray-800 flex-1">アカウント設定</h1>
-        </div>
-      </header>
+      <PageHeader title="アカウント設定" showBackButton={true} />
 
       <div className="p-4 space-y-4">
         {/* 基本設定 */}
