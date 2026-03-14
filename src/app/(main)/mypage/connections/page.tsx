@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, Mail, Calendar, MessageSquare, ChevronDown } from "lucide-react";
+import { Search, Mail, Calendar, MessageSquare, ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
 import PageHeader from "@/components/shared/PageHeader";
 
@@ -42,7 +41,6 @@ const dummyConnections = [
 ];
 
 export default function ConnectionsPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,7 +114,7 @@ export default function ConnectionsPage() {
             <Calendar size={12} /> 誕生日
           </button>
         </div>
-      </header>
+      </div>
 
       <div className="p-4 space-y-3">
         {filteredConnections.length === 0 ? (
