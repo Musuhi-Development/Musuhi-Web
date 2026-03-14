@@ -49,6 +49,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const user = await requireAuth();
+    console.log("Authenticated user ID:", user.id); // 認証ユーザーIDをログ出力
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
@@ -67,6 +68,8 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    console.log(`Found ${recordings.length} recordings.`); // 取得件数をログ出力
 
     return NextResponse.json({ recordings });
   } catch (error: any) {
