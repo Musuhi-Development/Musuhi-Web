@@ -12,10 +12,7 @@ COPY package*.json ./
 # 依存関係をインストール
 RUN npm install
 
-# 起動スクリプトをコピー
-COPY start.sh ./
-RUN chmod +x start.sh
-
 EXPOSE 3000 5555
 
-CMD ["./start.sh"]
+# デフォルトコマンド（docker-compose.ymlでオーバーライドされる）
+CMD ["npm", "run", "dev"]

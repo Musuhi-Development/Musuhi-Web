@@ -1,170 +1,448 @@
 "use client";
 
-import { useState } from "react";
-import { Search, List, Calendar, MapPin, Lock, Globe, Users } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause } from "lucide-react";
 import { clsx } from "clsx";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-// Dummy Data
-const dummyJournals = [
-  {
-    id: 1,
-    title: "今日の振り返り",
-    date: "2024-02-01 20:30",
-    emotions: ["感謝", "楽しい"],
-    duration: "03:15",
-    thumbnail: null,
-    location: "東京都渋谷区",
-    visibility: "private", // private, friends, public
-  },
-  {
-    id: 2,
-    title: "ランチが美味しかった",
-    date: "2024-02-01 12:15",
-    emotions: ["幸せ", "ワクワク"],
-    duration: "01:45",
-    thumbnail: "bg-orange-100",
-    location: "東京都港区",
-    visibility: "friends",
-  },
-  {
-    id: 3,
-    title: "仕事でミスしてしまった...",
-    date: "2024-01-31 18:00",
-    emotions: ["悲しい", "励まし"],
-    duration: "05:10",
-    thumbnail: null,
-    location: null,
-    visibility: "private",
-  },
-];
+// AIが推定する動物アイコン（デモ用の絵文字マッピング）
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "🐶",
+  "感謝": "🐱",
+  "楽しい": "🐰",
+  "幸せ": "🐻",
+  "ワクワク": "🐨",
+  "応援": "🦁",
+  "励まし": "🐼",
+  "疲れた": "🐨",
+  "悲しい": "🐧",
+  "イライラ": "🦊",
+};
 
 const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
 
 export default function HomePage() {
-  const [viewMode, setViewMode] = useState<"timeline" | "calendar">("timeline");
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedTag, setSelectedTag] = useState("全て");
+  const [recordings, setRecordings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  
+  // Audio playback state
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    fetchUser();
+    fetchRecordings();
+  }, [selectedTag]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  async function fetchUser() {
+    try {
+      const res = await fetch("/api/users/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+    }
+  }
+
+  async function fetchRecordings() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams();
+      if (selectedTag !== "全て") params.append("emotion", selectedTag);
+
+      const response = await fetch(`/api/recordings?${params.toString()}`);
+      
+      if (response.status === 401) {
+        // Not authenticated, redirect to login
+        router.push("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch recordings");
+      }
+
+      const data = await response.json();
+      setRecordings(data.recordings);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ja-JP", { 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    });
+  }
+
+  function formatDateTime(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleString("ja-JP", { 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  // Audio playback functions
+  function togglePlayPause(recording: any, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!recording.audioUrl) {
+      alert("音声ファイルが見つかりません");
+      return;
+    }
+
+    // If clicking the same recording that's playing, pause it
+    if (playingId === recording.id && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    // If clicking a different recording, or the same one that was paused
+    if (playingId !== recording.id) {
+      // Stop previous audio if any
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Create new audio element
+      const audio = new Audio(recording.audioUrl);
+      audioRef.current = audio;
+      setPlayingId(recording.id);
+
+      // Set up event listeners
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.onerror = () => {
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.error("Playback error:", err);
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      });
+    } else {
+      // Resume paused audio
+      audioRef.current?.play();
+      setIsPlaying(true);
+    }
+  }
+
+  // Calculate stats
+  const totalRecordings = recordings.length;
+  
+  const todayRecordings = recordings.filter(r => {
+    const today = new Date();
+    const recordingDate = new Date(r.createdAt);
+    return recordingDate.toDateString() === today.toDateString();
+  });
+
+  const allEmotions = recordings.flatMap(r => r.emotions);
+  const dominantEmotion = allEmotions.length > 0 
+    ? allEmotions.reduce((a, b, i, arr) => 
+        arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+      )
+    : "嬉しい";
 
   return (
-    <div className="pb-24">
-      {/* Header / Search / Sort */}
-      <header className="sticky top-0 bg-white z-30 p-4 shadow-sm space-y-3">
-        <h1 className="text-xl font-bold text-gray-800">ボイスアルバム</h1>
-        
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="キーワード検索..."
-            className="w-full bg-gray-100 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
-          />
-        </div>
-
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <div className="bg-white px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 max-w-[70%]">
-                {emotionTags.map(tag => (
-                    <button
-                        key={tag}
-                        onClick={() => setSelectedTag(tag)}
-                        className={clsx(
-                            "px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors",
-                            selectedTag === tag 
-                                ? "bg-orange-500 text-white" 
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        )}
-                    >
-                        {tag}
-                    </button>
-                ))}
+          <h1 className="text-2xl font-bold text-gray-800">Home</h1>
+          <button 
+            onClick={() => router.push('/mypage')}
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+          >
+            {user?.avatarUrl ? (
+              <img 
+                src={user.avatarUrl} 
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.displayName?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || "U"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-6 py-6 space-y-6">
+        {/* Today's Analysis Card */}
+        {recordings.length > 0 && (
+          <div className="bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] rounded-3xl p-6 text-white shadow-lg">
+            <h2 className="text-lg font-bold mb-5">
+              今日の分析
+            </h2>
+            
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="text-4xl mb-2">😊</div>
+                <p className="text-xs text-gray-600 mb-1">今日の気分</p>
+                <p className="text-sm font-bold text-gray-800">良好</p>
+              </div>
+              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="text-4xl mb-2">{emotionToAnimal[dominantEmotion] || "🎵"}</div>
+                <p className="text-xs text-gray-600 mb-1">感情動物</p>
+                <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
+              </div>
+              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <p className="text-xs text-gray-600 mb-1">今日</p>
+                <p className="text-3xl font-bold text-gray-800">
+                  {todayRecordings.length}
+                </p>
+                <p className="text-xs text-gray-600">件</p>
+              </div>
             </div>
             
-            <div className="flex bg-gray-100 rounded-lg p-1">
-                <button 
-                    onClick={() => setViewMode("timeline")}
-                    className={clsx("p-1.5 rounded-md", viewMode === "timeline" ? "bg-white shadow-sm" : "text-gray-400")}
-                >
-                    <List size={18} />
-                </button>
-                <button 
-                    onClick={() => setViewMode("calendar")}
-                    className={clsx("p-1.5 rounded-md", viewMode === "calendar" ? "bg-white shadow-sm" : "text-gray-400")}
-                >
-                    <Calendar size={18} />
-                </button>
+            <div className="bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded-2xl">
+              <p className="text-xs text-gray-600 mb-2 font-medium">AIコメント</p>
+              <p className="text-sm leading-relaxed text-gray-700">
+                今日は{dominantEmotion}の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
+              </p>
             </div>
-        </div>
-      </header>
+          </div>
+        )}
 
-      <div className="p-4 space-y-6">
-        {/* Analysis Dashboard Summary */}
-        <section className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 shadow-sm border border-orange-100">
-            <div className="flex justify-between items-center mb-3">
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                    今月の分析
-                </h2>
-                <span className="text-xs text-orange-600 font-medium">詳細を見る &gt;</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-white/60 rounded-lg p-2">
-                    <p className="text-xs text-gray-500">ジャーナル数</p>
-                    <p className="text-xl font-bold text-gray-800">12<span className="text-xs font-normal ml-1">件</span></p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-2">
-                    <p className="text-xs text-gray-500">主な感情</p>
-                    <p className="text-xl font-bold text-orange-500">感謝</p>
-                </div>
-            </div>
-            <div className="mt-3 bg-white/60 p-3 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">AIコメント</p>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                    今月は感謝の言葉が多く記録されています。周りの人との繋がりを大切にしている様子が伺えます。
-                </p>
-            </div>
-        </section>
+        {/* Recordings Section */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-gray-800">
+              {selectedTag === "全て" ? "All Recordings" : selectedTag}
+            </h3>
+            <button 
+              onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
+              className="text-[#2A5CAA] hover:text-[#1F4580] transition-colors"
+            >
+              {viewMode === "list" ? (
+                <Grid3x3 size={20} />
+              ) : (
+                <List size={20} />
+              )}
+            </button>
+          </div>
 
-        {/* Timeline */}
-        <div className="space-y-4">
-            {dummyJournals.map((journal) => (
-                <article key={journal.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="flex p-3 gap-3">
-                         {/* Thumbnail Placeholder */}
-                        <div className={clsx(
-                            "w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-400",
-                            journal.thumbnail ? journal.thumbnail : "bg-gray-100"
-                        )}>
-                           {!journal.thumbnail && <span className="text-[10px]">No Image</span>}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                                <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-gray-800 truncate pr-2">{journal.title}</h3>
-                                    <span className="text-xs text-gray-400 whitespace-nowrap">{journal.date.split(" ")[0]}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {journal.emotions.map(e => (
-                                        <span key={e} className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded-md">
-                                            #{e}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
-                                <span className="flex items-center gap-1">
-                                    ⏱ {journal.duration}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                    {journal.location && <MapPin size={12} />}
-                                    {journal.visibility === "private" && <Lock size={12} />}
-                                    {journal.visibility === "friends" && <Users size={12} />}
-                                    {journal.visibility === "public" && <Globe size={12} />}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
+          {/* Emotion Filter Tags */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
+            {emotionTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                className={clsx(
+                  "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors font-medium",
+                  selectedTag === tag 
+                    ? "bg-[#2A5CAA] text-white shadow-sm" 
+                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                )}
+              >
+                {tag}
+              </button>
             ))}
+          </div>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 border-4 border-[#2A5CAA] border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-red-600 text-sm">{error}</p>
+              <button 
+                onClick={fetchRecordings}
+                className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+              >
+                再試行
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && recordings.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-3xl shadow-md">
+              <div className="text-6xl mb-4">🎙️</div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                まだ録音がありません
+              </h3>
+              <p className="text-sm text-gray-600">
+                右下のボタンから録音を開始しましょう！
+              </p>
+            </div>
+          )}
+
+          {/* Recordings List/Grid */}
+          {!loading && !error && recordings.length > 0 && (
+            <div className={clsx(
+              viewMode === "grid" 
+                ? "grid grid-cols-2 gap-3"
+                : "space-y-3"
+            )}>
+              {recordings.map((recording: any) => {
+                const animalIcon = recording.emotions && recording.emotions.length > 0 
+                  ? emotionToAnimal[recording.emotions[0]] || "🎵"
+                  : "🎵";
+
+                return (
+                  <Link
+                    key={recording.id}
+                    href={`/recording/${recording.id}`}
+                    className={clsx(
+                      "block bg-white rounded-2xl shadow-md hover:shadow-lg transition-all",
+                      viewMode === "grid" ? "p-3" : "p-4"
+                    )}
+                  >
+                    {viewMode === "list" ? (
+                      // List View
+                      <div className="flex items-center gap-4">
+                        {/* Thumbnail with Play Button */}
+                        <div className="relative w-16 h-16 flex-shrink-0">
+                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                            <span className="text-3xl">{animalIcon}</span>
+                          </div>
+                          <button
+                            onClick={(e) => togglePlayPause(recording, e)}
+                            className={clsx(
+                              "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
+                              playingId === recording.id && isPlaying && "bg-black/30"
+                            )}
+                            aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
+                          >
+                            {playingId === recording.id && isPlaying ? (
+                              <Pause className="text-white drop-shadow-lg" size={24} fill="white" />
+                            ) : (
+                              <Play className="text-white drop-shadow-lg" size={24} fill="white" />
+                            )}
+                          </button>
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
+                            <Volume2 size={12} className="text-[#2A5CAA]" />
+                          </div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatDate(recording.createdAt)} · {formatDuration(recording.duration)}
+                          </p>
+                          {recording.emotions && recording.emotions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {recording.emotions.slice(0, 3).map((e: string) => (
+                                <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                  #{e}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Visibility Icon */}
+                        <div className="text-gray-400">
+                          {recording.visibility === "private" && <Lock size={16} />}
+                          {recording.visibility === "friends" && <Users size={16} />}
+                          {recording.visibility === "public" && <Globe size={16} />}
+                        </div>
+                      </div>
+                    ) : (
+                      // Grid View
+                      <div>
+                        {/* Thumbnail */}
+                        <div className="relative w-full aspect-square mb-3">
+                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                            <span className="text-5xl">{animalIcon}</span>
+                          </div>
+                          <button
+                            onClick={(e) => togglePlayPause(recording, e)}
+                            className={clsx(
+                              "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
+                              playingId === recording.id && isPlaying && "bg-black/30"
+                            )}
+                            aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
+                          >
+                            {playingId === recording.id && isPlaying ? (
+                              <Pause className="text-white drop-shadow-lg" size={32} fill="white" />
+                            ) : (
+                              <Play className="text-white drop-shadow-lg" size={32} fill="white" />
+                            )}
+                          </button>
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
+                            <Volume2 size={16} className="text-[#2A5CAA]" />
+                          </div>
+                        </div>
+
+                        {/* Info */}
+                        <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
+                          {recording.title}
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(recording.createdAt)}
+                        </p>
+                        {recording.emotions && recording.emotions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {recording.emotions.slice(0, 2).map((e: string) => (
+                              <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                #{e}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
