@@ -40,16 +40,15 @@ model Recording {
   title       String
   description String?
   audioUrl    String
-  duration    Int      // 秒単位
-  emotions    String[] // AI分析による感情タグ
-  images      String[] @default([]) // 添付画像のURL配列
+  duration    Float
+  emotions    Json
+  visibility  String   @default("private")
   location    String?
-  visibility  String   @default("private") // private, friends, public
   userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   gifts                   Gift[]
   yosegakiContributions   YosegakiContribution[]
 
