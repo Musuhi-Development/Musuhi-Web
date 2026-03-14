@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function useCurrentUser() {
+export function useUser() {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

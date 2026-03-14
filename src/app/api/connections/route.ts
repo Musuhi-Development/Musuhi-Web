@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { z } from "zod";
 
 // GET: Get connections for current user
 export async function GET(request: NextRequest) {
@@ -18,6 +19,9 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       where.status = status;
+    } else {
+      // ステータス指定がない場合は pending と accepted を取得
+      where.status = { in: ["pending", "accepted"] };
     }
 
     const connections = await prisma.connection.findMany({
@@ -48,105 +52,62 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ connections });
   } catch (error: any) {
     console.error("Get connections error:", error);
-
-    if (error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (error.message === "Not authenticated") {
+      return NextResponse.json({ error: "認証が必要です。" }, { status: 401 });
     }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "つながりの取得中にエラーが発生しました。" }, { status: 500 });
   }
 }
 
-// POST: Create a connection request
-export async function POST(request: Request) {
+const createConnectionSchema = z.object({
+  receiverId: z.string().min(1, "受信者のIDは必須です。"),
+});
+
+// POST: Create a new connection request
+export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
     const body = await request.json();
-    const { userId } = body;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
+    const validation = createConnectionSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    if (userId === user.id) {
-      return NextResponse.json(
-        { error: "Cannot connect with yourself" },
-        { status: 400 }
-      );
+    const { receiverId } = validation.data;
+
+    if (user.id === receiverId) {
+      return NextResponse.json({ error: "自分自身につながりリクエストは送信できません。" }, { status: 400 });
     }
 
-    // Check if target user exists
-    const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!targetUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if connection already exists
+    // 既存のつながりを確認
     const existingConnection = await prisma.connection.findFirst({
       where: {
         OR: [
-          { initiatorId: user.id, receiverId: userId },
-          { initiatorId: userId, receiverId: user.id },
+          { initiatorId: user.id, receiverId: receiverId },
+          { initiatorId: receiverId, receiverId: user.id },
         ],
       },
     });
 
     if (existingConnection) {
-      return NextResponse.json(
-        { error: "Connection already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "既につながりリクエストが存在するか、つながり済みです。" }, { status: 400 });
     }
 
-    const connection = await prisma.connection.create({
+    const newConnection = await prisma.connection.create({
       data: {
         initiatorId: user.id,
-        receiverId: userId,
+        receiverId: receiverId,
         status: "pending",
-      },
-      include: {
-        initiator: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-            avatarUrl: true,
-          },
-        },
-        receiver: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-            avatarUrl: true,
-          },
-        },
       },
     });
 
-    return NextResponse.json({ connection }, { status: 201 });
+    return NextResponse.json({ connection: newConnection }, { status: 201 });
   } catch (error: any) {
     console.error("Create connection error:", error);
-
-    if (error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (error.message === "Not authenticated") {
+      return NextResponse.json({ error: "認証が必要です。" }, { status: 401 });
     }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "つながりリクエストの作成中にエラーが発生しました。" }, { status: 500 });
   }
 }
