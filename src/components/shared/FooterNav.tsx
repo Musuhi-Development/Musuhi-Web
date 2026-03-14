@@ -32,8 +32,8 @@ export default function FooterNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-white pb-safe pt-2 h-16 z-40">
-      <div className="flex justify-around items-center h-full">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white pb-safe shadow-lg z-40 border-t border-gray-100">
+      <div className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -42,12 +42,23 @@ export default function FooterNav() {
               key={item.href}
               href={item.href}
               className={clsx(
-                "flex flex-col items-center justify-center w-full h-full text-xs gap-1",
-                isActive ? "text-orange-500" : "text-gray-500 hover:text-orange-400"
+                "flex flex-col items-center justify-center flex-1 h-full text-xs gap-1 transition-all",
+                isActive 
+                  ? "text-[#2A5CAA]" 
+                  : "text-gray-400 hover:text-gray-600"
               )}
             >
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span>{item.label}</span>
+              <div className={clsx(
+                "flex items-center justify-center w-12 h-12 rounded-2xl transition-all",
+                isActive 
+                  ? "bg-[#2A5CAA] text-white shadow-md" 
+                  : ""
+              )}>
+                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+              </div>
+              {isActive && (
+                <span className="font-medium text-[10px]">{item.label}</span>
+              )}
             </Link>
           );
         })}
