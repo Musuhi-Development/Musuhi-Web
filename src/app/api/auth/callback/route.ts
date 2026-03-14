@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
+    if (!supabase) {
+      console.error("Supabase client is not configured");
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
 
@@ -19,16 +24,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    if (!data?.user?.email) {
+      console.error("Auth callback returned user without email");
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
     // Get or create user in our database
     let user = await prisma.user.findUnique({
-      where: { email: data.user.email! },
+      where: { email: data.user.email },
     });
 
     if (!user) {
       user = await prisma.user.create({
         data: {
           id: data.user.id,
-          email: data.user.email!,
+          email: data.user.email,
           name: data.user.user_metadata?.name || null,
         },
       });
