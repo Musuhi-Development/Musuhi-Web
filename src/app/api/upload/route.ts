@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
+    await requireAuth();
 
     // Get user's access token from cookies
     const cookieStore = await cookies();
@@ -31,6 +31,18 @@ export async function POST(request: Request) {
       },
     });
 
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !authUser) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -52,7 +64,7 @@ export async function POST(request: Request) {
 
     // Generate unique filename with nanoid
     const fileExtension = file.name.split(".").pop() || "webm";
-    const filename = `${user.id}/${nanoid()}.${fileExtension}`;
+    const filename = `${authUser.id}/${nanoid()}.${fileExtension}`;
 
     // Convert File to ArrayBuffer then to Buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -69,6 +81,17 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Upload error:", error);
+
+      if ((error as any).statusCode === "403") {
+        return NextResponse.json(
+          {
+            error: "Storage RLS policyで拒否されました。voice-recordingsバケットのINSERTポリシーとauth.uid()フォルダ条件を確認してください。",
+            details: (error as any).message,
+          },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Failed to upload file" },
         { status: 500 }

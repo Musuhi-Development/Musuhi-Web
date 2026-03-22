@@ -9,8 +9,9 @@ RUN apk add --no-cache openssl
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係をインストール
-RUN npm install
+# 依存関係をインストール (キャッシュクリーンとリトライを追加)
+RUN npm cache clean --force && \
+    npm install --fetch-retries=5 --fetch-timeout=30000
 
 EXPOSE 3000 5555
 

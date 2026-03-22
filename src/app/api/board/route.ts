@@ -1,11 +1,11 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, getCurrentUser } from "@/lib/auth";
+import { requireAuth, getSessionUser } from "@/lib/auth";
 
 // GET: Get all board posts
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getSessionUser();
     const { searchParams } = new URL(request.url);
     const isPublic = searchParams.get("public") === "true";
 
