@@ -1,9 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Play } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Heart, MessageCircle, Share2, Play, Pause, Volume2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+// AIが推定する動物アイコン（デモ用の絵文字マッピング）
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "🐶",
+  "感謝": "🐱",
+  "楽しい": "🐰",
+  "幸せ": "🐻",
+  "ワクワク": "🐨",
+  "応援": "🦁",
+  "励まし": "🐼",
+  "疲れた": "🐨",
+  "悲しい": "🐧",
+  "イライラ": "🦊",
+};
 
 type Board = {
   id: string;
@@ -24,6 +39,8 @@ type Board = {
     likes: number;
   };
   likes: { id: string }[];
+  // homeのUIに合わせるためemotionsを追加
+  emotions?: string[];
 };
 
 export default function BoardPage() {
@@ -34,10 +51,25 @@ export default function BoardPage() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
+  // Audio playback state
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     fetchUser();
     fetchBoards();
   }, [activeScope]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   async function fetchUser() {
     try {
@@ -72,7 +104,12 @@ export default function BoardPage() {
       }
       
       const data = await res.json();
-      setBoards(data.boards || []);
+      // TODO: API側でemotionsを返すように修正する
+      const boardsWithDemoEmotions = data.boards.map((b: Board) => ({
+        ...b,
+        emotions: ['楽しい', '感謝'].slice(0, Math.floor(Math.random() * 3))
+      }));
+      setBoards(boardsWithDemoEmotions || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
@@ -125,22 +162,69 @@ export default function BoardPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
-  function formatTime(dateString: string): string {
+  function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    return date.toLocaleDateString("ja-JP", { 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    });
+  }
 
-    if (diffMins < 60) {
-      return `${diffMins}分前`;
-    } else if (diffHours < 24) {
-      return `${diffHours}時間前`;
-    } else if (diffDays < 7) {
-      return `${diffDays}日前`;
+  // Audio playback functions
+  function togglePlayPause(board: Board, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!board.audioUrl) {
+      alert("音声ファイルが見つかりません");
+      return;
+    }
+
+    // If clicking the same recording that's playing, pause it
+    if (playingId === board.id && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    // If clicking a different recording, or the same one that was paused
+    if (playingId !== board.id) {
+      // Stop previous audio if any
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Create new audio element
+      const audio = new Audio(board.audioUrl);
+      audioRef.current = audio;
+      setPlayingId(board.id);
+
+      // Set up event listeners
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.onerror = () => {
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.error("Playback error:", err);
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      });
     } else {
-      return date.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+      // Resume paused audio
+      audioRef.current?.play();
+      setIsPlaying(true);
     }
   }
 
@@ -214,101 +298,116 @@ export default function BoardPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredPosts.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-3xl shadow-md">
-                <div className="text-6xl mb-4">📝</div>
+              <div className="text-6xl mb-4">📝</div>
                 <p className="text-gray-600">投稿がありません</p>
               </div>
             ) : (
-              filteredPosts.map((post) => {
-                const isLiked = post.likes.length > 0;
-                const displayName = post.author.displayName || post.author.name;
-                const initial = displayName[0].toUpperCase();
-                
-                return (
-                  <article key={post.id} className="bg-white rounded-3xl shadow-md hover:shadow-lg transition-shadow p-5">
-                    {/* Author Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md">
-                        {post.author.avatarUrl ? (
-                          <img 
-                            src={post.author.avatarUrl} 
-                            alt={displayName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          initial
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900">{displayName}</p>
-                        <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
-                      </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="5" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="19" r="2" />
-                        </svg>
-                      </button>
-                    </div>
+              <div className="space-y-3">
+                {filteredPosts.map((post) => {
+                  const isLiked = post.likes.length > 0;
+                  const animalIcon = post.emotions && post.emotions.length > 0 
+                    ? emotionToAnimal[post.emotions[0]] || "🎵"
+                    : "🎵";
 
-                    {/* Content */}
-                    <div className="mb-4">
-                      <h3 className="font-bold text-lg mb-2 text-gray-900">{post.title}</h3>
-                      {post.content && (
-                        <p className="text-gray-600 leading-relaxed">{post.content}</p>
-                      )}
-                    </div>
-
-                    {/* Audio Player Card */}
-                    {post.audioUrl && (
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 flex items-center gap-3 mb-4 shadow-sm">
-                        <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md text-[#2A5CAA] hover:text-[#1F4580] hover:shadow-lg transition-all">
-                          <Play size={20} fill="currentColor" className="ml-0.5" />
-                        </button>
-                        <div className="flex-1 h-10 flex items-center gap-0.5">
-                          {/* Fake Waveform */}
-                          {[...Array(25)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className="flex-1 bg-blue-300 rounded-full transition-all hover:bg-blue-400" 
-                              style={{ height: `${Math.random() * 24 + 8}px`}}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-mono text-gray-600 font-medium">
-                          {formatDuration(post.duration)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-6">
-                        <button 
-                          onClick={() => handleLike(post.id)}
-                          className={clsx(
-                            "flex items-center gap-2 transition-all",
-                            isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
+                  return (
+                    <Link
+                      key={post.id}
+                      href={`/board/${post.id}`} // TODO: 正しい詳細ページパスに修正
+                      className="block bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Thumbnail with Play Button */}
+                        <div className="relative w-16 h-16 flex-shrink-0">
+                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                            <span className="text-3xl">{animalIcon}</span>
+                          </div>
+                          {post.audioUrl && (
+                            <>
+                              <button
+                                onClick={(e) => togglePlayPause(post, e)}
+                                className={clsx(
+                                  "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
+                                  playingId === post.id && isPlaying && "bg-black/30"
+                                )}
+                                aria-label={playingId === post.id && isPlaying ? "一時停止" : "再生"}
+                              >
+                                {playingId === post.id && isPlaying ? (
+                                  <Pause className="text-white drop-shadow-lg" size={24} fill="white" />
+                                ) : (
+                                  <Play className="text-white drop-shadow-lg" size={24} fill="white" />
+                                )}
+                              </button>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
+                                <Volume2 size={12} className="text-[#2A5CAA]" />
+                              </div>
+                            </>
                           )}
-                        >
-                          <Heart size={22} fill={isLiked ? "currentColor" : "none"} />
-                          <span className="text-sm font-medium">{post._count.likes}</span>
-                        </button>
-                        <button className="flex items-center gap-2 text-gray-500 hover:text-[#2A5CAA] transition-colors">
-                          <MessageCircle size={22} />
-                          <span className="text-sm font-medium">{post._count.comments}</span>
-                        </button>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 truncate">{post.title}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatDate(post.createdAt)}
+                            {post.duration && ` · ${formatDuration(post.duration)}`}
+                          </p>
+                          {post.emotions && post.emotions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {post.emotions.slice(0, 3).map((e: string) => (
+                                <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                  #{e}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                           <div className="flex items-center gap-2 mt-2">
+                              <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200">
+                                {post.author.avatarUrl ? (
+                                  <img src={post.author.avatarUrl} alt={post.author.displayName || post.author.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
+                                    {(post.author.displayName || post.author.name)[0]}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-600">{post.author.displayName || post.author.name}</span>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col items-center gap-4">
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleLike(post.id);
+                            }}
+                            className={clsx(
+                              "flex items-center gap-1 transition-all",
+                              isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+                            )}
+                          >
+                            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                            <span className="text-xs font-medium">{post._count.likes}</span>
+                          </button>
+                          <button 
+                           onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(`/board/${post.id}#comments`); // TODO: コメント欄へ遷移
+                           }}
+                           className="flex items-center gap-1 text-gray-400 hover:text-[#2A5CAA] transition-colors">
+                            <MessageCircle size={18} />
+                            <span className="text-xs font-medium">{post._count.comments}</span>
+                          </button>
+                        </div>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <Share2 size={22} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
+                    </Link>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
