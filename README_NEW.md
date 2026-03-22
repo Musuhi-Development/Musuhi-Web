@@ -140,6 +140,10 @@ src/
 
 詳細なAPI実装ガイドは [API_IMPLEMENTATION.md](./API_IMPLEMENTATION.md) を参照してください。
 
+## 開発手順書
+
+日常開発・DB運用・Session Pooler + Prisma の手順は [DEVELOPMENT_RUNBOOK.md](./DEVELOPMENT_RUNBOOK.md) を参照してください。
+
 ### 主要なAPIエンドポイント
 
 #### 認証

@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +54,7 @@ export default function SignupPage() {
   async function handleSignup(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setInfo("");
 
     // Validation
     if (password !== confirmPassword) {
@@ -88,7 +90,14 @@ export default function SignupPage() {
         return;
       }
 
-      // サインアップ成功
+      // セッション未発行時はログイン画面へ誘導（メール確認必須設定を考慮）
+      if (data.emailConfirmationRequired || !data.sessionCreated) {
+        setInfo("アカウントを作成しました。メール確認後にログインしてください。");
+        router.push("/login");
+        return;
+      }
+
+      // サインアップ直後にセッションがある場合のみホームへ
       router.push("/home");
       router.refresh();
     } catch (err) {
@@ -121,6 +130,13 @@ export default function SignupPage() {
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
               <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {info && (
+            <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
+              <CheckCircle size={20} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-emerald-700">{info}</p>
             </div>
           )}
 

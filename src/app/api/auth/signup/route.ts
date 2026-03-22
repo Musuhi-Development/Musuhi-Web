@@ -43,16 +43,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create user in our database
-    const user = await prisma.user.create({
-      data: {
+    const signupEmail = data.user.email!;
+
+    // 既存emailが別IDで存在する場合は競合として扱う
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: signupEmail },
+    });
+
+    if (existingByEmail && existingByEmail.id !== data.user.id) {
+      return NextResponse.json(
+        { error: "このメールアドレスは既に登録済みです。ログインしてください。" },
+        { status: 409 }
+      );
+    }
+
+    // Create or sync user in our database
+    const user = await prisma.user.upsert({
+      where: { id: data.user.id },
+      create: {
         id: data.user.id,
-        email: data.user.email!,
+        email: signupEmail,
         name: name || null,
         displayName: name || null,
         avatarUrl: avatarUrl || null,
       },
+      update: {
+        email: signupEmail,
+        ...(name !== undefined && { name: name || null }),
+        ...(name !== undefined && { displayName: name || null }),
+        ...(avatarUrl !== undefined && { avatarUrl: avatarUrl || null }),
+      },
     });
+
+    const hasSession = Boolean(data.session);
 
     // Set cookies with session tokens
     const response = NextResponse.json({
@@ -62,6 +85,8 @@ export async function POST(request: Request) {
         name: user.name,
         displayName: user.displayName,
       },
+      sessionCreated: hasSession,
+      emailConfirmationRequired: !hasSession,
     });
 
     if (data.session) {

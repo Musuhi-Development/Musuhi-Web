@@ -17,9 +17,7 @@ services:
         condition: service_healthy
     env_file:
       - .env.local
-    environment:
-      - DATABASE_URL=postgresql://musuhi_user:musuhi_password@db:5432/musuhi_db?schema=public
-    # ↑ ローカルDB使用時はこの設定を有効化（Supabase使用時はコメントアウト）
+    # DATABASE_URL / DIRECT_URL は .env.local で管理
     tty: true
     command: >
       sh -c "npm install && 
