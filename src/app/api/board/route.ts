@@ -11,13 +11,35 @@ export async function GET(request: NextRequest) {
 
     let where: any = {};
 
+    let friendIds: string[] = [];
+    if (user) {
+      const connections = await prisma.connection.findMany({
+        where: {
+          status: "accepted",
+          OR: [{ initiatorId: user.id }, { receiverId: user.id }],
+        },
+        select: {
+          initiatorId: true,
+          receiverId: true,
+        },
+      });
+
+      friendIds = connections.map((connection) =>
+        connection.initiatorId === user.id ? connection.receiverId : connection.initiatorId
+      );
+    }
+
     if (isPublic) {
       where.isPublic = true;
     } else if (user) {
-      // Show public posts and user's own posts
+      // Show public posts, user's own posts, and friends-only posts from accepted connections
       where.OR = [
         { isPublic: true },
         { authorId: user.id },
+        {
+          isPublic: false,
+          authorId: { in: friendIds.length > 0 ? friendIds : ["__no_friend__"] },
+        },
       ];
     } else {
       // Not logged in, only show public posts

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, Fragment } from "react";
+import { useState, useRef, Fragment, useEffect } from "react";
 import { X, Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -13,10 +13,18 @@ const MAX_RECORDING_SECONDS = 180; // 3分
 interface RecordingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  variant?: "recording" | "voice-comment";
+  onSubmitVoiceComment?: (payload: { audioBlob: Blob; duration: number }) => Promise<void>;
 }
 
-export default function RecordingModal({ isOpen, onClose }: RecordingModalProps) {
+export default function RecordingModal({
+  isOpen,
+  onClose,
+  variant = "recording",
+  onSubmitVoiceComment,
+}: RecordingModalProps) {
   const router = useRouter();
+  const isVoiceCommentMode = variant === "voice-comment";
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [duration, setDuration] = useState(0);
   const [title, setTitle] = useState("");
@@ -28,6 +36,21 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setAudioBlob(null);
+      setDuration(0);
+      setTitle("");
+      setSelectedTags([]);
+      setVisibility("private");
+      setShowImageOptions(false);
+      setUploadedImages([]);
+      setUploadingImage(false);
+      setMemo("");
+      setSaving(false);
+    }
+  }, [isOpen]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -84,7 +107,12 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
   };
 
   const handleSave = async () => {
-    if (!audioBlob || !title.trim()) {
+    if (!audioBlob) {
+      alert("音声録音は必須です");
+      return;
+    }
+
+    if (!isVoiceCommentMode && !title.trim()) {
       alert("タイトルと音声録音は必須です");
       return;
     }
@@ -92,6 +120,19 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
     setSaving(true);
 
     try {
+      if (isVoiceCommentMode) {
+        if (!onSubmitVoiceComment) {
+          throw new Error("ボイスコメント投稿処理が設定されていません");
+        }
+
+        await onSubmitVoiceComment({
+          audioBlob,
+          duration,
+        });
+        onClose();
+        return;
+      }
+
       // 1. 音声ファイルをアップロード
       const formData = new FormData();
       formData.append("file", audioBlob, "recording.webm");
@@ -177,19 +218,21 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
                   >
                     <X size={24} />
                   </button>
-                  <h2 className="text-lg font-bold text-gray-800">新規ジャーナル</h2>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    {isVoiceCommentMode ? "ボイスコメント" : "新規ジャーナル"}
+                  </h2>
                   <button
                     onClick={handleSave}
-                    disabled={!audioBlob || !title.trim() || saving}
+                    disabled={!audioBlob || (!isVoiceCommentMode && !title.trim()) || saving}
                     className="text-[#2A5CAA] font-bold disabled:text-gray-300 flex items-center gap-1"
                   >
                     {saving ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        保存中
+                        {isVoiceCommentMode ? "投稿中" : "保存中"}
                       </>
                     ) : (
-                      "保存"
+                      isVoiceCommentMode ? "投稿" : "保存"
                     )}
                   </button>
                 </div>
@@ -199,12 +242,12 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
                   {/* Recording Component */}
                   <VoiceRecorder
                     onRecordingComplete={handleRecordingComplete}
-                    maxDuration={MAX_RECORDING_SECONDS}
+                    maxDuration={isVoiceCommentMode ? 60 : MAX_RECORDING_SECONDS}
                     className="mb-6"
                   />
 
-                  {/* Metadata Form */}
-                  <div className="space-y-5">
+                  {!isVoiceCommentMode && (
+                    <div className="space-y-5">
                     {/* Title */}
                     <div>
                       <label className="text-xs font-bold text-gray-500 mb-2 block">
@@ -327,7 +370,8 @@ export default function RecordingModal({ isOpen, onClose }: RecordingModalProps)
                         </div>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

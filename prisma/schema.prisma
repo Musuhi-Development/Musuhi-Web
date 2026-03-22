@@ -52,6 +52,7 @@ model Recording {
 
   gifts                   Gift[]
   yosegakiContributions   YosegakiContribution[]
+  board                   Board?
 
   @@index([userId])
   @@index([createdAt])
@@ -129,11 +130,13 @@ model Board {
   content     String?
   audioUrl    String?  // 音声付き投稿の場合
   duration    Int?     // 音声の長さ（秒）
+  recordingId String?  @unique
   authorId    String
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  recording Recording? @relation(fields: [recordingId], references: [id], onDelete: Cascade)
   author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments Comment[]
   likes    Like[]
@@ -146,7 +149,9 @@ model Board {
 // コメントモデル
 model Comment {
   id        String   @id @default(cuid())
-  content   String
+  content   String?
+  audioUrl  String?
+  duration  Int?
   boardId   String
   authorId  String
   createdAt DateTime @default(now())

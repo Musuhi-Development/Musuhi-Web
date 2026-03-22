@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, MessageCircle, Share2, Play, Pause, Volume2 } from "lucide-react";
+import { Heart, MessageCircle, Play, Pause, Volume2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import RecordingModal from "@/components/RecordingModal";
 
 // AIが推定する動物アイコン（デモ用の絵文字マッピング）
 const emotionToAnimal: { [key: string]: string } = {
@@ -43,12 +43,32 @@ type Board = {
   emotions?: string[];
 };
 
+type VoiceComment = {
+  id: string;
+  content: string | null;
+  audioUrl: string | null;
+  duration: number | null;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+};
+
 export default function BoardPage() {
   const [activeScope, setActiveScope] = useState<"all" | "friends">("all");
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [commentsByBoard, setCommentsByBoard] = useState<Record<string, VoiceComment[]>>({});
+  const [showAllCommentsByBoard, setShowAllCommentsByBoard] = useState<Record<string, boolean>>({});
+  const [commentLoadingByBoard, setCommentLoadingByBoard] = useState<Record<string, boolean>>({});
+  const [commentErrorByBoard, setCommentErrorByBoard] = useState<Record<string, string | null>>({});
+  const [commentModalBoardId, setCommentModalBoardId] = useState<string | null>(null);
+  const [submittingCommentBoardId, setSubmittingCommentBoardId] = useState<string | null>(null);
   const router = useRouter();
 
   // Audio playback state
@@ -110,6 +130,12 @@ export default function BoardPage() {
         emotions: ['楽しい', '感謝'].slice(0, Math.floor(Math.random() * 3))
       }));
       setBoards(boardsWithDemoEmotions || []);
+
+      await Promise.all(
+        (boardsWithDemoEmotions || []).map((board: Board) =>
+          fetchComments(board.id, { silent: true })
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
@@ -228,6 +254,181 @@ export default function BoardPage() {
     }
   }
 
+  async function fetchComments(boardId: string, options?: { silent?: boolean }) {
+    if (!options?.silent) {
+      setCommentLoadingByBoard((prev) => ({ ...prev, [boardId]: true }));
+      setCommentErrorByBoard((prev) => ({ ...prev, [boardId]: null }));
+    }
+
+    try {
+      const res = await fetch(`/api/board/${boardId}/comment`);
+
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        if (!options?.silent) {
+          throw new Error("コメントの取得に失敗しました");
+        }
+        return;
+      }
+
+      const data = await res.json();
+      setCommentsByBoard((prev) => ({ ...prev, [boardId]: data.comments || [] }));
+    } catch (err) {
+      if (options?.silent) {
+        return;
+      }
+      setCommentErrorByBoard((prev) => ({
+        ...prev,
+        [boardId]: err instanceof Error ? err.message : "コメントの取得に失敗しました",
+      }));
+    } finally {
+      if (!options?.silent) {
+        setCommentLoadingByBoard((prev) => ({ ...prev, [boardId]: false }));
+      }
+    }
+  }
+
+  async function openVoiceCommentModal(boardId: string, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setCommentModalBoardId(boardId);
+    setCommentErrorByBoard((prev) => ({ ...prev, [boardId]: null }));
+
+    if (!commentsByBoard[boardId]) {
+      await fetchComments(boardId);
+    }
+  }
+
+  async function handleVoiceCommentSubmit(payload: { audioBlob: Blob; duration: number }) {
+    if (!commentModalBoardId) {
+      throw new Error("対象ボードが見つかりません");
+    }
+
+    setSubmittingCommentBoardId(commentModalBoardId);
+    setCommentErrorByBoard((prev) => ({ ...prev, [commentModalBoardId]: null }));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", payload.audioBlob, "voice-comment.webm");
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("音声アップロードに失敗しました");
+      }
+
+      const uploadData = await uploadRes.json();
+
+      const commentRes = await fetch(`/api/board/${commentModalBoardId}/comment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audioUrl: uploadData.url,
+          duration: payload.duration,
+        }),
+      });
+
+      if (!commentRes.ok) {
+        throw new Error("コメント投稿に失敗しました");
+      }
+
+      const { comment } = await commentRes.json();
+
+      setCommentsByBoard((prev) => ({
+        ...prev,
+        [commentModalBoardId]: [...(prev[commentModalBoardId] || []), comment],
+      }));
+
+      setBoards((prev) =>
+        prev.map((board) =>
+          board.id === commentModalBoardId
+            ? {
+                ...board,
+                _count: {
+                  ...board._count,
+                  comments: board._count.comments + 1,
+                },
+              }
+            : board
+        )
+      );
+      setCommentModalBoardId(null);
+    } catch (err) {
+      setCommentErrorByBoard((prev) => ({
+        ...prev,
+        [commentModalBoardId]: err instanceof Error ? err.message : "コメント投稿に失敗しました",
+      }));
+      throw err;
+    } finally {
+      setSubmittingCommentBoardId(null);
+    }
+  }
+
+  function toggleCommentPlayback(comment: VoiceComment, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!comment.audioUrl) {
+      return;
+    }
+
+    const playbackId = `comment-${comment.id}`;
+
+    if (playingId === playbackId && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    if (playingId !== playbackId) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      const audio = new Audio(comment.audioUrl);
+      audioRef.current = audio;
+      setPlayingId(playbackId);
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.onerror = () => {
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.error("Playback error:", err);
+          alert("音声の再生に失敗しました");
+          setIsPlaying(false);
+          setPlayingId(null);
+        });
+      return;
+    }
+
+    audioRef.current?.play();
+    setIsPlaying(true);
+  }
+
   const filteredPosts = activeScope === "friends" 
     ? boards.filter(b => !b.isPublic)
     : boards;
@@ -300,23 +501,24 @@ export default function BoardPage() {
         ) : (
           <div className="space-y-3">
             {filteredPosts.length === 0 ? (
-              <div className="text-6xl mb-4">📝</div>
+              <div className="text-center py-10 bg-white rounded-3xl shadow-md p-6">
+                <div className="text-6xl mb-4">📝</div>
                 <p className="text-gray-600">投稿がありません</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {filteredPosts.map((post) => {
                   const isLiked = post.likes.length > 0;
+                  const comments = commentsByBoard[post.id] || [];
+                  const voiceComments = comments.filter((comment) => Boolean(comment.audioUrl));
+                  const showAllComments = showAllCommentsByBoard[post.id] || false;
+                  const visibleVoiceComments = showAllComments ? voiceComments : voiceComments.slice(0, 3);
                   const animalIcon = post.emotions && post.emotions.length > 0 
                     ? emotionToAnimal[post.emotions[0]] || "🎵"
                     : "🎵";
 
                   return (
-                    <Link
-                      key={post.id}
-                      href={`/board/${post.id}`} // TODO: 正しい詳細ページパスに修正
-                      className="block bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4"
-                    >
+                    <div key={post.id} className="bg-white rounded-2xl shadow-md p-4">
                       <div className="flex items-center gap-4">
                         {/* Thumbnail with Play Button */}
                         <div className="relative w-16 h-16 flex-shrink-0">
@@ -394,17 +596,98 @@ export default function BoardPage() {
                           </button>
                           <button 
                            onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            router.push(`/board/${post.id}#comments`); // TODO: コメント欄へ遷移
+                            openVoiceCommentModal(post.id, e);
                            }}
-                           className="flex items-center gap-1 text-gray-400 hover:text-[#2A5CAA] transition-colors">
+                           className="flex items-center gap-1 transition-colors text-gray-400 hover:text-[#2A5CAA]"
+                          >
                             <MessageCircle size={18} />
                             <span className="text-xs font-medium">{post._count.comments}</span>
                           </button>
                         </div>
                       </div>
-                    </Link>
+
+                      <div className="mt-4 border-t pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-gray-700">ボイスコメント</p>
+                          <button
+                            onClick={(e) => openVoiceCommentModal(post.id, e)}
+                            className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580]"
+                          >
+                            コメントする
+                          </button>
+                        </div>
+
+                        {commentErrorByBoard[post.id] && (
+                          <p className="text-xs text-red-500 mb-2">{commentErrorByBoard[post.id]}</p>
+                        )}
+
+                        {commentLoadingByBoard[post.id] ? (
+                          <p className="text-sm text-gray-500">コメントを読み込み中...</p>
+                        ) : visibleVoiceComments.length === 0 ? (
+                          <p className="text-sm text-gray-500">まだボイスコメントはありません</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {visibleVoiceComments.map((comment) => {
+                              const isCommentPlaying = playingId === `comment-${comment.id}` && isPlaying;
+                              return (
+                                <div key={comment.id} className="ml-4 flex items-center justify-between gap-3 bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                      {comment.author.avatarUrl ? (
+                                        <img
+                                          src={comment.author.avatarUrl}
+                                          alt={comment.author.displayName || comment.author.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
+                                          {(comment.author.displayName || comment.author.name)[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-medium text-gray-700 truncate">
+                                        {comment.author.displayName || comment.author.name}
+                                      </p>
+                                      <p className="text-[11px] text-gray-500">
+                                        {formatDate(comment.createdAt)}
+                                        {comment.duration ? ` · ${formatDuration(comment.duration)}` : ""}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    onClick={(e) => toggleCommentPlayback(comment, e)}
+                                    className="w-9 h-9 rounded-full bg-[#2A5CAA] text-white flex items-center justify-center flex-shrink-0"
+                                    aria-label={isCommentPlaying ? "一時停止" : "再生"}
+                                  >
+                                    {isCommentPlaying ? <Pause size={16} fill="white" /> : <Play size={16} fill="white" className="ml-0.5" />}
+                                  </button>
+                                </div>
+                              );
+                            })}
+
+                            {voiceComments.length > 3 && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setShowAllCommentsByBoard((prev) => ({
+                                    ...prev,
+                                    [post.id]: !showAllComments,
+                                  }));
+                                }}
+                                className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580] ml-4"
+                              >
+                                {showAllComments
+                                  ? "コメントを閉じる"
+                                  : `さらに${voiceComments.length - 3}件のコメントを見る`}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -412,6 +695,17 @@ export default function BoardPage() {
           </div>
         )}
       </div>
+
+      <RecordingModal
+        isOpen={Boolean(commentModalBoardId)}
+        onClose={() => {
+          if (!submittingCommentBoardId) {
+            setCommentModalBoardId(null);
+          }
+        }}
+        variant="voice-comment"
+        onSubmitVoiceComment={handleVoiceCommentSubmit}
+      />
     </div>
   );
 }

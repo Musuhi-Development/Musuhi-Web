@@ -69,9 +69,28 @@ export async function GET(
       );
     }
 
-    // Check permission
-    if (!board.isPublic && (!user || board.authorId !== user.id)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check permission (friends-only posts can be viewed by accepted connections)
+    if (!board.isPublic) {
+      if (!user) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      if (board.authorId !== user.id) {
+        const connection = await prisma.connection.findFirst({
+          where: {
+            status: "accepted",
+            OR: [
+              { initiatorId: user.id, receiverId: board.authorId },
+              { initiatorId: board.authorId, receiverId: user.id },
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (!connection) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
     }
 
     return NextResponse.json({ board });
