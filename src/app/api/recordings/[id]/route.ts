@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 
+function shouldPublishToBoard(visibility: string) {
+  return visibility === "public" || visibility === "friends";
+}
+
 type Params = {
   params: Promise<{
     id: string;
@@ -86,6 +90,8 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const nextVisibility = visibility || existingRecording.visibility;
+
     // Update recording
     const recording = await prisma.recording.update({
       where: { id },
@@ -107,6 +113,39 @@ export async function PUT(
         },
       },
     });
+
+    const existingBoard = await prisma.board.findUnique({
+      where: { recordingId: recording.id },
+    });
+
+    if (shouldPublishToBoard(nextVisibility)) {
+      const boardData = {
+        title: recording.title,
+        content: recording.description,
+        audioUrl: recording.audioUrl,
+        duration: Math.round(recording.duration),
+        authorId: user.id,
+        isPublic: nextVisibility === "public",
+      };
+
+      if (existingBoard) {
+        await prisma.board.update({
+          where: { id: existingBoard.id },
+          data: boardData,
+        });
+      } else {
+        await prisma.board.create({
+          data: {
+            ...boardData,
+            recordingId: recording.id,
+          },
+        });
+      }
+    } else if (existingBoard) {
+      await prisma.board.delete({
+        where: { id: existingBoard.id },
+      });
+    }
 
     return NextResponse.json({ recording });
   } catch (error: any) {

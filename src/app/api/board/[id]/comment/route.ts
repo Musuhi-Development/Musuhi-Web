@@ -1,12 +1,56 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getSessionUser } from "@/lib/auth";
 
 type Params = {
   params: Promise<{
     id: string;
   }>;
 };
+
+async function canAccessBoard(boardId: string, userId?: string) {
+  const board = await prisma.board.findUnique({
+    where: { id: boardId },
+    select: {
+      id: true,
+      authorId: true,
+      isPublic: true,
+    },
+  });
+
+  if (!board) {
+    return { allowed: false as const, reason: "not_found" as const };
+  }
+
+  if (board.isPublic) {
+    return { allowed: true as const, board };
+  }
+
+  if (!userId) {
+    return { allowed: false as const, reason: "forbidden" as const };
+  }
+
+  if (board.authorId === userId) {
+    return { allowed: true as const, board };
+  }
+
+  const connection = await prisma.connection.findFirst({
+    where: {
+      status: "accepted",
+      OR: [
+        { initiatorId: userId, receiverId: board.authorId },
+        { initiatorId: board.authorId, receiverId: userId },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!connection) {
+    return { allowed: false as const, reason: "forbidden" as const };
+  }
+
+  return { allowed: true as const, board };
+}
 
 // GET: Get comments for a board post
 export async function GET(
@@ -15,6 +59,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const user = await getSessionUser();
+
+    const access = await canAccessBoard(id, user?.id);
+    if (!access.allowed) {
+      if (access.reason === "not_found") {
+        return NextResponse.json({ error: "Board not found" }, { status: 404 });
+      }
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const comments = await prisma.comment.findMany({
       where: {
@@ -54,30 +107,35 @@ export async function POST(
     const { id } = await params;
     const user = await requireAuth();
     const body = await request.json();
-    const { content } = body;
+    const { content, audioUrl, duration } = body;
 
-    if (!content) {
+    const normalizedContent = typeof content === "string" ? content.trim() : "";
+    const normalizedAudioUrl = typeof audioUrl === "string" ? audioUrl : null;
+    const normalizedDuration =
+      typeof duration === "number" && Number.isFinite(duration)
+        ? Math.round(duration)
+        : null;
+
+    if (!normalizedContent && !normalizedAudioUrl) {
       return NextResponse.json(
-        { error: "Content is required" },
+        { error: "Content or audioUrl is required" },
         { status: 400 }
       );
     }
 
-    // Check if board exists
-    const board = await prisma.board.findUnique({
-      where: { id },
-    });
-
-    if (!board) {
-      return NextResponse.json(
-        { error: "Board not found" },
-        { status: 404 }
-      );
+    const access = await canAccessBoard(id, user.id);
+    if (!access.allowed) {
+      if (access.reason === "not_found") {
+        return NextResponse.json({ error: "Board not found" }, { status: 404 });
+      }
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const comment = await prisma.comment.create({
       data: {
-        content,
+        content: normalizedContent || null,
+        audioUrl: normalizedAudioUrl,
+        duration: normalizedDuration,
         boardId: id,
         authorId: user.id,
       },

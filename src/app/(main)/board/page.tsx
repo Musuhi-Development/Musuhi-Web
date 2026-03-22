@@ -1,9 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Play } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Heart, MessageCircle, Play, Pause, Volume2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
+import RecordingModal from "@/components/RecordingModal";
+
+// AIが推定する動物アイコン（デモ用の絵文字マッピング）
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "🐶",
+  "感謝": "🐱",
+  "楽しい": "🐰",
+  "幸せ": "🐻",
+  "ワクワク": "🐨",
+  "応援": "🦁",
+  "励まし": "🐼",
+  "疲れた": "🐨",
+  "悲しい": "🐧",
+  "イライラ": "🦊",
+};
 
 type Board = {
   id: string;
@@ -24,6 +39,22 @@ type Board = {
     likes: number;
   };
   likes: { id: string }[];
+  // homeのUIに合わせるためemotionsを追加
+  emotions?: string[];
+};
+
+type VoiceComment = {
+  id: string;
+  content: string | null;
+  audioUrl: string | null;
+  duration: number | null;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
 };
 
 export default function BoardPage() {
@@ -32,12 +63,33 @@ export default function BoardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [commentsByBoard, setCommentsByBoard] = useState<Record<string, VoiceComment[]>>({});
+  const [showAllCommentsByBoard, setShowAllCommentsByBoard] = useState<Record<string, boolean>>({});
+  const [commentLoadingByBoard, setCommentLoadingByBoard] = useState<Record<string, boolean>>({});
+  const [commentErrorByBoard, setCommentErrorByBoard] = useState<Record<string, string | null>>({});
+  const [commentModalBoardId, setCommentModalBoardId] = useState<string | null>(null);
+  const [submittingCommentBoardId, setSubmittingCommentBoardId] = useState<string | null>(null);
   const router = useRouter();
+
+  // Audio playback state
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     fetchUser();
     fetchBoards();
   }, [activeScope]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   async function fetchUser() {
     try {
@@ -72,7 +124,18 @@ export default function BoardPage() {
       }
       
       const data = await res.json();
-      setBoards(data.boards || []);
+      // TODO: API側でemotionsを返すように修正する
+      const boardsWithDemoEmotions = data.boards.map((b: Board) => ({
+        ...b,
+        emotions: ['楽しい', '感謝'].slice(0, Math.floor(Math.random() * 3))
+      }));
+      setBoards(boardsWithDemoEmotions || []);
+
+      await Promise.all(
+        (boardsWithDemoEmotions || []).map((board: Board) =>
+          fetchComments(board.id, { silent: true })
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
@@ -125,23 +188,245 @@ export default function BoardPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
-  function formatTime(dateString: string): string {
+  function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    return date.toLocaleDateString("ja-JP", { 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    });
+  }
 
-    if (diffMins < 60) {
-      return `${diffMins}分前`;
-    } else if (diffHours < 24) {
-      return `${diffHours}時間前`;
-    } else if (diffDays < 7) {
-      return `${diffDays}日前`;
-    } else {
-      return date.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+  // Audio playback functions
+  function togglePlayPause(board: Board, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!board.audioUrl) {
+      alert("音声ファイルが見つかりません");
+      return;
     }
+
+    // If clicking the same recording that's playing, pause it
+    if (playingId === board.id && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    // If clicking a different recording, or the same one that was paused
+    if (playingId !== board.id) {
+      // Stop previous audio if any
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Create new audio element
+      const audio = new Audio(board.audioUrl);
+      audioRef.current = audio;
+      setPlayingId(board.id);
+
+      // Set up event listeners
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.onerror = () => {
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.error("Playback error:", err);
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      });
+    } else {
+      // Resume paused audio
+      audioRef.current?.play();
+      setIsPlaying(true);
+    }
+  }
+
+  async function fetchComments(boardId: string, options?: { silent?: boolean }) {
+    if (!options?.silent) {
+      setCommentLoadingByBoard((prev) => ({ ...prev, [boardId]: true }));
+      setCommentErrorByBoard((prev) => ({ ...prev, [boardId]: null }));
+    }
+
+    try {
+      const res = await fetch(`/api/board/${boardId}/comment`);
+
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        if (!options?.silent) {
+          throw new Error("コメントの取得に失敗しました");
+        }
+        return;
+      }
+
+      const data = await res.json();
+      setCommentsByBoard((prev) => ({ ...prev, [boardId]: data.comments || [] }));
+    } catch (err) {
+      if (options?.silent) {
+        return;
+      }
+      setCommentErrorByBoard((prev) => ({
+        ...prev,
+        [boardId]: err instanceof Error ? err.message : "コメントの取得に失敗しました",
+      }));
+    } finally {
+      if (!options?.silent) {
+        setCommentLoadingByBoard((prev) => ({ ...prev, [boardId]: false }));
+      }
+    }
+  }
+
+  async function openVoiceCommentModal(boardId: string, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setCommentModalBoardId(boardId);
+    setCommentErrorByBoard((prev) => ({ ...prev, [boardId]: null }));
+
+    if (!commentsByBoard[boardId]) {
+      await fetchComments(boardId);
+    }
+  }
+
+  async function handleVoiceCommentSubmit(payload: { audioBlob: Blob; duration: number }) {
+    if (!commentModalBoardId) {
+      throw new Error("対象ボードが見つかりません");
+    }
+
+    setSubmittingCommentBoardId(commentModalBoardId);
+    setCommentErrorByBoard((prev) => ({ ...prev, [commentModalBoardId]: null }));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", payload.audioBlob, "voice-comment.webm");
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("音声アップロードに失敗しました");
+      }
+
+      const uploadData = await uploadRes.json();
+
+      const commentRes = await fetch(`/api/board/${commentModalBoardId}/comment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audioUrl: uploadData.url,
+          duration: payload.duration,
+        }),
+      });
+
+      if (!commentRes.ok) {
+        throw new Error("コメント投稿に失敗しました");
+      }
+
+      const { comment } = await commentRes.json();
+
+      setCommentsByBoard((prev) => ({
+        ...prev,
+        [commentModalBoardId]: [...(prev[commentModalBoardId] || []), comment],
+      }));
+
+      setBoards((prev) =>
+        prev.map((board) =>
+          board.id === commentModalBoardId
+            ? {
+                ...board,
+                _count: {
+                  ...board._count,
+                  comments: board._count.comments + 1,
+                },
+              }
+            : board
+        )
+      );
+      setCommentModalBoardId(null);
+    } catch (err) {
+      setCommentErrorByBoard((prev) => ({
+        ...prev,
+        [commentModalBoardId]: err instanceof Error ? err.message : "コメント投稿に失敗しました",
+      }));
+      throw err;
+    } finally {
+      setSubmittingCommentBoardId(null);
+    }
+  }
+
+  function toggleCommentPlayback(comment: VoiceComment, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!comment.audioUrl) {
+      return;
+    }
+
+    const playbackId = `comment-${comment.id}`;
+
+    if (playingId === playbackId && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    if (playingId !== playbackId) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      const audio = new Audio(comment.audioUrl);
+      audioRef.current = audio;
+      setPlayingId(playbackId);
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio.onerror = () => {
+        alert("音声の再生に失敗しました");
+        setIsPlaying(false);
+        setPlayingId(null);
+      };
+
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.error("Playback error:", err);
+          alert("音声の再生に失敗しました");
+          setIsPlaying(false);
+          setPlayingId(null);
+        });
+      return;
+    }
+
+    audioRef.current?.play();
+    setIsPlaying(true);
   }
 
   const filteredPosts = activeScope === "friends" 
@@ -214,105 +499,213 @@ export default function BoardPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredPosts.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-3xl shadow-md">
+              <div className="text-center py-10 bg-white rounded-3xl shadow-md p-6">
                 <div className="text-6xl mb-4">📝</div>
                 <p className="text-gray-600">投稿がありません</p>
               </div>
             ) : (
-              filteredPosts.map((post) => {
-                const isLiked = post.likes.length > 0;
-                const displayName = post.author.displayName || post.author.name;
-                const initial = displayName[0].toUpperCase();
-                
-                return (
-                  <article key={post.id} className="bg-white rounded-3xl shadow-md hover:shadow-lg transition-shadow p-5">
-                    {/* Author Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md">
-                        {post.author.avatarUrl ? (
-                          <img 
-                            src={post.author.avatarUrl} 
-                            alt={displayName}
-                            className="w-full h-full object-cover"
-                          />
+              <div className="space-y-3">
+                {filteredPosts.map((post) => {
+                  const isLiked = post.likes.length > 0;
+                  const comments = commentsByBoard[post.id] || [];
+                  const voiceComments = comments.filter((comment) => Boolean(comment.audioUrl));
+                  const showAllComments = showAllCommentsByBoard[post.id] || false;
+                  const visibleVoiceComments = showAllComments ? voiceComments : voiceComments.slice(0, 3);
+                  const animalIcon = post.emotions && post.emotions.length > 0 
+                    ? emotionToAnimal[post.emotions[0]] || "🎵"
+                    : "🎵";
+
+                  return (
+                    <div key={post.id} className="bg-white rounded-2xl shadow-md p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Thumbnail with Play Button */}
+                        <div className="relative w-16 h-16 flex-shrink-0">
+                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                            <span className="text-3xl">{animalIcon}</span>
+                          </div>
+                          {post.audioUrl && (
+                            <>
+                              <button
+                                onClick={(e) => togglePlayPause(post, e)}
+                                className={clsx(
+                                  "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
+                                  playingId === post.id && isPlaying && "bg-black/30"
+                                )}
+                                aria-label={playingId === post.id && isPlaying ? "一時停止" : "再生"}
+                              >
+                                {playingId === post.id && isPlaying ? (
+                                  <Pause className="text-white drop-shadow-lg" size={24} fill="white" />
+                                ) : (
+                                  <Play className="text-white drop-shadow-lg" size={24} fill="white" />
+                                )}
+                              </button>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
+                                <Volume2 size={12} className="text-[#2A5CAA]" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 truncate">{post.title}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatDate(post.createdAt)}
+                            {post.duration && ` · ${formatDuration(post.duration)}`}
+                          </p>
+                          {post.emotions && post.emotions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {post.emotions.slice(0, 3).map((e: string) => (
+                                <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                  #{e}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                           <div className="flex items-center gap-2 mt-2">
+                              <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200">
+                                {post.author.avatarUrl ? (
+                                  <img src={post.author.avatarUrl} alt={post.author.displayName || post.author.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
+                                    {(post.author.displayName || post.author.name)[0]}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-600">{post.author.displayName || post.author.name}</span>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col items-center gap-4">
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleLike(post.id);
+                            }}
+                            className={clsx(
+                              "flex items-center gap-1 transition-all",
+                              isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+                            )}
+                          >
+                            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                            <span className="text-xs font-medium">{post._count.likes}</span>
+                          </button>
+                          <button 
+                           onClick={(e) => {
+                            openVoiceCommentModal(post.id, e);
+                           }}
+                           className="flex items-center gap-1 transition-colors text-gray-400 hover:text-[#2A5CAA]"
+                          >
+                            <MessageCircle size={18} />
+                            <span className="text-xs font-medium">{post._count.comments}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 border-t pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-gray-700">ボイスコメント</p>
+                          <button
+                            onClick={(e) => openVoiceCommentModal(post.id, e)}
+                            className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580]"
+                          >
+                            コメントする
+                          </button>
+                        </div>
+
+                        {commentErrorByBoard[post.id] && (
+                          <p className="text-xs text-red-500 mb-2">{commentErrorByBoard[post.id]}</p>
+                        )}
+
+                        {commentLoadingByBoard[post.id] ? (
+                          <p className="text-sm text-gray-500">コメントを読み込み中...</p>
+                        ) : visibleVoiceComments.length === 0 ? (
+                          <p className="text-sm text-gray-500">まだボイスコメントはありません</p>
                         ) : (
-                          initial
+                          <div className="space-y-2">
+                            {visibleVoiceComments.map((comment) => {
+                              const isCommentPlaying = playingId === `comment-${comment.id}` && isPlaying;
+                              return (
+                                <div key={comment.id} className="ml-4 flex items-center justify-between gap-3 bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                      {comment.author.avatarUrl ? (
+                                        <img
+                                          src={comment.author.avatarUrl}
+                                          alt={comment.author.displayName || comment.author.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
+                                          {(comment.author.displayName || comment.author.name)[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-medium text-gray-700 truncate">
+                                        {comment.author.displayName || comment.author.name}
+                                      </p>
+                                      <p className="text-[11px] text-gray-500">
+                                        {formatDate(comment.createdAt)}
+                                        {comment.duration ? ` · ${formatDuration(comment.duration)}` : ""}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    onClick={(e) => toggleCommentPlayback(comment, e)}
+                                    className="w-9 h-9 rounded-full bg-[#2A5CAA] text-white flex items-center justify-center flex-shrink-0"
+                                    aria-label={isCommentPlaying ? "一時停止" : "再生"}
+                                  >
+                                    {isCommentPlaying ? <Pause size={16} fill="white" /> : <Play size={16} fill="white" className="ml-0.5" />}
+                                  </button>
+                                </div>
+                              );
+                            })}
+
+                            {voiceComments.length > 3 && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setShowAllCommentsByBoard((prev) => ({
+                                    ...prev,
+                                    [post.id]: !showAllComments,
+                                  }));
+                                }}
+                                className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580] ml-4"
+                              >
+                                {showAllComments
+                                  ? "コメントを閉じる"
+                                  : `さらに${voiceComments.length - 3}件のコメントを見る`}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900">{displayName}</p>
-                        <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
-                      </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="5" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="19" r="2" />
-                        </svg>
-                      </button>
                     </div>
-
-                    {/* Content */}
-                    <div className="mb-4">
-                      <h3 className="font-bold text-lg mb-2 text-gray-900">{post.title}</h3>
-                      {post.content && (
-                        <p className="text-gray-600 leading-relaxed">{post.content}</p>
-                      )}
-                    </div>
-
-                    {/* Audio Player Card */}
-                    {post.audioUrl && (
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 flex items-center gap-3 mb-4 shadow-sm">
-                        <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md text-[#2A5CAA] hover:text-[#1F4580] hover:shadow-lg transition-all">
-                          <Play size={20} fill="currentColor" className="ml-0.5" />
-                        </button>
-                        <div className="flex-1 h-10 flex items-center gap-0.5">
-                          {/* Fake Waveform */}
-                          {[...Array(25)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className="flex-1 bg-blue-300 rounded-full transition-all hover:bg-blue-400" 
-                              style={{ height: `${Math.random() * 24 + 8}px`}}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-mono text-gray-600 font-medium">
-                          {formatDuration(post.duration)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-6">
-                        <button 
-                          onClick={() => handleLike(post.id)}
-                          className={clsx(
-                            "flex items-center gap-2 transition-all",
-                            isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
-                          )}
-                        >
-                          <Heart size={22} fill={isLiked ? "currentColor" : "none"} />
-                          <span className="text-sm font-medium">{post._count.likes}</span>
-                        </button>
-                        <button className="flex items-center gap-2 text-gray-500 hover:text-[#2A5CAA] transition-colors">
-                          <MessageCircle size={22} />
-                          <span className="text-sm font-medium">{post._count.comments}</span>
-                        </button>
-                      </div>
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <Share2 size={22} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
       </div>
+
+      <RecordingModal
+        isOpen={Boolean(commentModalBoardId)}
+        onClose={() => {
+          if (!submittingCommentBoardId) {
+            setCommentModalBoardId(null);
+          }
+        }}
+        variant="voice-comment"
+        onSubmitVoiceComment={handleVoiceCommentSubmit}
+      />
     </div>
   );
 }

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+function shouldPublishToBoard(visibility: string) {
+  return visibility === "public" || visibility === "friends";
+}
+
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
@@ -17,6 +21,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const normalizedVisibility = visibility || "private";
+
     // Create recording
     const recording = await prisma.recording.create({
       data: {
@@ -25,11 +31,25 @@ export async function POST(request: Request) {
         audioUrl,
         duration,
         emotions: emotions || [],
-        visibility: visibility || "private",
+        visibility: normalizedVisibility,
         location: location || null,
         userId: user.id,
       },
     });
+
+    if (shouldPublishToBoard(normalizedVisibility)) {
+      await prisma.board.create({
+        data: {
+          title: recording.title,
+          content: recording.description,
+          audioUrl: recording.audioUrl,
+          duration: Math.round(recording.duration),
+          recordingId: recording.id,
+          authorId: user.id,
+          isPublic: normalizedVisibility === "public",
+        },
+      });
+    }
 
     return NextResponse.json({ recording }, { status: 201 });
   } catch (error: any) {
