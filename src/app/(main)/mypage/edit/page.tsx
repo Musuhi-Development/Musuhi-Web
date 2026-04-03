@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, Save } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import { InlineOverlay } from "@/components/ui/Overlay";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function EditProfilePage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [location, setLocation] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [anniversariesText, setAnniversariesText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,11 +47,36 @@ export default function EditProfilePage() {
       setBio(user.bio || "");
       setAvatarUrl(user.avatarUrl || "");
       setLocation(user.location || "");
+      setBirthday(user.birthday ? new Date(user.birthday).toISOString().slice(0, 10) : "");
+      setAnniversariesText(
+        Array.isArray(user.anniversaries)
+          ? user.anniversaries
+              .map((item: any) => {
+                if (!item) return "";
+                if (typeof item === "string") return item;
+                return item.date ? `${item.label || ""},${item.date}` : item.label || "";
+              })
+              .filter(Boolean)
+              .join("\n")
+          : ""
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);
     }
+  }
+
+  function parseAnniversaries(text: string) {
+    return text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [label, date] = line.split(",").map((v) => v?.trim());
+        return { label, ...(date ? { date } : {}) };
+      })
+      .filter((item) => item.label);
   }
 
   async function handleAvatarUpload(file: File) {
@@ -99,6 +127,8 @@ export default function EditProfilePage() {
           bio: bio.trim() || null,
           avatarUrl: avatarUrl || null,
           location: location.trim() || null,
+          birthday: birthday || null,
+          anniversaries: parseAnniversaries(anniversariesText),
         }),
       });
 
@@ -168,9 +198,9 @@ export default function EditProfilePage() {
                 displayInitial
               )}
               {uploadingAvatar && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <InlineOverlay>
                   <Loader2 className="text-white animate-spin" size={24} />
-                </div>
+                </InlineOverlay>
               )}
             </div>
             <button
@@ -248,6 +278,35 @@ export default function EditProfilePage() {
             placeholder="例: 東京都"
             disabled={saving}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:opacity-50"
+          />
+        </div>
+
+        {/* 誕生日 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            誕生日
+          </label>
+          <input
+            type="date"
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            disabled={saving}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:opacity-50"
+          />
+        </div>
+
+        {/* 記念日 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            記念日
+          </label>
+          <textarea
+            value={anniversariesText}
+            onChange={(e) => setAnniversariesText(e.target.value)}
+            placeholder={"1行に1件、\"名称,YYYY-MM-DD\" 形式で入力\n例: 結婚記念日,2020-10-10"}
+            rows={4}
+            disabled={saving}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-200 resize-none disabled:opacity-50"
           />
         </div>
       </div>

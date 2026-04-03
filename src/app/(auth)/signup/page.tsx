@@ -4,6 +4,7 @@ import { useState, FormEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Camera, Loader2 } from "lucide-react";
+import { InlineOverlay } from "@/components/ui/Overlay";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -171,9 +172,9 @@ export default function SignupPage() {
                     name.charAt(0).toUpperCase() || "?"
                   )}
                   {uploadingAvatar && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <InlineOverlay>
                       <Loader2 className="text-white animate-spin" size={24} />
-                    </div>
+                    </InlineOverlay>
                   )}
                 </div>
                 <button

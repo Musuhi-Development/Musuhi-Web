@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause } from "lucide-react";
 import { clsx } from "clsx";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ScreenOverlay } from "@/components/ui/Overlay";
 
 // AIが推定する動物アイコン（デモ用の絵文字マッピング）
 const emotionToAnimal: { [key: string]: string } = {
@@ -27,6 +27,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedTag, setSelectedTag] = useState("全て");
   const [recordings, setRecordings] = useState<any[]>([]);
+  const [selectedRecording, setSelectedRecording] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -39,7 +40,7 @@ export default function HomePage() {
   useEffect(() => {
     fetchUser();
     fetchRecordings();
-  }, [selectedTag]);
+  }, []);
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -68,10 +69,7 @@ export default function HomePage() {
     setError(null);
 
     try {
-      const params = new URLSearchParams();
-      if (selectedTag !== "全て") params.append("emotion", selectedTag);
-
-      const response = await fetch(`/api/recordings?${params.toString()}`);
+      const response = await fetch("/api/recordings");
       
       if (response.status === 401) {
         // Not authenticated, redirect to login
@@ -177,6 +175,10 @@ export default function HomePage() {
 
   // Calculate stats
   const totalRecordings = recordings.length;
+  const filteredRecordings = useMemo(() => {
+    if (selectedTag === "全て") return recordings;
+    return recordings.filter((recording) => Array.isArray(recording.emotions) && recording.emotions.includes(selectedTag));
+  }, [recordings, selectedTag]);
   
   const todayRecordings = recordings.filter(r => {
     const today = new Date();
@@ -309,36 +311,44 @@ export default function HomePage() {
           )}
 
           {/* Empty State */}
-          {!loading && !error && recordings.length === 0 && (
+          {!loading && !error && filteredRecordings.length === 0 && (
             <div className="text-center py-12 bg-white rounded-3xl shadow-md">
               <div className="text-6xl mb-4">🎙️</div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
-                まだ録音がありません
+                {selectedTag === "全て" ? "まだ録音がありません" : "この感情タグの録音がありません"}
               </h3>
               <p className="text-sm text-gray-600">
-                右下のボタンから録音を開始しましょう！
+                {selectedTag === "全て" ? "右下のボタンから録音を開始しましょう！" : "他の感情タグもお試しください"}
               </p>
             </div>
           )}
 
           {/* Recordings List/Grid */}
-          {!loading && !error && recordings.length > 0 && (
+          {!loading && !error && filteredRecordings.length > 0 && (
             <div className={clsx(
               viewMode === "grid" 
                 ? "grid grid-cols-2 gap-3"
                 : "space-y-3"
             )}>
-              {recordings.map((recording: any) => {
+              {filteredRecordings.map((recording: any) => {
                 const animalIcon = recording.emotions && recording.emotions.length > 0 
                   ? emotionToAnimal[recording.emotions[0]] || "🎵"
                   : "🎵";
 
                 return (
-                  <Link
+                  <div
                     key={recording.id}
-                    href={`/recording/${recording.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedRecording(recording)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedRecording(recording);
+                      }
+                    }}
                     className={clsx(
-                      "block bg-white rounded-2xl shadow-md hover:shadow-lg transition-all",
+                      "w-full text-left block bg-white rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2A5CAA]/30",
                       viewMode === "grid" ? "p-3" : "p-4"
                     )}
                   >
@@ -438,13 +448,53 @@ export default function HomePage() {
                         )}
                       </div>
                     )}
-                  </Link>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
       </div>
+
+      {selectedRecording && (
+        <ScreenOverlay className="z-50 flex items-end sm:items-center justify-center" onClick={() => setSelectedRecording(null)}>
+          <div
+            className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-gray-800">{selectedRecording.title}</h3>
+              <button
+                onClick={() => setSelectedRecording(null)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                閉じる
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-3">
+              {formatDateTime(selectedRecording.createdAt)} ・ {formatDuration(selectedRecording.duration)}
+            </p>
+
+            {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {selectedRecording.emotions.map((emotion: string) => (
+                  <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
+                    #{emotion}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-gray-50 rounded-2xl p-4">
+              <p className="text-xs font-semibold text-gray-500 mb-2">テキストメモ</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {selectedRecording.description || "メモは設定されていません"}
+              </p>
+            </div>
+          </div>
+        </ScreenOverlay>
+      )}
     </div>
   );
 }
