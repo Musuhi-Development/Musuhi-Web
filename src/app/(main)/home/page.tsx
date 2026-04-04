@@ -173,25 +173,10 @@ export default function HomePage() {
     }
   }
 
-  // Calculate stats
-  const totalRecordings = recordings.length;
   const filteredRecordings = useMemo(() => {
     if (selectedTag === "全て") return recordings;
     return recordings.filter((recording) => Array.isArray(recording.emotions) && recording.emotions.includes(selectedTag));
   }, [recordings, selectedTag]);
-  
-  const todayRecordings = recordings.filter(r => {
-    const today = new Date();
-    const recordingDate = new Date(r.createdAt);
-    return recordingDate.toDateString() === today.toDateString();
-  });
-
-  const allEmotions = recordings.flatMap(r => r.emotions);
-  const dominantEmotion = allEmotions.length > 0 
-    ? allEmotions.reduce((a, b, i, arr) => 
-        arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-      )
-    : "嬉しい";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -218,42 +203,6 @@ export default function HomePage() {
 
       {/* Main Content */}
       <div className="px-6 py-6 space-y-6">
-        {/* Today's Analysis Card */}
-        {recordings.length > 0 && (
-          <div className="bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] rounded-3xl p-6 text-white shadow-lg">
-            <h2 className="text-lg font-bold mb-5">
-              今日の分析
-            </h2>
-            
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-4xl mb-2">😊</div>
-                <p className="text-xs text-gray-600 mb-1">今日の気分</p>
-                <p className="text-sm font-bold text-gray-800">良好</p>
-              </div>
-              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-4xl mb-2">{emotionToAnimal[dominantEmotion] || "🎵"}</div>
-                <p className="text-xs text-gray-600 mb-1">感情動物</p>
-                <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
-              </div>
-              <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <p className="text-xs text-gray-600 mb-1">今日</p>
-                <p className="text-3xl font-bold text-gray-800">
-                  {todayRecordings.length}
-                </p>
-                <p className="text-xs text-gray-600">件</p>
-              </div>
-            </div>
-            
-            <div className="bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded-2xl">
-              <p className="text-xs text-gray-600 mb-2 font-medium">AIコメント</p>
-              <p className="text-sm leading-relaxed text-gray-700">
-                今日は{dominantEmotion}の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Recordings Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -397,10 +346,25 @@ export default function HomePage() {
                         </div>
 
                         {/* Visibility Icon */}
-                        <div className="text-gray-400">
-                          {recording.visibility === "private" && <Lock size={16} />}
-                          {recording.visibility === "friends" && <Users size={16} />}
-                          {recording.visibility === "public" && <Globe size={16} />}
+                        <div className="text-gray-400 flex items-center gap-1 text-xs">
+                          {recording.visibility === "private" && (
+                            <>
+                              <Lock size={16} />
+                              <span>非公開</span>
+                            </>
+                          )}
+                          {recording.visibility === "friends" && (
+                            <>
+                              <Users size={16} />
+                              <span>限定公開</span>
+                            </>
+                          )}
+                          {recording.visibility === "public" && (
+                            <>
+                              <Globe size={16} />
+                              <span>公開</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     ) : (

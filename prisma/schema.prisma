@@ -28,6 +28,10 @@ model User {
   recordings              Recording[]
   sentGifts               Gift[]                  @relation("SentGifts")
   receivedGifts           Gift[]                  @relation("ReceivedGifts")
+  voiceGiftsOwned         VoiceGift[]             @relation("VoiceGiftOwner")
+  voiceGiftParticipants   VoiceGiftParticipant[]
+  voiceGiftRecordings     VoiceGiftRecording[]
+  voiceGiftRecipients     VoiceGiftRecipient[]    @relation("VoiceGiftRecipient")
   yosegakiCreated         Yosegaki[]             @relation("YosegakiCreator")
   yosegakiContributions   YosegakiContribution[]
   boards                  Board[]
@@ -45,6 +49,7 @@ model Recording {
   audioUrl    String
   duration    Float
   emotions    Json
+  images      Json?
   visibility  String   @default("private")
   location    String?
   userId      String
@@ -53,11 +58,88 @@ model Recording {
   updatedAt   DateTime @updatedAt
 
   gifts                   Gift[]
+  voiceGiftRecordings     VoiceGiftRecording[]
   yosegakiContributions   YosegakiContribution[]
   board                   Board?
 
   @@index([userId])
   @@index([createdAt])
+}
+
+// ボイスギフトモデル（複数人・複数宛先の統合ギフト）
+model VoiceGift {
+  id         String   @id @default(cuid())
+  title      String
+  message    String?
+  ownerId    String
+  status     String   @default("draft") // draft, scheduled, sent, canceled
+  sendAt     DateTime?
+  shareToken String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner        User                   @relation("VoiceGiftOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  recordings   VoiceGiftRecording[]
+  recipients   VoiceGiftRecipient[]
+  participants VoiceGiftParticipant[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([sendAt])
+}
+
+// ボイスギフトに含まれる録音（送信者の音声）
+model VoiceGiftRecording {
+  id           String   @id @default(cuid())
+  voiceGiftId  String
+  recordingId  String
+  contributorId String
+  message      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  voiceGift  VoiceGift @relation(fields: [voiceGiftId], references: [id], onDelete: Cascade)
+  recording  Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  contributor User     @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+
+  @@index([voiceGiftId])
+  @@index([contributorId])
+  @@index([recordingId])
+}
+
+// ボイスギフトの参加者（送信側のメンバー）
+model VoiceGiftParticipant {
+  id          String   @id @default(cuid())
+  voiceGiftId String
+  userId      String
+  role        String   @default("contributor") // contributor, owner
+  createdAt   DateTime @default(now())
+
+  voiceGift VoiceGift @relation(fields: [voiceGiftId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([voiceGiftId, userId])
+  @@index([userId])
+}
+
+// ボイスギフトの受信者
+model VoiceGiftRecipient {
+  id             String   @id @default(cuid())
+  voiceGiftId    String
+  recipientId    String?
+  recipientEmail String?
+  status         String   @default("pending") // pending, delivered, opened
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  voiceGift VoiceGift @relation(fields: [voiceGiftId], references: [id], onDelete: Cascade)
+  recipient User?    @relation("VoiceGiftRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([voiceGiftId])
+  @@index([recipientId])
+  @@index([recipientEmail])
 }
 
 // ギフトモデル（1対1のボイスギフト）

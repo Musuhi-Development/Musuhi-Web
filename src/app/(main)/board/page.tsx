@@ -437,7 +437,7 @@ export default function BoardPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-white px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-800">Board</h1>
           <button 
             onClick={() => router.push('/mypage')}
@@ -454,27 +454,28 @@ export default function BoardPage() {
             )}
           </button>
         </div>
-        
-        {/* Tabs */}
-        <div className="flex gap-2">
-          <button 
+      </div>
+
+      <div className="px-6 pt-4">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          <button
             onClick={() => setActiveScope("all")}
             className={clsx(
-              "px-4 py-2 text-sm rounded-full font-medium whitespace-nowrap transition-all",
-              activeScope === "all" 
-                ? "bg-[#2A5CAA] text-white shadow-md" 
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              "px-3 py-1.5 text-xs rounded-full font-medium whitespace-nowrap transition-all",
+              activeScope === "all"
+                ? "bg-[#2A5CAA] text-white shadow-sm"
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
             )}
           >
             全体
           </button>
-          <button 
+          <button
             onClick={() => setActiveScope("friends")}
             className={clsx(
-              "px-4 py-2 text-sm rounded-full font-medium whitespace-nowrap transition-all",
-              activeScope === "friends" 
-                ? "bg-[#2A5CAA] text-white shadow-md" 
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              "px-3 py-1.5 text-xs rounded-full font-medium whitespace-nowrap transition-all",
+              activeScope === "friends"
+                ? "bg-[#2A5CAA] text-white shadow-sm"
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
             )}
           >
             家族・友人/知人
@@ -483,7 +484,7 @@ export default function BoardPage() {
       </div>
 
       {/* Content */}
-      <div className="px-6 py-6">
+      <div className="px-6 pb-6">
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="w-8 h-8 border-4 border-[#2A5CAA] border-t-transparent rounded-full animate-spin" />

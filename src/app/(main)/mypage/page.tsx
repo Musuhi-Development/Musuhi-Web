@@ -4,6 +4,19 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Users, ChevronRight, Edit3, Loader2 } from "lucide-react";
 
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "🐶",
+  "感謝": "🐱",
+  "楽しい": "🐰",
+  "幸せ": "🐻",
+  "ワクワク": "🐨",
+  "応援": "🦁",
+  "励まし": "🐼",
+  "疲れた": "🐨",
+  "悲しい": "🐧",
+  "イライラ": "🦊",
+};
+
 type UserProfile = {
   id: string;
   name: string;
@@ -26,9 +39,12 @@ export default function MyPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recordings, setRecordings] = useState<any[]>([]);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
 
   useEffect(() => {
     fetchUserProfile();
+    fetchRecordings();
   }, []);
 
   async function fetchUserProfile() {
@@ -52,6 +68,21 @@ export default function MyPage() {
       setError(err instanceof Error ? err.message : "エラーが発生しましました");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchRecordings() {
+    setAnalysisLoading(true);
+    try {
+      const response = await fetch("/api/recordings");
+      if (response.ok) {
+        const data = await response.json();
+        setRecordings(data.recordings || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recordings:", err);
+    } finally {
+      setAnalysisLoading(false);
     }
   }
 
@@ -94,7 +125,19 @@ export default function MyPage() {
   const displayName = user.displayName || user.name || 'User';
   const displayInitial = displayName.charAt(0).toUpperCase();
   const totalConnections = user._count.connectionsInitiated + user._count.connectionsReceived;
-  const totalGifts = user._count.sentGifts + user._count.receivedGifts;
+
+  const todayRecordings = recordings.filter((recording) => {
+    const today = new Date();
+    const recordingDate = new Date(recording.createdAt);
+    return recordingDate.toDateString() === today.toDateString();
+  });
+
+  const allEmotions = recordings.flatMap((recording) => recording.emotions || []);
+  const dominantEmotion = allEmotions.length > 0
+    ? allEmotions.reduce((a, b, i, arr) =>
+        arr.filter((v: string) => v === a).length >= arr.filter((v: string) => v === b).length ? a : b
+      )
+    : "嬉しい";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -155,20 +198,43 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md">
-            <p className="text-2xl font-bold text-gray-800">{user._count.recordings}</p>
-            <p className="text-xs text-gray-500 mt-1">ジャーナル</p>
+        {/* Today's Analysis */}
+        <div className="bg-white rounded-3xl p-6 shadow-md mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">今日の分析</h3>
+            <span className="text-xs text-gray-400">My Page</span>
           </div>
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md">
-            <p className="text-2xl font-bold text-gray-800">{totalConnections}</p>
-            <p className="text-xs text-gray-500 mt-1">つながり</p>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md">
-            <p className="text-2xl font-bold text-gray-800">{totalGifts}</p>
-            <p className="text-xs text-gray-500 mt-1">ギフト</p>
-          </div>
+          {analysisLoading ? (
+            <div className="text-sm text-gray-500">読み込み中...</div>
+          ) : recordings.length === 0 ? (
+            <div className="text-sm text-gray-500">まだ録音がありません。</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <div className="text-3xl mb-2">😊</div>
+                  <p className="text-xs text-gray-600 mb-1">今日の気分</p>
+                  <p className="text-sm font-bold text-gray-800">良好</p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <div className="text-3xl mb-2">{emotionToAnimal[dominantEmotion] || "🎵"}</div>
+                  <p className="text-xs text-gray-600 mb-1">感情動物</p>
+                  <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">今日</p>
+                  <p className="text-3xl font-bold text-gray-800">{todayRecordings.length}</p>
+                  <p className="text-xs text-gray-600">件</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-2xl">
+                <p className="text-xs text-gray-600 mb-2 font-medium">AIコメント</p>
+                <p className="text-sm leading-relaxed text-gray-700">
+                  今日は{dominantEmotion}の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Menu Items */}
@@ -181,7 +247,7 @@ export default function MyPage() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 text-white flex items-center justify-center shadow-md">
                 <Users size={20} />
               </div>
-              <span className="font-semibold text-gray-800">つながりリスト (家族・友人)</span>
+              <span className="font-semibold text-gray-800">つながりリスト ({totalConnections}人)</span>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>

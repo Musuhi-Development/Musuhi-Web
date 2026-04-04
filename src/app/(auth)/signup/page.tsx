@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, FormEvent, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Camera, Loader2 } from "lucide-react";
 import { InlineOverlay } from "@/components/ui/Overlay";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const giftToken = searchParams.get("giftToken");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -94,8 +96,24 @@ export default function SignupPage() {
       // セッション未発行時はログイン画面へ誘導（メール確認必須設定を考慮）
       if (data.emailConfirmationRequired || !data.sessionCreated) {
         setInfo("アカウントを作成しました。メール確認後にログインしてください。");
-        router.push("/login");
+        router.push(giftToken ? `/login?giftToken=${giftToken}` : "/login");
         return;
+      }
+
+      if (giftToken) {
+        try {
+          const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, {
+            method: "POST",
+          });
+          if (joinRes.ok) {
+            const joinData = await joinRes.json();
+            router.push(`/gift/${joinData.voiceGiftId}`);
+            router.refresh();
+            return;
+          }
+        } catch (joinError) {
+          console.error("Join voice gift error:", joinError);
+        }
       }
 
       // サインアップ直後にセッションがある場合のみホームへ
