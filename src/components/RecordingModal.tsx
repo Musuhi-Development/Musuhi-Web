@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { Dialog, Transition } from "@headlessui/react";
+import { ScreenOverlay } from "@/components/ui/Overlay";
 
 const emotionTags = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
 const MAX_RECORDING_SECONDS = 180; // 3分
@@ -194,7 +195,7 @@ export default function RecordingModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-40" />
+          <ScreenOverlay />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">

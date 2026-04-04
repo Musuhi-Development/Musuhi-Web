@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const giftToken = searchParams.get("giftToken");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,6 +34,22 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data.error || "ログインに失敗しました");
         return;
+      }
+
+      if (giftToken) {
+        try {
+          const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, {
+            method: "POST",
+          });
+          if (joinRes.ok) {
+            const joinData = await joinRes.json();
+            router.push(`/gift/${joinData.voiceGiftId}`);
+            router.refresh();
+            return;
+          }
+        } catch (joinError) {
+          console.error("Join voice gift error:", joinError);
+        }
       }
 
       // ログイン成功、ホームにリダイレクト
@@ -142,5 +161,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5]" />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

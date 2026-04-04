@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
   try {
     const user = await requireAuth();
     const body = await request.json();
-    const { displayName, bio, location, avatarUrl } = body;
+    const { displayName, bio, location, avatarUrl, birthday, anniversaries } = body;
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -63,6 +63,8 @@ export async function PUT(request: Request) {
         ...(bio !== undefined && { bio }),
         ...(location !== undefined && { location }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(birthday !== undefined && { birthday: birthday ? new Date(birthday) : null }),
+        ...(anniversaries !== undefined && { anniversaries }),
       },
     });
 
@@ -86,7 +88,7 @@ export async function PATCH(request: Request) {
   try {
     const user = await requireAuth();
     const body = await request.json();
-    const { name, displayName, bio, location, avatarUrl } = body;
+    const { name, displayName, bio, location, avatarUrl, birthday, anniversaries } = body;
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -96,6 +98,8 @@ export async function PATCH(request: Request) {
         ...(bio !== undefined && { bio }),
         ...(location !== undefined && { location }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(birthday !== undefined && { birthday: birthday ? new Date(birthday) : null }),
+        ...(anniversaries !== undefined && { anniversaries }),
       },
     });
 

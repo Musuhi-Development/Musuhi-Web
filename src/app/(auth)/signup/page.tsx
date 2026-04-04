@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, FormEvent, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, FormEvent, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Camera, Loader2 } from "lucide-react";
+import { InlineOverlay } from "@/components/ui/Overlay";
 
-export default function SignupPage() {
+function SignupPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const giftToken = searchParams.get("giftToken");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,8 +96,24 @@ export default function SignupPage() {
       // セッション未発行時はログイン画面へ誘導（メール確認必須設定を考慮）
       if (data.emailConfirmationRequired || !data.sessionCreated) {
         setInfo("アカウントを作成しました。メール確認後にログインしてください。");
-        router.push("/login");
+        router.push(giftToken ? `/login?giftToken=${giftToken}` : "/login");
         return;
+      }
+
+      if (giftToken) {
+        try {
+          const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, {
+            method: "POST",
+          });
+          if (joinRes.ok) {
+            const joinData = await joinRes.json();
+            router.push(`/gift/${joinData.voiceGiftId}`);
+            router.refresh();
+            return;
+          }
+        } catch (joinError) {
+          console.error("Join voice gift error:", joinError);
+        }
       }
 
       // サインアップ直後にセッションがある場合のみホームへ
@@ -171,9 +190,9 @@ export default function SignupPage() {
                     name.charAt(0).toUpperCase() || "?"
                   )}
                   {uploadingAvatar && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <InlineOverlay>
                       <Loader2 className="text-white animate-spin" size={24} />
-                    </div>
+                    </InlineOverlay>
                   )}
                 </div>
                 <button
@@ -303,5 +322,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5]" />}>
+      <SignupPageInner />
+    </Suspense>
   );
 }

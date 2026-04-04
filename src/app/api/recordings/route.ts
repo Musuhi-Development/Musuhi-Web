@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const user = await requireAuth();
 
     const body = await request.json();
-    const { title, description, audioUrl, duration, emotions, visibility, location } = body;
+    const { title, description, audioUrl, duration, emotions, images, visibility, location } = body;
 
     // Validation
     if (!title || !audioUrl || duration === undefined) {
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         audioUrl,
         duration,
         emotions: emotions || [],
+        images: Array.isArray(images) ? images : [],
         visibility: normalizedVisibility,
         location: location || null,
         userId: user.id,

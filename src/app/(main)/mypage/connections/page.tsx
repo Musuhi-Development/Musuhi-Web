@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Search, Mail, Calendar, MessageSquare, ChevronDown, User, Check, X as XIcon } from "lucide-react";
 import { clsx } from "clsx";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/shared/PageHeader";
 import { useConnections, ConnectionWithUsers } from "@/hooks/useConnections";
 import { useUser } from "@/hooks/useUser";
@@ -11,6 +12,7 @@ import UserSearch from "@/components/connections/UserSearch";
 type FilterTab = "all" | "email" | "sns" | "birthday";
 
 export default function ConnectionsPage() {
+  const router = useRouter();
   const { user } = useUser();
   const { connections, loading, error, updateConnectionStatus, deleteConnection } = useConnections();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
@@ -34,19 +36,31 @@ export default function ConnectionsPage() {
     if (!user) return [];
     return acceptedConnections.map(conn => {
       const otherUser = conn.initiatorId === user.id ? conn.receiver : conn.initiator;
+      const userProfile = otherUser as any;
+      const anniversaries = Array.isArray(userProfile.anniversaries) ? userProfile.anniversaries : [];
       return {
         id: conn.id,
+        profileUserId: otherUser.id,
         name: otherUser.displayName || otherUser.name || "名無しさん",
         username: otherUser.name || "",
         avatarUrl: otherUser.avatarUrl,
         email: `user_${otherUser.id}@example.com`,
         sns: "",
-        birthday: null,
-        anniversaries: [],
-        memo: "",
+        birthday: userProfile.birthday || null,
+        anniversaries,
+        location: userProfile.location || "",
+        bio: userProfile.bio || "",
       };
     });
   }, [acceptedConnections, user]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
 
   const filteredConnections = useMemo(() => {
     return processedConnections.filter(conn => {
@@ -204,7 +218,39 @@ export default function ConnectionsPage() {
 
               {expandedId === conn.id && (
                 <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-3 bg-gray-50">
-                  {/* Details... */}
+                  {conn.birthday && (
+                    <div className="text-xs text-gray-600">
+                      <span className="font-semibold text-gray-700">誕生日:</span> {formatDate(conn.birthday)}
+                    </div>
+                  )}
+
+                  {conn.anniversaries.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-gray-700">記念日</p>
+                      <div className="space-y-1">
+                        {conn.anniversaries.map((anniversary: any, index: number) => {
+                          const label = typeof anniversary === "string" ? anniversary : anniversary?.label;
+                          const date = typeof anniversary === "object" ? anniversary?.date : undefined;
+                          if (!label) return null;
+
+                          return (
+                            <p key={`${label}-${index}`} className="text-xs text-gray-600">
+                              {label}
+                              {date ? `: ${formatDate(date)}` : ""}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => router.push(`/profile/${conn.profileUserId}`)}
+                    className="w-full text-left text-xs text-blue-600 hover:text-blue-800 p-2 rounded-md hover:bg-blue-50"
+                  >
+                    プロフィールを見る
+                  </button>
+
                   <button onClick={() => deleteConnection(conn.id)} className="w-full text-left text-xs text-red-500 hover:text-red-700 p-2 rounded-md hover:bg-red-50">
                     つながりを解除
                   </button>
