@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X } from "lucide-react";
@@ -54,7 +54,7 @@ type UserResult = {
 
 type SendMode = "draft" | "now" | "scheduled";
 
-export default function NewGiftPage() {
+function NewGiftPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillTitle = searchParams.get("title") || "";
@@ -646,5 +646,13 @@ export default function NewGiftPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewGiftPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <NewGiftPageInner />
+    </Suspense>
   );
 }
