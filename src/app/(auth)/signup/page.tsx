@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, FormEvent, useRef } from "react";
+import { Suspense, useState, FormEvent, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Camera, Loader2 } from "lucide-react";
 import { InlineOverlay } from "@/components/ui/Overlay";
 
-export default function SignupPage() {
+function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const giftToken = searchParams.get("giftToken");
@@ -322,5 +322,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5]" />}>
+      <SignupPageInner />
+    </Suspense>
   );
 }
