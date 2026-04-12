@@ -52,6 +52,12 @@ export async function GET(request: NextRequest) {
         createdAt: "desc",
       },
       include: {
+        recording: {
+          select: {
+            emotions: true,
+            images: true,
+          },
+        },
         author: {
           select: {
             id: true,

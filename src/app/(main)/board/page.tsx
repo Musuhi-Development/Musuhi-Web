@@ -39,8 +39,10 @@ type Board = {
     likes: number;
   };
   likes: { id: string }[];
-  // homeのUIに合わせるためemotionsを追加
-  emotions?: string[];
+  recording?: {
+    emotions: unknown;
+    images: unknown;
+  } | null;
 };
 
 type VoiceComment = {
@@ -124,15 +126,11 @@ export default function BoardPage() {
       }
       
       const data = await res.json();
-      // TODO: API側でemotionsを返すように修正する
-      const boardsWithDemoEmotions = data.boards.map((b: Board) => ({
-        ...b,
-        emotions: ['楽しい', '感謝'].slice(0, Math.floor(Math.random() * 3))
-      }));
-      setBoards(boardsWithDemoEmotions || []);
+      const boardsData = data.boards || [];
+      setBoards(boardsData);
 
       await Promise.all(
-        (boardsWithDemoEmotions || []).map((board: Board) =>
+        boardsData.map((board: Board) =>
           fetchComments(board.id, { silent: true })
         )
       );
@@ -514,8 +512,10 @@ export default function BoardPage() {
                   const voiceComments = comments.filter((comment) => Boolean(comment.audioUrl));
                   const showAllComments = showAllCommentsByBoard[post.id] || false;
                   const visibleVoiceComments = showAllComments ? voiceComments : voiceComments.slice(0, 3);
-                  const animalIcon = post.emotions && post.emotions.length > 0 
-                    ? emotionToAnimal[post.emotions[0]] || "🎵"
+                  const emotions = Array.isArray(post.recording?.emotions) ? post.recording?.emotions : [];
+                  const imageUrl = Array.isArray(post.recording?.images) ? post.recording?.images[0] : null;
+                  const animalIcon = emotions.length > 0 
+                    ? emotionToAnimal[String(emotions[0])] || "🎵"
                     : "🎵";
 
                   return (
@@ -523,9 +523,17 @@ export default function BoardPage() {
                       <div className="flex items-center gap-4">
                         {/* Thumbnail with Play Button */}
                         <div className="relative w-16 h-16 flex-shrink-0">
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                            <span className="text-3xl">{animalIcon}</span>
-                          </div>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={post.title}
+                              className="w-full h-full rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-3xl">{animalIcon}</span>
+                            </div>
+                          )}
                           {post.audioUrl && (
                             <>
                               <button
@@ -556,11 +564,11 @@ export default function BoardPage() {
                             {formatDate(post.createdAt)}
                             {post.duration && ` · ${formatDuration(post.duration)}`}
                           </p>
-                          {post.emotions && post.emotions.length > 0 && (
+                          {emotions.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {post.emotions.slice(0, 3).map((e: string) => (
-                                <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
-                                  #{e}
+                              {emotions.slice(0, 3).map((emotion) => (
+                                <span key={String(emotion)} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                  #{String(emotion)}
                                 </span>
                               ))}
                             </div>

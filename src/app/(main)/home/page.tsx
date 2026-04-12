@@ -178,6 +178,19 @@ export default function HomePage() {
     return recordings.filter((recording) => Array.isArray(recording.emotions) && recording.emotions.includes(selectedTag));
   }, [recordings, selectedTag]);
 
+  function getVisibilityLabel(visibility: string) {
+    if (visibility === "private") return "非公開";
+    if (visibility === "friends") return "限定公開";
+    if (visibility === "public") return "公開";
+    return "非公開";
+  }
+
+  function getVisibilityIcon(visibility: string) {
+    if (visibility === "private") return <Lock size={12} />;
+    if (visibility === "friends") return <Users size={12} />;
+    return <Globe size={12} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
@@ -280,6 +293,7 @@ export default function HomePage() {
                 : "space-y-3"
             )}>
               {filteredRecordings.map((recording: any) => {
+                const imageUrl = Array.isArray(recording.images) ? recording.images[0] : null;
                 const animalIcon = recording.emotions && recording.emotions.length > 0 
                   ? emotionToAnimal[recording.emotions[0]] || "🎵"
                   : "🎵";
@@ -304,32 +318,27 @@ export default function HomePage() {
                     {viewMode === "list" ? (
                       // List View
                       <div className="flex items-center gap-4">
-                        {/* Thumbnail with Play Button */}
+                        {/* Thumbnail */}
                         <div className="relative w-16 h-16 flex-shrink-0">
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                            <span className="text-3xl">{animalIcon}</span>
-                          </div>
-                          <button
-                            onClick={(e) => togglePlayPause(recording, e)}
-                            className={clsx(
-                              "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
-                              playingId === recording.id && isPlaying && "bg-black/30"
-                            )}
-                            aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
-                          >
-                            {playingId === recording.id && isPlaying ? (
-                              <Pause className="text-white drop-shadow-lg" size={24} fill="white" />
-                            ) : (
-                              <Play className="text-white drop-shadow-lg" size={24} fill="white" />
-                            )}
-                          </button>
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
-                            <Volume2 size={12} className="text-[#2A5CAA]" />
-                          </div>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={recording.title}
+                              className="w-full h-full rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-3xl">{animalIcon}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
+                          <div className="text-gray-400 flex items-center gap-1 text-[10px] mb-1">
+                            {getVisibilityIcon(recording.visibility)}
+                            <span>{getVisibilityLabel(recording.visibility)}</span>
+                          </div>
                           <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {formatDate(recording.createdAt)} · {formatDuration(recording.duration)}
@@ -345,62 +354,64 @@ export default function HomePage() {
                           )}
                         </div>
 
-                        {/* Visibility Icon */}
-                        <div className="text-gray-400 flex items-center gap-1 text-xs">
-                          {recording.visibility === "private" && (
-                            <>
-                              <Lock size={16} />
-                              <span>非公開</span>
-                            </>
+                        <button
+                          onClick={(e) => togglePlayPause(recording, e)}
+                          className={clsx(
+                            "w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#2A5CAA] hover:bg-gray-50 transition-colors",
+                            playingId === recording.id && isPlaying && "bg-[#2A5CAA] text-white border-[#2A5CAA]"
                           )}
-                          {recording.visibility === "friends" && (
-                            <>
-                              <Users size={16} />
-                              <span>限定公開</span>
-                            </>
+                          aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
+                        >
+                          {playingId === recording.id && isPlaying ? (
+                            <Pause size={18} fill="currentColor" />
+                          ) : (
+                            <Play size={18} fill="currentColor" />
                           )}
-                          {recording.visibility === "public" && (
-                            <>
-                              <Globe size={16} />
-                              <span>公開</span>
-                            </>
-                          )}
-                        </div>
+                        </button>
                       </div>
                     ) : (
                       // Grid View
                       <div>
                         {/* Thumbnail */}
-                        <div className="relative w-full aspect-square mb-3">
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                            <span className="text-5xl">{animalIcon}</span>
-                          </div>
+                        <div className="w-full aspect-square mb-3">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={recording.title}
+                              className="w-full h-full rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-5xl">{animalIcon}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="text-gray-400 flex items-center gap-1 text-[10px] mb-1">
+                          {getVisibilityIcon(recording.visibility)}
+                          <span>{getVisibilityLabel(recording.visibility)}</span>
+                        </div>
+                        <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
+                          {recording.title}
+                        </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-gray-500">{formatDate(recording.createdAt)}</p>
                           <button
                             onClick={(e) => togglePlayPause(recording, e)}
                             className={clsx(
-                              "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
-                              playingId === recording.id && isPlaying && "bg-black/30"
+                              "w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#2A5CAA] hover:bg-gray-50 transition-colors",
+                              playingId === recording.id && isPlaying && "bg-[#2A5CAA] text-white border-[#2A5CAA]"
                             )}
                             aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
                           >
                             {playingId === recording.id && isPlaying ? (
-                              <Pause className="text-white drop-shadow-lg" size={32} fill="white" />
+                              <Pause size={16} fill="currentColor" />
                             ) : (
-                              <Play className="text-white drop-shadow-lg" size={32} fill="white" />
+                              <Play size={16} fill="currentColor" />
                             )}
                           </button>
-                          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
-                            <Volume2 size={16} className="text-[#2A5CAA]" />
-                          </div>
                         </div>
-
-                        {/* Info */}
-                        <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
-                          {recording.title}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {formatDate(recording.createdAt)}
-                        </p>
                         {recording.emotions && recording.emotions.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {recording.emotions.slice(0, 2).map((e: string) => (
@@ -421,40 +432,84 @@ export default function HomePage() {
       </div>
 
       {selectedRecording && (
-        <ScreenOverlay className="z-50 flex items-end sm:items-center justify-center" onClick={() => setSelectedRecording(null)}>
+        <ScreenOverlay className="z-[70] flex items-end sm:items-center justify-center px-4 pb-28 sm:pb-4" onClick={() => setSelectedRecording(null)}>
           <div
-            className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl"
+            className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-gray-800">{selectedRecording.title}</h3>
-              <button
-                onClick={() => setSelectedRecording(null)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                閉じる
-              </button>
-            </div>
+            <div className="relative bg-[#fffdf8] rounded-2xl p-4 sm:p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)] border border-[#f1eadb]">
+              <div className="absolute top-2 left-6 w-16 h-5 rounded-sm bg-[#f6e7a8]/80 rotate-[-6deg] shadow-sm" />
+              <div className="absolute top-2 right-8 w-16 h-5 rounded-sm bg-[#d9e8ff]/80 rotate-[8deg] shadow-sm" />
 
-            <p className="text-xs text-gray-500 mb-3">
-              {formatDateTime(selectedRecording.createdAt)} ・ {formatDuration(selectedRecording.duration)}
-            </p>
+              <div className="relative bg-white p-3 sm:p-4 rounded-md border border-[#eee6d6] shadow-[0_10px_22px_rgba(0,0,0,0.12)]">
+                {Array.isArray(selectedRecording.images) && selectedRecording.images.length > 0 ? (
+                  <img
+                    src={selectedRecording.images[0]}
+                    alt={selectedRecording.title}
+                    className="w-full rounded-sm object-cover max-h-64 sm:max-h-72"
+                  />
+                ) : (
+                  <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                    <span className="text-6xl">
+                      {selectedRecording.emotions && selectedRecording.emotions.length > 0
+                        ? emotionToAnimal[selectedRecording.emotions[0]] || "🎵"
+                        : "🎵"}
+                    </span>
+                  </div>
+                )}
 
-            {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {selectedRecording.emotions.map((emotion: string) => (
-                  <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
-                    #{emotion}
-                  </span>
-                ))}
+                <div className="pt-4 pb-2 px-1">
+                  <p className="text-lg text-gray-800 tracking-wide font-semibold">{selectedRecording.title}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formatDateTime(selectedRecording.createdAt)} ・ {formatDuration(selectedRecording.duration)}
+                  </p>
+
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                    {getVisibilityIcon(selectedRecording.visibility)}
+                    <span>{getVisibilityLabel(selectedRecording.visibility)}</span>
+                    {selectedRecording.location && (
+                      <>
+                        <span>・</span>
+                        <MapPin size={12} />
+                        <span>{selectedRecording.location}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
 
-            <div className="bg-gray-50 rounded-2xl p-4">
-              <p className="text-xs font-semibold text-gray-500 mb-2">テキストメモ</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                {selectedRecording.description || "メモは設定されていません"}
-              </p>
+              {selectedRecording.audioUrl && (
+                <div className="mt-4 px-1">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">再生</p>
+                  <audio controls src={selectedRecording.audioUrl} className="w-full" preload="metadata" />
+                </div>
+              )}
+
+              {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {selectedRecording.emotions.map((emotion: string) => (
+                    <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
+                      #{emotion}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 px-1">
+                <p className="text-xs font-semibold text-gray-500 mb-2">テキストメモ</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {selectedRecording.description || "メモは設定されていません"}
+                </p>
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => setSelectedRecording(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  閉じる
+                </button>
+              </div>
             </div>
           </div>
         </ScreenOverlay>

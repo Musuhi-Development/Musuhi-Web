@@ -100,6 +100,10 @@ function SignupPageInner() {
         return;
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.setItem("musuhi-login-session-id", String(Date.now()));
+      }
+
       if (giftToken) {
         try {
           const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, {

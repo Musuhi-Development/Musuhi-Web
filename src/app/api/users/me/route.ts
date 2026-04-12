@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { isUnauthorizedError, requireAuth } from "@/lib/auth";
 
 // GET: Get current user profile
 export async function GET() {
@@ -36,11 +36,11 @@ export async function GET() {
 
     return NextResponse.json({ user: profile });
   } catch (error: any) {
-    console.error("Get user profile error:", error);
-
-    if (error.message === "Unauthorized") {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.error("Get user profile error:", error);
 
     return NextResponse.json(
       { error: "Internal server error" },
@@ -70,11 +70,11 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ user: updatedUser });
   } catch (error: any) {
-    console.error("Update user profile error:", error);
-
-    if (error.message === "Unauthorized") {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.error("Update user profile error:", error);
 
     return NextResponse.json(
       { error: "Internal server error" },
@@ -105,11 +105,11 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ user: updatedUser });
   } catch (error: any) {
-    console.error("Update user profile error:", error);
-
-    if (error.message === "Unauthorized") {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.error("Update user profile error:", error);
 
     return NextResponse.json(
       { error: "Internal server error" },
