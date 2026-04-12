@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Gift, Send, Users, Mail, Calendar, User } from "lucide-react";
+import { Plus, Gift, Send, Users, Mail, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -35,6 +35,13 @@ export default function GiftPage() {
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(activeFilter);
   const router = useRouter();
 
+  const statusToneClass: Record<string, string> = {
+    blue: "bg-blue-50 text-blue-700 border border-blue-200",
+    emerald: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    amber: "bg-amber-50 text-amber-700 border border-amber-200",
+    slate: "bg-gray-100 text-gray-700 border border-gray-200",
+  };
+
   function formatDate(dateString: string) {
     const date = new Date(dateString);
     return date.toLocaleDateString("ja-JP", {
@@ -42,6 +49,77 @@ export default function GiftPage() {
       month: "numeric",
       day: "numeric",
     });
+  }
+
+  function getParticipantUsers(gift: any) {
+    const relationUsers = (gift.participants || [])
+      .map((participant: any) => participant.user)
+      .filter(Boolean);
+    const recordingUsers = (gift.recordings || [])
+      .map((recording: any) => recording.contributor)
+      .filter(Boolean);
+
+    const merged = [gift.owner, ...relationUsers, ...recordingUsers].filter(Boolean);
+    return Array.from(new Map(merged.map((item: any) => [item.id, item])).values());
+  }
+
+  function getRecordingPreviews(gift: any) {
+    const previews = (gift.recordings || []).map((item: any) => {
+      const recording = item.recording;
+      const imageUrl = Array.isArray(recording?.images) ? recording.images[0] : undefined;
+      const animalIcon =
+        recording?.emotions && recording.emotions.length > 0
+          ? emotionToAnimal[recording.emotions[0]] || "🎵"
+          : "🎵";
+
+      return {
+        imageUrl,
+        animalIcon,
+      };
+    });
+
+    return previews.slice(0, 4);
+  }
+
+  function getGiftStatusBadges(gift: any) {
+    const isOwnerOrParticipant =
+      gift.ownerId === user?.id ||
+      (gift.participants || []).some((participant: any) => participant.userId === user?.id);
+    const recipient = (gift.recipients || []).find(
+      (r: any) => r.recipientId === user?.id || (user?.email && r.recipientEmail === user.email)
+    );
+
+    const badges: Array<{ label: string; tone: "blue" | "emerald" | "amber" | "slate" }> = [];
+
+    if (gift.status === "draft") {
+      badges.push({ label: "下書き", tone: "slate" });
+    } else if (gift.status === "scheduled") {
+      badges.push({ label: "予約送信", tone: "amber" });
+    } else if (gift.status === "sent") {
+      badges.push({ label: recipient && !isOwnerOrParticipant ? "受信済み" : "送信済み", tone: recipient && !isOwnerOrParticipant ? "emerald" : "blue" });
+    } else {
+      badges.push({ label: "作成中", tone: "slate" });
+    }
+
+    if (gift.status === "sent") {
+      if (recipient && !isOwnerOrParticipant) {
+        badges.push({ label: recipient.status === "opened" ? "既読" : "未読", tone: recipient.status === "opened" ? "emerald" : "slate" });
+      } else {
+        const totalRecipients = (gift.recipients || []).length;
+        const openedRecipients = (gift.recipients || []).filter((item: any) => item.status === "opened").length;
+        if (totalRecipients > 0) {
+          if (openedRecipients === 0) {
+            badges.push({ label: "未読", tone: "slate" });
+          } else if (openedRecipients === totalRecipients) {
+            badges.push({ label: "全員既読", tone: "emerald" });
+          } else {
+            badges.push({ label: `一部既読 ${openedRecipients}/${totalRecipients}`, tone: "amber" });
+          }
+        }
+      }
+    }
+
+    return badges;
   }
 
   return (
@@ -123,45 +201,55 @@ export default function GiftPage() {
         ) : (
           <div className="space-y-3">
             {voiceGifts.map((gift) => {
-              const recipient = gift.recipients?.find(
-                (r: any) => r.recipientId === user?.id || (user?.email && r.recipientEmail === user.email)
-              );
-              const contributorCount = new Set(
-                (gift.recordings || []).map((recording: any) => recording.contributorId)
-              ).size;
-              const ownerRecording =
-                gift.recordings?.find((recording: any) => recording.contributorId === gift.ownerId)?.recording ||
-                gift.recordings?.[0]?.recording;
-              const imageUrl = Array.isArray(ownerRecording?.images) ? ownerRecording.images[0] : undefined;
-              const animalIcon =
-                ownerRecording?.emotions && ownerRecording.emotions.length > 0
-                  ? emotionToAnimal[ownerRecording.emotions[0]] || "🎵"
-                  : "🎵";
-              const participantLabel = contributorCount <= 1 ? "1人" : `${contributorCount}人`;
-              const participantIcon = contributorCount <= 1 ? <User size={12} /> : <Users size={12} />;
-              const contributorUsers = (gift.recordings || []).map((recording: any) => recording.contributor);
-              const uniqueContributors = Array.from(
-                new Map(contributorUsers.map((contributor: any) => [contributor.id, contributor])).values()
-              );
-              const participantUsers = gift.owner
-                ? [
-                    gift.owner,
-                    ...uniqueContributors.filter((contributor: any) => contributor.id !== gift.owner.id),
-                  ]
-                : uniqueContributors;
+              const participantUsers = getParticipantUsers(gift);
+              const visibleParticipants = participantUsers.slice(0, 4);
+              const hiddenParticipantCount = Math.max(participantUsers.length - visibleParticipants.length, 0);
+              const recordingPreviews = getRecordingPreviews(gift);
+              const statusBadges = getGiftStatusBadges(gift);
+              const gridSlots: Array<{ imageUrl?: string; animalIcon?: string } | null> = [null, null, null, null];
+
+              if (recordingPreviews.length === 2) {
+                gridSlots[0] = recordingPreviews[0];
+                gridSlots[3] = recordingPreviews[1];
+              } else if (recordingPreviews.length === 3) {
+                gridSlots[0] = recordingPreviews[0];
+                gridSlots[1] = recordingPreviews[1];
+                gridSlots[2] = recordingPreviews[2];
+              } else if (recordingPreviews.length >= 4) {
+                recordingPreviews.slice(0, 4).forEach((preview: any, index: number) => {
+                  gridSlots[index] = preview;
+                });
+              }
 
               return (
                 <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
                   <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4">
                     <div className="flex items-center gap-4">
                       <div className="relative w-16 h-16 flex-shrink-0">
-                        <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={gift.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-3xl">{animalIcon}</span>
-                          )}
-                        </div>
+                        {recordingPreviews.length <= 1 ? (
+                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
+                            {recordingPreviews[0]?.imageUrl ? (
+                              <img src={recordingPreviews[0].imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-3xl">{recordingPreviews[0]?.animalIcon || "🎵"}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1">
+                            {gridSlots.map((preview, index) => (
+                              <div
+                                key={`${gift.id}-preview-${index}`}
+                                className="w-full h-full rounded-md bg-gray-200 overflow-hidden flex items-center justify-center"
+                              >
+                                {preview?.imageUrl ? (
+                                  <img src={preview.imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                                ) : preview ? (
+                                  <span className="text-sm">{preview.animalIcon || "🎵"}</span>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -171,30 +259,43 @@ export default function GiftPage() {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {formatDate(gift.createdAt)} ・ {gift.recordings?.length || 0}件の音声
                         </p>
-                        <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-gray-600">
-                          <span className="bg-gray-100 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                            {participantIcon}
-                            参加 {participantLabel}
-                          </span>
+                        <div className="flex items-center gap-1 mt-2">
+                          {visibleParticipants.map((participant: any) => {
+                            const displayName = participant.displayName || participant.name || "U";
+                            return (
+                              <div
+                                key={participant.id}
+                                title={displayName}
+                                className="w-7 h-7 rounded-full border border-white bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[11px] font-bold overflow-hidden shadow-sm"
+                              >
+                                {participant.avatarUrl ? (
+                                  <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  displayName[0].toUpperCase()
+                                )}
+                              </div>
+                            );
+                          })}
+                          {hiddenParticipantCount > 0 && (
+                            <div className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-[10px] font-semibold flex items-center justify-center">
+                              +{hiddenParticipantCount}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center -space-x-2">
-                        {participantUsers.slice(0, 3).map((participant: any) => {
-                          const displayName = participant.displayName || participant.name || "U";
-                          return (
-                            <div
-                              key={participant.id}
-                              className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-sm font-bold overflow-hidden"
-                            >
-                              {participant.avatarUrl ? (
-                                <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                              ) : (
-                                displayName[0].toUpperCase()
-                              )}
-                            </div>
-                          );
-                        })}
+                      <div className="flex flex-col items-end gap-1 w-24 flex-shrink-0">
+                        {statusBadges.map((badge, index) => (
+                          <span
+                            key={`${gift.id}-status-${index}`}
+                            className={clsx(
+                              "px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap",
+                              statusToneClass[badge.tone]
+                            )}
+                          >
+                            {badge.label}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>

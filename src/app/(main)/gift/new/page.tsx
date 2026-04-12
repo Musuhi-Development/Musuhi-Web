@@ -489,6 +489,13 @@ function NewGiftPageInner() {
     });
   }, [recordings, selectedTag, recordingKeyword]);
 
+  const primaryActionLabel = useMemo(() => {
+    if (giftStyle === "collab") return "募集開始";
+    if (sendMode === "draft") return "下書き保存";
+    if (sendMode === "now") return "送信";
+    return "予約送信";
+  }, [giftStyle, sendMode]);
+
   return (
     <div className="pb-24 min-h-screen bg-white flex flex-col">
       <header className="px-4 py-3 flex justify-between items-center border-b">
@@ -506,14 +513,8 @@ function NewGiftPageInner() {
               <Loader2 size={14} className="animate-spin" />
               送信中...
             </>
-          ) : giftStyle === "collab" ? (
-            "募集開始"
-          ) : sendMode === "draft" ? (
-            "下書き保存"
-          ) : sendMode === "now" ? (
-            "送信"
           ) : (
-            "予約送信"
+            primaryActionLabel
           )}
         </button>
       </header>
@@ -921,11 +922,11 @@ function NewGiftPageInner() {
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => setSendMode("draft")}
+                onClick={handleSend}
                 className="w-full py-3 rounded-xl text-sm font-semibold border bg-[#2A5CAA] text-white border-[#2A5CAA]"
                 disabled={sending}
               >
-                募集開始
+                {sending ? "処理中..." : "募集開始"}
               </button>
               <p className="text-xs text-gray-500">
                 募集開始するとドラフトが作成されます。メンバーが音声を追加した後、ドラフト画面から送信してください。
@@ -966,6 +967,23 @@ function NewGiftPageInner() {
                 <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               </div>
             </div>
+          )}
+          {giftStyle === "solo" && (
+            <button
+              type="button"
+              onClick={handleSend}
+              className="w-full mt-4 py-3 rounded-xl text-sm font-semibold border bg-[#2A5CAA] text-white border-[#2A5CAA] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={sending}
+            >
+              {sending ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  送信中...
+                </>
+              ) : (
+                primaryActionLabel
+              )}
+            </button>
           )}
         </div>
 
