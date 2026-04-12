@@ -17,13 +17,15 @@ services:
         condition: service_healthy
     env_file:
       - .env.local
+    environment:
+      - NPM_CONFIG_INCLUDE=optional
     # DATABASE_URL / DIRECT_URL は .env.local で管理
     tty: true
     command: >
-      sh -c "npm install && 
+      sh -c "npm ci --include=optional && 
              npx prisma generate && 
              npx prisma db push && 
-             npx prisma studio --port 5555 --hostname 0.0.0.0 & 
+             (npx prisma studio --port 5555 --hostname 0.0.0.0 > /tmp/prisma-studio.log 2>&1 &) && 
              npm run dev"
 
   # ローカルPostgreSQL

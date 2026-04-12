@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { isUnauthorizedError, requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function shouldPublishToBoard(visibility: string) {
@@ -54,11 +54,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ recording }, { status: 201 });
   } catch (error: any) {
-    console.error("Create recording error:", error);
-
-    if (error.message === "Unauthorized") {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.error("Create recording error:", error);
 
     return NextResponse.json(
       { error: "Internal server error" },
@@ -70,8 +70,6 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const user = await requireAuth();
-    console.log("Authenticated user ID:", user.id); // 認証ユーザーIDをログ出力
-
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
@@ -90,15 +88,13 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    console.log(`Found ${recordings.length} recordings.`); // 取得件数をログ出力
-
     return NextResponse.json({ recordings });
   } catch (error: any) {
-    console.error("Get recordings error:", error);
-
-    if (error.message === "Unauthorized") {
+    if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.error("Get recordings error:", error);
 
     return NextResponse.json(
       { error: "Internal server error" },
