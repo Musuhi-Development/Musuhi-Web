@@ -126,6 +126,7 @@ export async function POST(request: Request) {
       message,
       recipientIds,
       recipientEmails,
+      participantIds,
       recordingIds,
       sendAt,
       sendNow,
@@ -137,12 +138,46 @@ export async function POST(request: Request) {
 
     const normalizedRecipientIds = normalizeIds(recipientIds);
     const normalizedRecipientEmails = normalizeEmails(recipientEmails);
+    const normalizedParticipantIds = normalizeIds(participantIds).filter((id) => id !== user.id);
 
     if (normalizedRecipientIds.length === 0 && normalizedRecipientEmails.length === 0) {
       return NextResponse.json(
         { error: "At least one recipient is required" },
         { status: 400 }
       );
+    }
+
+    if (normalizedParticipantIds.length > 0) {
+      const acceptedConnections = await prisma.connection.findMany({
+        where: {
+          status: "accepted",
+          OR: [
+            { initiatorId: user.id, receiverId: { in: normalizedParticipantIds } },
+            { receiverId: user.id, initiatorId: { in: normalizedParticipantIds } },
+          ],
+        },
+        select: {
+          initiatorId: true,
+          receiverId: true,
+        },
+      });
+
+      const allowedParticipantIds = new Set<string>();
+      acceptedConnections.forEach((connection) => {
+        const partnerId = connection.initiatorId === user.id ? connection.receiverId : connection.initiatorId;
+        allowedParticipantIds.add(partnerId);
+      });
+
+      const invalidParticipantIds = normalizedParticipantIds.filter(
+        (participantId) => !allowedParticipantIds.has(participantId)
+      );
+
+      if (invalidParticipantIds.length > 0) {
+        return NextResponse.json(
+          { error: "Participants must be selected from accepted connections" },
+          { status: 400 }
+        );
+      }
     }
 
     const normalizedRecordingIds = normalizeIds(recordingIds);
@@ -182,6 +217,17 @@ export async function POST(request: Request) {
     const { status, effectiveSendAt } = getStatusForSendAt(parsedSendAt, Boolean(sendNow));
 
     const deliveredAt = status === "sent" ? new Date() : null;
+    const participantCreateData = [
+      {
+        userId: user.id,
+        role: "owner",
+      },
+      ...normalizedParticipantIds.map((participantId) => ({
+        userId: participantId,
+        role: "contributor",
+      })),
+    ];
+
     const recipientCreateData = [
       ...normalizedRecipientIds.map((id) => ({
         recipientId: id,
@@ -204,12 +250,7 @@ export async function POST(request: Request) {
         sendAt: effectiveSendAt,
         shareToken: randomUUID(),
         recipients: { create: recipientCreateData },
-        participants: {
-          create: {
-            userId: user.id,
-            role: "owner",
-          },
-        },
+        participants: { create: participantCreateData },
         recordings: {
           create: normalizedRecordingIds.map((recordingId: string) => ({
             recordingId,
