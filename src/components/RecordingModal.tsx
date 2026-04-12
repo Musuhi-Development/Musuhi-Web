@@ -11,6 +11,12 @@ import { ScreenOverlay } from "@/components/ui/Overlay";
 const emotionTags = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
 const MAX_RECORDING_SECONDS = 180; // 3分
 
+type JournalingPrompt = {
+  headline: string;
+  message: string;
+  recordingText: string;
+};
+
 interface RecordingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +42,7 @@ export default function RecordingModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [prompt, setPrompt] = useState<JournalingPrompt | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,8 +57,46 @@ export default function RecordingModal({
       setUploadingImage(false);
       setMemo("");
       setSaving(false);
+      setPrompt(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || isVoiceCommentMode) {
+      return;
+    }
+
+    let isMounted = true;
+
+    fetch("/api/journaling/prompt", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch journaling prompt");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!isMounted) return;
+        setPrompt({
+          headline: data.headline || "AIからの提案",
+          message: data.message || "こんなことを録音してみませんか？",
+          recordingText: data.recordingText || "今日いちばん心に残ったこと",
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to load journaling prompt in modal:", error);
+        if (!isMounted) return;
+        setPrompt({
+          headline: "AIからの提案",
+          message: "今日はどんな気持ちで過ごしたか、短く残してみませんか？",
+          recordingText: "今日いちばん心に残ったこと",
+        });
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, isVoiceCommentMode]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -240,6 +285,14 @@ export default function RecordingModal({
 
                 {/* Content */}
                 <div className="overflow-y-auto max-h-[calc(100vh-200px)] px-6 py-4">
+                  {!isVoiceCommentMode && prompt && (
+                    <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <p className="text-[11px] font-bold text-[#2A5CAA]">{prompt.headline || "AIからの提案"}</p>
+                      <p className="text-xs text-gray-700 mt-1">{prompt.message}</p>
+                      <p className="text-xs text-gray-600 mt-1">「{prompt.recordingText}」</p>
+                    </div>
+                  )}
+
                   {/* Recording Component */}
                   <VoiceRecorder
                     onRecordingComplete={handleRecordingComplete}

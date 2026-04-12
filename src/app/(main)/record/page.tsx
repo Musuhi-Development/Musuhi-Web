@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,12 @@ import VoiceRecorder from "@/components/VoiceRecorder";
 
 const emotionTags = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
 const MAX_RECORDING_SECONDS = 180; // 3分
+
+type JournalingPrompt = {
+  headline: string;
+  message: string;
+  recordingText: string;
+};
 
 export default function RecordPage() {
   const router = useRouter();
@@ -21,7 +27,41 @@ export default function RecordPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [prompt, setPrompt] = useState<JournalingPrompt | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/journaling/prompt", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch journaling prompt");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!isMounted) return;
+        setPrompt({
+          headline: data.headline || "AIからの提案",
+          message: data.message || "こんなことを録音してみませんか？",
+          recordingText: data.recordingText || "今日いちばん心に残ったこと",
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to load journaling prompt:", error);
+        if (!isMounted) return;
+        setPrompt({
+          headline: "AIからの提案",
+          message: "今日はどんな気持ちで過ごしたか、短く残してみませんか？",
+          recordingText: "今日いちばん心に残ったこと",
+        });
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -156,6 +196,16 @@ export default function RecordPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
+        {prompt && (
+          <div className="px-4 pt-4">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <p className="text-[11px] font-bold text-[#2A5CAA]">{prompt.headline || "AIからの提案"}</p>
+              <p className="text-xs text-gray-700 mt-1">{prompt.message}</p>
+              <p className="text-xs text-gray-600 mt-1">「{prompt.recordingText}」</p>
+            </div>
+          </div>
+        )}
+
         {/* Recording Component */}
         <VoiceRecorder
           onRecordingComplete={handleRecordingComplete}

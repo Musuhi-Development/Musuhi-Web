@@ -59,6 +59,11 @@ DATABASE_URL="postgresql://musuhi_user:musuhi_password@db:5432/musuhi_db?schema=
 NEXT_PUBLIC_SUPABASE_URL="https://xxxxxxxxxxxxx.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGc......your-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="eyJhbGc......your-service-role-key"
+
+# Musuhi AI API (録音お題吹き出し)
+# Docker実行時は host.docker.internal を推奨
+MUSUHI_AI_API_URL="http://host.docker.internal:8010"
+MUSUHI_AI_API_KEY=""
 ```
 
 ⚠️ **重要**: `.env.local`ファイルを作成してから次のステップに進んでください。
