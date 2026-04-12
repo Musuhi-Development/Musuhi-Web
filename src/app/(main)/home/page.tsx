@@ -280,6 +280,7 @@ export default function HomePage() {
                 : "space-y-3"
             )}>
               {filteredRecordings.map((recording: any) => {
+                const imageUrl = Array.isArray(recording.images) ? recording.images[0] : null;
                 const animalIcon = recording.emotions && recording.emotions.length > 0 
                   ? emotionToAnimal[recording.emotions[0]] || "🎵"
                   : "🎵";
@@ -306,9 +307,17 @@ export default function HomePage() {
                       <div className="flex items-center gap-4">
                         {/* Thumbnail with Play Button */}
                         <div className="relative w-16 h-16 flex-shrink-0">
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                            <span className="text-3xl">{animalIcon}</span>
-                          </div>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={recording.title}
+                              className="w-full h-full rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-3xl">{animalIcon}</span>
+                            </div>
+                          )}
                           <button
                             onClick={(e) => togglePlayPause(recording, e)}
                             className={clsx(
@@ -372,9 +381,17 @@ export default function HomePage() {
                       <div>
                         {/* Thumbnail */}
                         <div className="relative w-full aspect-square mb-3">
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                            <span className="text-5xl">{animalIcon}</span>
-                          </div>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={recording.title}
+                              className="w-full h-full rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-5xl">{animalIcon}</span>
+                            </div>
+                          )}
                           <button
                             onClick={(e) => togglePlayPause(recording, e)}
                             className={clsx(
