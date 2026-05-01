@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     // Mock AI analysis - in production, this would call an actual AI service
-    const mockEmotions = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし"];
+    const mockEmotions = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
     const randomEmotions = mockEmotions
       .sort(() => Math.random() - 0.5)
       .slice(0, Math.floor(Math.random() * 3) + 1);

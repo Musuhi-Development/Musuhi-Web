@@ -6,18 +6,16 @@ import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import RecordingModal from "@/components/RecordingModal";
 
-// AIが推定する動物アイコン（デモ用の絵文字マッピング）
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
 type Board = {
@@ -514,9 +512,9 @@ export default function BoardPage() {
                   const visibleVoiceComments = showAllComments ? voiceComments : voiceComments.slice(0, 3);
                   const emotions = Array.isArray(post.recording?.emotions) ? post.recording?.emotions : [];
                   const imageUrl = Array.isArray(post.recording?.images) ? post.recording?.images[0] : null;
-                  const animalIcon = emotions.length > 0 
-                    ? emotionToAnimal[String(emotions[0])] || "🎵"
-                    : "🎵";
+                  const animalImageSrc = emotions.length > 0
+                    ? (emotionToAnimal[String(emotions[0])] ?? null)
+                    : null;
 
                   return (
                     <div key={post.id} className="bg-white rounded-2xl shadow-md p-4">
@@ -531,7 +529,11 @@ export default function BoardPage() {
                             />
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-3xl">{animalIcon}</span>
+                              {animalImageSrc ? (
+                                <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                              ) : (
+                                <span className="text-3xl">🎵</span>
+                              )}
                             </div>
                           )}
                           {post.audioUrl && (

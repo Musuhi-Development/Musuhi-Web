@@ -6,21 +6,19 @@ import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
 
-// AIが推定する動物アイコン（デモ用の絵文字マッピング）
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
-const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
+const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
 
 export default function HomePage() {
   const router = useRouter();
@@ -294,9 +292,9 @@ export default function HomePage() {
             )}>
               {filteredRecordings.map((recording: any) => {
                 const imageUrl = Array.isArray(recording.images) ? recording.images[0] : null;
-                const animalIcon = recording.emotions && recording.emotions.length > 0 
-                  ? emotionToAnimal[recording.emotions[0]] || "🎵"
-                  : "🎵";
+                const animalImageSrc = recording.emotions && recording.emotions.length > 0
+                  ? (emotionToAnimal[recording.emotions[0]] ?? null)
+                  : null;
 
                 return (
                   <div
@@ -328,7 +326,11 @@ export default function HomePage() {
                             />
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-3xl">{animalIcon}</span>
+                              {animalImageSrc ? (
+                                <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                              ) : (
+                                <span className="text-3xl">🎵</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -382,7 +384,11 @@ export default function HomePage() {
                             />
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-5xl">{animalIcon}</span>
+                              {animalImageSrc ? (
+                                <img src={animalImageSrc} alt="" className="w-16 h-16 object-contain" />
+                              ) : (
+                                <span className="text-5xl">🎵</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -450,11 +456,11 @@ export default function HomePage() {
                   />
                 ) : (
                   <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                    <span className="text-6xl">
-                      {selectedRecording.emotions && selectedRecording.emotions.length > 0
-                        ? emotionToAnimal[selectedRecording.emotions[0]] || "🎵"
-                        : "🎵"}
-                    </span>
+                    {selectedRecording.emotions && selectedRecording.emotions.length > 0 && emotionToAnimal[selectedRecording.emotions[0]] ? (
+                      <img src={emotionToAnimal[selectedRecording.emotions[0]]} alt="" className="w-24 h-24 object-contain" />
+                    ) : (
+                      <span className="text-6xl">🎵</span>
+                    )}
                   </div>
                 )}
 

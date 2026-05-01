@@ -17,16 +17,15 @@ const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
 ];
 
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
 export default function GiftPage() {
@@ -67,14 +66,14 @@ export default function GiftPage() {
     const previews = (gift.recordings || []).map((item: any) => {
       const recording = item.recording;
       const imageUrl = Array.isArray(recording?.images) ? recording.images[0] : undefined;
-      const animalIcon =
+      const animalImageSrc =
         recording?.emotions && recording.emotions.length > 0
-          ? emotionToAnimal[recording.emotions[0]] || "🎵"
-          : "🎵";
+          ? (emotionToAnimal[recording.emotions[0]] ?? null)
+          : null;
 
       return {
         imageUrl,
-        animalIcon,
+        animalImageSrc,
       };
     });
 
@@ -206,7 +205,7 @@ export default function GiftPage() {
               const hiddenParticipantCount = Math.max(participantUsers.length - visibleParticipants.length, 0);
               const recordingPreviews = getRecordingPreviews(gift);
               const statusBadges = getGiftStatusBadges(gift);
-              const gridSlots: Array<{ imageUrl?: string; animalIcon?: string } | null> = [null, null, null, null];
+              const gridSlots: Array<{ imageUrl?: string; animalImageSrc?: string | null } | null> = [null, null, null, null];
 
               if (recordingPreviews.length === 2) {
                 gridSlots[0] = recordingPreviews[0];
@@ -230,8 +229,10 @@ export default function GiftPage() {
                           <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
                             {recordingPreviews[0]?.imageUrl ? (
                               <img src={recordingPreviews[0].imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                            ) : recordingPreviews[0]?.animalImageSrc ? (
+                              <img src={recordingPreviews[0].animalImageSrc} alt="" className="w-full h-full object-contain p-2" />
                             ) : (
-                              <span className="text-3xl">{recordingPreviews[0]?.animalIcon || "🎵"}</span>
+                              <span className="text-3xl">🎵</span>
                             )}
                           </div>
                         ) : (
@@ -243,8 +244,10 @@ export default function GiftPage() {
                               >
                                 {preview?.imageUrl ? (
                                   <img src={preview.imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                                ) : preview?.animalImageSrc ? (
+                                  <img src={preview.animalImageSrc} alt="" className="w-full h-full object-contain p-1" />
                                 ) : preview ? (
-                                  <span className="text-sm">{preview.animalIcon || "🎵"}</span>
+                                  <span className="text-sm">🎵</span>
                                 ) : null}
                               </div>
                             ))}

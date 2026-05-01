@@ -5,16 +5,15 @@ import { useRouter } from "next/navigation";
 import { Settings, Users, ChevronRight, Edit3, Loader2 } from "lucide-react";
 
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
 type UserProfile = {
@@ -217,7 +216,11 @@ export default function MyPage() {
                   <p className="text-sm font-bold text-gray-800">良好</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <div className="text-3xl mb-2">{emotionToAnimal[dominantEmotion] || "🎵"}</div>
+                  <div className="text-3xl mb-2">
+                    {emotionToAnimal[dominantEmotion] ? (
+                      <img src={emotionToAnimal[dominantEmotion]} alt={dominantEmotion} className="w-8 h-8 mx-auto object-contain" />
+                    ) : "🎵"}
+                  </div>
                   <p className="text-xs text-gray-600 mb-1">感情動物</p>
                   <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
                 </div>
