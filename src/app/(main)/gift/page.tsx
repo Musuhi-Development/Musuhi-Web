@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Gift, Send, Users, Mail, Calendar } from "lucide-react";
+import { Plus, Send, Users, Mail, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +9,6 @@ import { useUser } from "@/hooks/useUser";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
 
 const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
-  { id: "all", label: "All", icon: Gift },
   { id: "received", label: "受信済み", icon: Mail },
   { id: "sent", label: "送信済み", icon: Send },
   { id: "draft", label: "作成中", icon: Users },
@@ -29,7 +28,7 @@ const emotionToAnimal: { [key: string]: string } = {
 };
 
 export default function GiftPage() {
-  const [activeFilter, setActiveFilter] = useState<VoiceGiftFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<VoiceGiftFilter>("received");
   const { user } = useUser();
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(activeFilter);
   const router = useRouter();
