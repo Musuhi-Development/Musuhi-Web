@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause } from "lucide-react";
+import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
@@ -192,16 +192,21 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-6 py-4 shadow-sm">
+      <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">Home</h1>
-          <button 
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+              <ArrowLeft size={22} />
+            </button>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Home</h1>
+          </div>
+          <button
             onClick={() => router.push('/mypage')}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold overflow-hidden hover:bg-gray-300 transition-colors"
           >
             {user?.avatarUrl ? (
-              <img 
-                src={user.avatarUrl} 
+              <img
+                src={user.avatarUrl}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2, X } from "lucide-react";
+import { Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
@@ -173,13 +173,15 @@ export default function RecordPage() {
   };
 
   return (
-    <div className="pb-24 min-h-screen bg-white flex flex-col">
-      <header className="px-4 py-3 flex justify-between items-center border-b">
-        <button onClick={() => router.back()} className="text-gray-500" disabled={saving}>
-          キャンセル
-        </button>
-        <span className="font-bold">新規ジャーナル</span>
-        <button 
+    <div className="pb-24 min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} disabled={saving} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-40">
+            <ArrowLeft size={22} />
+          </button>
+          <span className="text-xl font-bold text-[#2A5CAA]">新規ジャーナル</span>
+        </div>
+        <button
           onClick={handleSave}
           disabled={!audioBlob || !title.trim() || saving}
           className="text-orange-500 font-bold disabled:text-gray-300 flex items-center gap-1"

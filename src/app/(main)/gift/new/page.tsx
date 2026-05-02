@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, Link2 } from "lucide-react";
+import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, Link2, ArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { clsx } from "clsx";
 
@@ -495,12 +495,14 @@ function NewGiftPageInner() {
   }, [giftStyle, sendMode]);
 
   return (
-    <div className="pb-24 min-h-screen bg-white flex flex-col">
-      <header className="px-4 py-3 flex justify-between items-center border-b">
-        <button onClick={() => router.back()} className="text-gray-500" disabled={sending}>
-          キャンセル
-        </button>
-        <span className="font-bold">ボイスギフト作成</span>
+    <div className="pb-24 min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} disabled={sending} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-40">
+            <ArrowLeft size={22} />
+          </button>
+          <span className="text-xl font-bold text-[#2A5CAA]">ボイスギフト作成</span>
+        </div>
         <button
           onClick={handleSend}
           className="text-[#2A5CAA] font-bold disabled:text-gray-300 flex items-center gap-1"

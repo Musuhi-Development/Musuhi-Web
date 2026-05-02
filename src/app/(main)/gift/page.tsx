@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Send, Users, Mail, Calendar } from "lucide-react";
+import { Plus, Send, Users, Mail, Calendar, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -122,12 +122,17 @@ export default function GiftPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-white px-6 py-4 shadow-sm">
+      <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">Voice Gift</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+              <ArrowLeft size={22} />
+            </button>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Voice Gift</h1>
+          </div>
           <button
             onClick={() => router.push("/mypage")}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold overflow-hidden hover:bg-gray-300 transition-colors"
           >
             {user?.avatarUrl ? (
               <img
