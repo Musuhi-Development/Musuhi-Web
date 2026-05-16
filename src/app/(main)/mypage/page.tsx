@@ -16,6 +16,11 @@ const emotionToAnimal: { [key: string]: string } = {
   "イライラ": "/animal/bear.png",
 };
 
+type Anniversary = {
+  label?: string;
+  date?: string;
+};
+
 type UserProfile = {
   id: string;
   name: string;
@@ -23,6 +28,8 @@ type UserProfile = {
   email: string;
   bio: string | null;
   avatarUrl: string | null;
+  birthday: string | null;
+  anniversaries: Anniversary[] | null;
   _count: {
     recordings: number;
     sentGifts: number;
@@ -32,6 +39,14 @@ type UserProfile = {
     connectionsReceived: number;
   };
 };
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
 
 export default function MyPage() {
   const router = useRouter();
@@ -197,6 +212,25 @@ export default function MyPage() {
             <p className="text-sm text-center max-w-xs text-gray-600 bg-gray-50 rounded-2xl px-4 py-2">
               {user.bio}
             </p>
+          )}
+
+          {user.birthday && (
+            <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+              🎂 {formatDate(user.birthday)}
+            </p>
+          )}
+
+          {user.anniversaries && user.anniversaries.length > 0 && (
+            <div className="text-sm text-gray-600 mt-1 space-y-0.5">
+              {user.anniversaries.map((a, i) => {
+                if (!a?.label) return null;
+                return (
+                  <p key={`${a.label}-${i}`} className="flex items-center gap-1 justify-center">
+                    ✨ {a.label}{a.date ? `: ${formatDate(a.date)}` : ""}
+                  </p>
+                );
+              })}
+            </div>
           )}
         </div>
 
