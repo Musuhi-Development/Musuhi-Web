@@ -1,26 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause } from "lucide-react";
+import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
 
-// AIが推定する動物アイコン（デモ用の絵文字マッピング）
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
-const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "励まし", "疲れた", "悲しい", "イライラ"];
+const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
 
 export default function HomePage() {
   const router = useRouter();
@@ -194,16 +192,21 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-6 py-4 shadow-sm">
+      <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">Home</h1>
-          <button 
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+              <ArrowLeft size={22} />
+            </button>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Home</h1>
+          </div>
+          <button
             onClick={() => router.push('/mypage')}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold overflow-hidden hover:bg-gray-300 transition-colors"
           >
             {user?.avatarUrl ? (
-              <img 
-                src={user.avatarUrl} 
+              <img
+                src={user.avatarUrl}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
@@ -294,9 +297,9 @@ export default function HomePage() {
             )}>
               {filteredRecordings.map((recording: any) => {
                 const imageUrl = Array.isArray(recording.images) ? recording.images[0] : null;
-                const animalIcon = recording.emotions && recording.emotions.length > 0 
-                  ? emotionToAnimal[recording.emotions[0]] || "🎵"
-                  : "🎵";
+                const animalImageSrc = recording.emotions && recording.emotions.length > 0
+                  ? (emotionToAnimal[recording.emotions[0]] ?? null)
+                  : null;
 
                 return (
                   <div
@@ -328,7 +331,11 @@ export default function HomePage() {
                             />
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-3xl">{animalIcon}</span>
+                              {animalImageSrc ? (
+                                <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                              ) : (
+                                <span className="text-3xl">🎵</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -382,7 +389,11 @@ export default function HomePage() {
                             />
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-5xl">{animalIcon}</span>
+                              {animalImageSrc ? (
+                                <img src={animalImageSrc} alt="" className="w-16 h-16 object-contain" />
+                              ) : (
+                                <span className="text-5xl">🎵</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -450,11 +461,11 @@ export default function HomePage() {
                   />
                 ) : (
                   <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                    <span className="text-6xl">
-                      {selectedRecording.emotions && selectedRecording.emotions.length > 0
-                        ? emotionToAnimal[selectedRecording.emotions[0]] || "🎵"
-                        : "🎵"}
-                    </span>
+                    {selectedRecording.emotions && selectedRecording.emotions.length > 0 && emotionToAnimal[selectedRecording.emotions[0]] ? (
+                      <img src={emotionToAnimal[selectedRecording.emotions[0]]} alt="" className="w-24 h-24 object-contain" />
+                    ) : (
+                      <span className="text-6xl">🎵</span>
+                    )}
                   </div>
                 )}
 

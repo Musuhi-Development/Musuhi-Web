@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Users, ChevronRight, Edit3, Loader2 } from "lucide-react";
+import { Settings, Users, ChevronRight, Edit3, Loader2, ArrowLeft } from "lucide-react";
 
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
+};
+
+type Anniversary = {
+  label?: string;
+  date?: string;
 };
 
 type UserProfile = {
@@ -24,6 +28,8 @@ type UserProfile = {
   email: string;
   bio: string | null;
   avatarUrl: string | null;
+  birthday: string | null;
+  anniversaries: Anniversary[] | null;
   _count: {
     recordings: number;
     sentGifts: number;
@@ -33,6 +39,14 @@ type UserProfile = {
     connectionsReceived: number;
   };
 };
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
 
 export default function MyPage() {
   const router = useRouter();
@@ -142,16 +156,21 @@ export default function MyPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-6 py-4 shadow-sm">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Profile</h1>
-          <button 
+      <div className="bg-gray-50 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+              <ArrowLeft size={22} />
+            </button>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Profile</h1>
+          </div>
+          <button
             onClick={() => router.push('/mypage/settings')}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold overflow-hidden hover:bg-gray-300 transition-colors"
           >
             {user.avatarUrl ? (
-              <img 
-                src={user.avatarUrl} 
+              <img
+                src={user.avatarUrl}
                 alt={displayName}
                 className="w-full h-full object-cover"
               />
@@ -164,38 +183,55 @@ export default function MyPage() {
 
       {/* Profile Section */}
       <div className="px-6 py-8">
-        {/* Avatar and Basic Info Card */}
-        <div className="bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] rounded-3xl p-6 text-white shadow-lg mb-6">
-          <div className="flex flex-col items-center">
-            <div className="relative mb-4">
-              <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center text-[#2A5CAA] text-4xl font-bold overflow-hidden shadow-lg">
-                {user.avatarUrl ? (
-                  <img 
-                    src={user.avatarUrl} 
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  displayInitial
-                )}
-              </div>
-              <button 
-                onClick={() => router.push('/mypage/edit')}
-                className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg text-[#2A5CAA] hover:bg-gray-50 transition-colors"
-              >
-                <Edit3 size={16} />
-              </button>
+        {/* Avatar and Basic Info */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative mb-4">
+            <div className="w-28 h-28 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 text-4xl font-bold overflow-hidden shadow-md">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                displayInitial
+              )}
             </div>
-            
-            <h2 className="text-2xl font-bold mb-1">{displayName}</h2>
-            <p className="text-sm opacity-90 mb-3">@{user.name}</p>
-            
-            {user.bio && (
-              <p className="text-sm text-center max-w-xs opacity-95 bg-white bg-opacity-20 rounded-2xl px-4 py-2">
-                {user.bio}
-              </p>
-            )}
+            <button
+              onClick={() => router.push('/mypage/edit')}
+              className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg text-[#2A5CAA] hover:bg-gray-50 transition-colors"
+            >
+              <Edit3 size={16} />
+            </button>
           </div>
+
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">{displayName}</h2>
+          <p className="text-sm text-gray-500 mb-3">@{user.name}</p>
+
+          {user.bio && (
+            <p className="text-sm text-center max-w-xs text-gray-600 bg-gray-50 rounded-2xl px-4 py-2">
+              {user.bio}
+            </p>
+          )}
+
+          {user.birthday && (
+            <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+              🎂 {formatDate(user.birthday)}
+            </p>
+          )}
+
+          {user.anniversaries && user.anniversaries.length > 0 && (
+            <div className="text-sm text-gray-600 mt-1 space-y-0.5">
+              {user.anniversaries.map((a, i) => {
+                if (!a?.label) return null;
+                return (
+                  <p key={`${a.label}-${i}`} className="flex items-center gap-1 justify-center">
+                    ✨ {a.label}{a.date ? `: ${formatDate(a.date)}` : ""}
+                  </p>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Today's Analysis */}
@@ -217,7 +253,11 @@ export default function MyPage() {
                   <p className="text-sm font-bold text-gray-800">良好</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <div className="text-3xl mb-2">{emotionToAnimal[dominantEmotion] || "🎵"}</div>
+                  <div className="text-3xl mb-2">
+                    {emotionToAnimal[dominantEmotion] ? (
+                      <img src={emotionToAnimal[dominantEmotion]} alt={dominantEmotion} className="w-8 h-8 mx-auto object-contain" />
+                    ) : "🎵"}
+                  </div>
                   <p className="text-xs text-gray-600 mb-1">感情動物</p>
                   <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
                 </div>

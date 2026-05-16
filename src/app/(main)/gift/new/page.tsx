@@ -3,21 +3,20 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, Link2 } from "lucide-react";
+import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, Link2, ArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { clsx } from "clsx";
 
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
 const emotionTags = [
@@ -28,7 +27,6 @@ const emotionTags = [
   "幸せ",
   "ワクワク",
   "応援",
-  "励まし",
   "疲れた",
   "悲しい",
   "イライラ",
@@ -497,12 +495,14 @@ function NewGiftPageInner() {
   }, [giftStyle, sendMode]);
 
   return (
-    <div className="pb-24 min-h-screen bg-white flex flex-col">
-      <header className="px-4 py-3 flex justify-between items-center border-b">
-        <button onClick={() => router.back()} className="text-gray-500" disabled={sending}>
-          キャンセル
-        </button>
-        <span className="font-bold">ボイスギフト作成</span>
+    <div className="pb-24 min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} disabled={sending} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-40">
+            <ArrowLeft size={22} />
+          </button>
+          <span className="text-xl font-bold text-[#2A5CAA]">ボイスギフト作成</span>
+        </div>
         <button
           onClick={handleSend}
           className="text-[#2A5CAA] font-bold disabled:text-gray-300 flex items-center gap-1"
@@ -789,7 +789,7 @@ function NewGiftPageInner() {
               type="text"
               value={recordingKeyword}
               onChange={(e) => setRecordingKeyword(e.target.value)}
-              placeholder="キーワードで検索（タイトル・感情タグ）"
+              placeholder="キーワードで検索"
               className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-3 rounded-lg focus:outline-none focus:bg-white focus:border-[#2A5CAA] placeholder:text-gray-400 text-sm"
               disabled={sending}
             />
@@ -816,10 +816,10 @@ function NewGiftPageInner() {
               {filteredRecordings.map((recording) => {
                 const selected = selectedRecordingIds.includes(recording.id);
                 const imageUrl = Array.isArray(recording.images) ? recording.images[0] : null;
-                const animalIcon =
+                const animalImageSrc =
                   recording.emotions && recording.emotions.length > 0
-                    ? emotionToAnimal[recording.emotions[0]] || "🎵"
-                    : "🎵";
+                    ? (emotionToAnimal[recording.emotions[0]] ?? null)
+                    : null;
 
                 return (
                   <div
@@ -847,7 +847,11 @@ function NewGiftPageInner() {
                         />
                       ) : (
                         <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                          <span className="text-5xl">{animalIcon}</span>
+                          {animalImageSrc ? (
+                            <img src={animalImageSrc} alt="" className="w-16 h-16 object-contain" />
+                          ) : (
+                            <span className="text-5xl">🎵</span>
+                          )}
                         </div>
                       )}
                       <button

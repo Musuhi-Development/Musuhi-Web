@@ -34,3 +34,6 @@ yarn-error.log*
 
 # prisma
 node_modules/.prisma
+
+# Claude Code
+.claude/settings.json

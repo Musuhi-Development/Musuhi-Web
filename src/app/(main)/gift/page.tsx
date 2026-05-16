@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Gift, Send, Users, Mail, Calendar } from "lucide-react";
+import { Plus, Send, Users, Mail, Calendar, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +9,6 @@ import { useUser } from "@/hooks/useUser";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
 
 const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
-  { id: "all", label: "All", icon: Gift },
   { id: "received", label: "受信済み", icon: Mail },
   { id: "sent", label: "送信済み", icon: Send },
   { id: "draft", label: "作成中", icon: Users },
@@ -17,20 +16,19 @@ const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
 ];
 
 const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "🐶",
-  "感謝": "🐱",
-  "楽しい": "🐰",
-  "幸せ": "🐻",
-  "ワクワク": "🐨",
-  "応援": "🦁",
-  "励まし": "🐼",
-  "疲れた": "🐨",
-  "悲しい": "🐧",
-  "イライラ": "🦊",
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
 export default function GiftPage() {
-  const [activeFilter, setActiveFilter] = useState<VoiceGiftFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<VoiceGiftFilter>("received");
   const { user } = useUser();
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(activeFilter);
   const router = useRouter();
@@ -67,14 +65,14 @@ export default function GiftPage() {
     const previews = (gift.recordings || []).map((item: any) => {
       const recording = item.recording;
       const imageUrl = Array.isArray(recording?.images) ? recording.images[0] : undefined;
-      const animalIcon =
+      const animalImageSrc =
         recording?.emotions && recording.emotions.length > 0
-          ? emotionToAnimal[recording.emotions[0]] || "🎵"
-          : "🎵";
+          ? (emotionToAnimal[recording.emotions[0]] ?? null)
+          : null;
 
       return {
         imageUrl,
-        animalIcon,
+        animalImageSrc,
       };
     });
 
@@ -124,12 +122,17 @@ export default function GiftPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-white px-6 py-4 shadow-sm">
+      <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">Voice Gift</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+              <ArrowLeft size={22} />
+            </button>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Voice Gift</h1>
+          </div>
           <button
             onClick={() => router.push("/mypage")}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-all overflow-hidden"
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold overflow-hidden hover:bg-gray-300 transition-colors"
           >
             {user?.avatarUrl ? (
               <img
@@ -206,7 +209,7 @@ export default function GiftPage() {
               const hiddenParticipantCount = Math.max(participantUsers.length - visibleParticipants.length, 0);
               const recordingPreviews = getRecordingPreviews(gift);
               const statusBadges = getGiftStatusBadges(gift);
-              const gridSlots: Array<{ imageUrl?: string; animalIcon?: string } | null> = [null, null, null, null];
+              const gridSlots: Array<{ imageUrl?: string; animalImageSrc?: string | null } | null> = [null, null, null, null];
 
               if (recordingPreviews.length === 2) {
                 gridSlots[0] = recordingPreviews[0];
@@ -230,8 +233,10 @@ export default function GiftPage() {
                           <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
                             {recordingPreviews[0]?.imageUrl ? (
                               <img src={recordingPreviews[0].imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                            ) : recordingPreviews[0]?.animalImageSrc ? (
+                              <img src={recordingPreviews[0].animalImageSrc} alt="" className="w-full h-full object-contain p-2" />
                             ) : (
-                              <span className="text-3xl">{recordingPreviews[0]?.animalIcon || "🎵"}</span>
+                              <span className="text-3xl">🎵</span>
                             )}
                           </div>
                         ) : (
@@ -243,8 +248,10 @@ export default function GiftPage() {
                               >
                                 {preview?.imageUrl ? (
                                   <img src={preview.imageUrl} alt={gift.title} className="w-full h-full object-cover" />
+                                ) : preview?.animalImageSrc ? (
+                                  <img src={preview.animalImageSrc} alt="" className="w-full h-full object-contain p-1" />
                                 ) : preview ? (
-                                  <span className="text-sm">{preview.animalIcon || "🎵"}</span>
+                                  <span className="text-sm">🎵</span>
                                 ) : null}
                               </div>
                             ))}
