@@ -137,6 +137,7 @@ export default function EditProfilePage() {
       }
 
       router.push("/mypage");
+      router.refresh();
     } catch (error) {
       console.error("Save error:", error);
       setError(error instanceof Error ? error.message : "保存に失敗しました");
