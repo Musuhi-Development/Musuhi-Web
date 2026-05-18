@@ -60,9 +60,23 @@ git checkout -b gh-{Issue番号}-fix-{バグの内容を表すslug}
 
 ユーザーからの相談に対応しながら修正をサポートする。
 
-修正中の注意点:
+**開発環境の起動（まだ起動していない場合）:**
+```bash
+docker compose up -d
+# アプリ: http://localhost:3001
+# Prisma Studio: http://localhost:5555
+```
+
+**修正中の注意点:**
 - 修正範囲はバグに関係する最小限にとどめる（余分なリファクタリングはしない）
 - DBスキーマ変更が発生した場合は必ずユーザーに確認する
+- npm / prisma コマンドはコンテナ内で実行する:
+  ```bash
+  docker compose exec next-app npx prisma generate   # スキーマ変更後
+  docker compose exec next-app npx prisma db push    # DB反映
+  docker compose exec next-app npm run lint          # Lint確認
+  ```
+- ログは `docker compose logs -f next-app` で確認
 - コミットメッセージ例: `ログインリダイレクトのバグを修正`
 
 ユーザーが「修正完了」「できた」「PRを作ろう」などと言ったらPhase 4へ進む。

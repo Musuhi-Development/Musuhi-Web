@@ -40,6 +40,13 @@ gh pr list --base develop --state open
 リリース前にマージするか、対象外とするか確認してください。
 ```
 
+**ビルド確認（推奨）:**
+リリース前に本番ビルドが通ることをコンテナ内で確認する：
+```bash
+docker compose exec next-app npm run build
+```
+ビルドエラーがあればリリースを中断してユーザーに報告する。
+
 問題なければPhase 2へ進む。
 
 ---

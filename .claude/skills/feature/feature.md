@@ -60,10 +60,23 @@ git checkout -b gh-{Issue番号}-{slug}
 
 ユーザーからの質問や相談に対応しながら実装をサポートする。
 
-実装中の注意点（ユーザーに伝える）:
+**開発環境の起動（まだ起動していない場合）:**
+```bash
+docker compose up -d
+# アプリ: http://localhost:3001
+# Prisma Studio: http://localhost:5555
+```
+
+**実装中の注意点（ユーザーに伝える）:**
 - `CLAUDE.md` のコーディング規約に従う
 - コミットは日本語で簡潔に（動詞から始める）
-- DBスキーマ変更がある場合は `npm run prisma:generate` を実行
+- npm / prisma コマンドはコンテナ内で実行する:
+  ```bash
+  docker compose exec next-app npx prisma generate   # スキーマ変更後
+  docker compose exec next-app npx prisma db push    # DB反映
+  docker compose exec next-app npm run lint          # Lint確認
+  ```
+- ログは `docker compose logs -f next-app` で確認
 - こまめにコミットしておく
 
 ユーザーが「実装完了」「できた」「PR作ろう」などと言ったらPhase 4へ進む。

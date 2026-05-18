@@ -90,15 +90,63 @@ public/         # 静的ファイル
 
 ---
 
-## ⚙️ 開発コマンド
+## 🐳 Docker 開発環境
+
+開発はすべて Docker Compose で行う。ホスト上で直接 `npm run dev` を実行しない。
+
+| サービス | コンテナ名 | ポート |
+| --- | --- | --- |
+| Next.js アプリ | `musuhi_next_app` | `localhost:3001`（内部 3000） |
+| Prisma Studio | （next-app 内） | `localhost:5555` |
+| PostgreSQL | `musuhi_postgres` | `localhost:5432` |
+
+### 起動・停止
 
 ```bash
-npm run dev              # 開発サーバー起動
+docker compose up          # 起動（ログをフォアグラウンドで表示）
+docker compose up -d       # バックグラウンド起動
+docker compose down        # 停止
+docker compose down -v     # 停止 + DBボリューム削除（データ初期化）
+```
+
+コンテナ起動時に以下が自動実行される：
+1. `npm ci` — 依存関係インストール
+2. `prisma generate` — Prisma クライアント生成
+3. `prisma db push` — DB スキーマ反映
+4. `prisma studio` — Prisma Studio をポート 5555 で起動
+5. `npm run dev` — 開発サーバー起動
+
+### コンテナ内でのコマンド実行
+
+npm コマンドや Prisma コマンドは **コンテナ内** で実行すること：
+
+```bash
+docker compose exec next-app npm run build          # 本番ビルド
+docker compose exec next-app npm run lint           # ESLint
+docker compose exec next-app npx prisma generate   # Prisma クライアント生成
+docker compose exec next-app npx prisma db push    # DB スキーマ反映
+docker compose exec next-app npx prisma migrate dev # マイグレーション実行
+docker compose exec next-app npx prisma db seed    # seed 実行
+```
+
+### ログ確認
+
+```bash
+docker compose logs -f next-app   # アプリログをリアルタイム表示
+docker compose logs -f db         # DBログ
+```
+
+## ⚙️ 開発コマンド（参考: package.json scripts）
+
+以下はコンテナ内（`docker compose exec next-app`）で実行するスクリプトの一覧：
+
+```bash
+npm run dev              # 開発サーバー起動（コンテナ起動時に自動実行）
 npm run build            # 本番ビルド (prisma generate を含む)
 npm run lint             # ESLint
 npm run prisma:generate  # Prisma クライアント生成
 npm run prisma:push      # DB スキーマ反映
-npm run prisma:studio    # Prisma Studio 起動
+npm run prisma:studio    # Prisma Studio 起動（コンテナ起動時に自動実行）
 npm run prisma:seed      # seed 実行
 ```
 
@@ -113,6 +161,8 @@ npm run prisma:seed      # seed 実行
 5. **Issue は必ずテンプレートを使用** (`.github/ISSUE_TEMPLATE/`)
 6. **DB スキーマ変更を含む PR は明示する** — レビュアーが見落とさないように
 7. **破壊的操作 (`git push --force`, `reset --hard` 等) は事前確認**
+8. **ホスト上で直接 `npm run dev` を実行しない** — 必ず `docker compose up` を使う
+9. **npm / prisma コマンドはコンテナ内で実行する** — `docker compose exec next-app <コマンド>`
 
 ---
 
