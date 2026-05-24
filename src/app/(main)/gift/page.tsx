@@ -74,9 +74,9 @@ export default function GiftPage() {
       }
       return r.recipientEmail || "不明";
     });
-    if (names.length === 0) return "あて: 未設定";
-    if (names.length <= 2) return `あて: ${names.join("、")}`;
-    return `あて: ${names.slice(0, 2).join("、")} 他${names.length - 2}名`;
+    if (names.length === 0) return "送信先: 未設定";
+    if (names.length <= 2) return `送信先: ${names.join("、")}`;
+    return `送信先: ${names.slice(0, 2).join("、")} 他${names.length - 2}名`;
   }
 
   function getRecordingPreviews(gift: any) {
