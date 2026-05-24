@@ -61,6 +61,24 @@ export default function GiftPage() {
     return Array.from(new Map(merged.map((item: any) => [item.id, item])).values());
   }
 
+  function getSenderLabel(gift: any): string {
+    const ownerName = gift.owner?.displayName || gift.owner?.name || "不明";
+    return `から: ${ownerName}`;
+  }
+
+  function getRecipientLabel(gift: any): string {
+    const recipients = gift.recipients || [];
+    const names = recipients.map((r: any) => {
+      if (r.recipient?.displayName || r.recipient?.name) {
+        return r.recipient.displayName || r.recipient.name;
+      }
+      return r.recipientEmail || "不明";
+    });
+    if (names.length === 0) return "あて: 未設定";
+    if (names.length <= 2) return `あて: ${names.join("、")}`;
+    return `あて: ${names.slice(0, 2).join("、")} 他${names.length - 2}名`;
+  }
+
   function getRecordingPreviews(gift: any) {
     const previews = (gift.recordings || []).map((item: any) => {
       const recording = item.recording;
@@ -266,6 +284,17 @@ export default function GiftPage() {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {formatDate(gift.createdAt)} ・ {gift.recordings?.length || 0}件の音声
                         </p>
+                        {activeFilter === "received" ? (
+                          <p className="text-xs text-[#2A5CAA] mt-0.5 flex items-center gap-1 font-medium">
+                            <Mail size={11} />
+                            {getSenderLabel(gift)}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1 font-medium">
+                            <Send size={11} />
+                            {getRecipientLabel(gift)}
+                          </p>
+                        )}
                         <div className="flex items-center gap-1 mt-2">
                           {visibleParticipants.map((participant: any) => {
                             const displayName = participant.displayName || participant.name || "U";

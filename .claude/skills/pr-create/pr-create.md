@@ -3,13 +3,14 @@ name: pr-create
 description: >
   GitHubのPull Requestを.github/PULL_REQUEST_TEMPLATE.mdに従って作成する。
   ユーザーが「PR作成」「プルリクを出したい」「レビューに出したい」「変更をマージしたい」などと言ったときに必ず使用すること。
-  ブランチ確認 → 情報収集 → プレビュー確認 → gh pr create の流れで進行する。
+  ブランチ確認 → 情報収集 → プレビュー確認 → gh pr create → Vercel プレビュー URL 取得 の流れで進行する。
 ---
 
 # pr-create — GitHub PR 作成スキル
 
 `.github/PULL_REQUEST_TEMPLATE.md` のテンプレートに従い、質の高いPRを作成する。
 マージ先ブランチはブランチ名から自動判定する。
+PR 作成後は Vercel プレビュー URL を取得して PR 本文に追記する。
 
 ## フロー概要
 
@@ -17,6 +18,7 @@ description: >
 2. PR情報をヒヤリングする
 3. PRタイトルと本文を生成してプレビュー確認を取る
 4. `gh pr create` でPRを作成する
+5. Vercel プレビュー URL を取得して PR に追記する
 
 ---
 
@@ -72,6 +74,7 @@ git log の内容と収集した情報をもとにPRを組み立てる。
 - テスト確認: ローカル動作確認済みにチェック
 - DBスキーマ変更: 回答を反映
 - レビュー観点: 収集した内容を記載
+- Vercel プレビュー: `> ⏳ デプロイ待機中...`（後で更新）
 
 プレビュー表示後に確認を取る：
 ```
@@ -96,19 +99,71 @@ git push -u origin HEAD
 gh pr create \
   --title "PRタイトル" \
   --body "$(cat <<'EOF'
-PR本文
+PR本文（Vercel プレビュー欄は「⏳ デプロイ待機中...」と記載）
 EOF
 )" \
   --base [マージ先ブランチ]
 ```
 
+PR URL を変数に保存する：
+```bash
+PR_URL=$(gh pr create ...)
+PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+```
+
 ---
 
-## Step 5: 完了メッセージ
+## Step 5: Vercel プレビュー URL を取得して PR に追記する
 
+### リポジトリ情報を取得する
+
+```bash
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+BRANCH=$(git branch --show-current)
+```
+
+### プレビュー URL を取得する（最大 3 分待機）
+
+```bash
+PREVIEW_URL=$(python3 .claude/skills/pr-create/scripts/get_vercel_preview.py "$REPO" "$BRANCH" --timeout 180)
+```
+
+### 取得に成功した場合は PR 本文を更新する
+
+現在の PR 本文を取得し、`⏳ デプロイ待機中...` を実際の URL に置換する：
+
+```bash
+CURRENT_BODY=$(gh pr view "$PR_NUMBER" --json body -q .body)
+NEW_BODY=$(echo "$CURRENT_BODY" | sed "s|⏳ デプロイ待機中\.\.\.|🔗 $PREVIEW_URL|g")
+gh pr edit "$PR_NUMBER" --body "$NEW_BODY"
+```
+
+### 取得に失敗した場合（タイムアウト・Vercel 未連携など）
+
+ユーザーにその旨を伝えて PR URL のみ案内する。
+
+---
+
+## Step 6: 完了メッセージ
+
+**Vercel プレビュー取得成功時:**
 ```
 ✅ PRを作成しました！
-🔗 [PR URL]
+🔗 PR:      [PR URL]
+🌐 Preview: [Vercel プレビュー URL]
+
+・レビュー依頼を忘れずに！
+・マージ後はブランチを削除してください。
+```
+
+**Vercel プレビュー取得失敗時:**
+```
+✅ PRを作成しました！
+🔗 PR: [PR URL]
+
+⚠️  Vercel プレビュー URL を自動取得できませんでした。
+   Vercel ダッシュボードの Deployments タブから手動で確認してください。
+   → https://vercel.com/dashboard
 
 ・レビュー依頼を忘れずに！
 ・マージ後はブランチを削除してください。
