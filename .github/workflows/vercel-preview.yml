@@ -6,7 +6,8 @@ on:
 jobs:
   update-pr:
     # Vercel が Preview 環境のデプロイを成功させた瞬間にのみ実行
-    if: |
+    # ※ `|` ではなく `>-` を使うことで改行を含む条件を安全に評価する
+    if: >-
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Preview' &&
       github.event.deployment_status.environment_url != ''
@@ -16,16 +17,46 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Vercel Preview が応答するまで待機（最大 4 分）
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const previewUrl = context.payload.deployment_status.environment_url;
+            core.info(`Preview URL: ${previewUrl}`);
+
+            const MAX_ATTEMPTS = 24;   // 10 秒 × 24 = 最大 240 秒
+            const INTERVAL_MS  = 10_000;
+
+            for (let i = 0; i < MAX_ATTEMPTS; i++) {
+              try {
+                const res = await fetch(previewUrl, {
+                  method: 'HEAD',
+                  redirect: 'follow',
+                  signal: AbortSignal.timeout(8_000),
+                });
+                if (res.status < 500) {
+                  core.info(`✅ 準備完了（試行 ${i + 1}/${MAX_ATTEMPTS}、HTTP ${res.status}）`);
+                  return;
+                }
+                core.info(`⏳ 試行 ${i + 1}/${MAX_ATTEMPTS}: HTTP ${res.status}、10 秒後に再試行…`);
+              } catch (e) {
+                core.info(`⏳ 試行 ${i + 1}/${MAX_ATTEMPTS}: ${e.message}、10 秒後に再試行…`);
+              }
+              await new Promise(r => setTimeout(r, INTERVAL_MS));
+            }
+            core.warning('⚠️ タイムアウト: URL が応答しないまま次のステップへ進みます');
+
       - name: PR を特定してプレビュー URL を追記
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const sha         = context.payload.deployment.sha;
-            const previewUrl  = context.payload.deployment_status.environment_url;
+            const sha        = context.payload.deployment.sha;
+            const previewUrl = context.payload.deployment_status.environment_url;
 
-            core.info(`Deployment SHA  : ${sha}`);
-            core.info(`Preview URL     : ${previewUrl}`);
+            core.info(`Deployment SHA: ${sha}`);
+            core.info(`Preview URL   : ${previewUrl}`);
 
             // このコミット SHA に対応するオープン PR を検索
             const { data: prs } = await github.rest.pulls.list({
