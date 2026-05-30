@@ -98,6 +98,8 @@ export default function FooterNav() {
     },
   ];
 
+  if (!user) return null;
+
   const leftItems = navItems.slice(0, 2);
   const rightItems = navItems.slice(2);
 

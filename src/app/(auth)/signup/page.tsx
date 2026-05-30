@@ -115,6 +115,16 @@ function SignupPageInner() {
             router.refresh();
             return;
           }
+          // join失敗（送信済みギフト等）でもギフトページへ遷移
+          const shareRes = await fetch(`/api/voice-gifts/share/${giftToken}`);
+          if (shareRes.ok) {
+            const shareData = await shareRes.json();
+            if (shareData.voiceGift?.id) {
+              router.push(`/gift/${shareData.voiceGift.id}`);
+              router.refresh();
+              return;
+            }
+          }
         } catch (joinError) {
           console.error("Join voice gift error:", joinError);
         }
