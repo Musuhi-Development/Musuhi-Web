@@ -7,30 +7,70 @@ import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 
-/** ポラロイド右下に置く水引（蝶結び）モチーフ。瑠璃色 #1e50a2 の1色。 */
+/**
+ * 祝儀袋の蝶結び水引をミニマルに再解釈したブランドシグネチャ。
+ * 瑠璃色 #1e50a2 の1色・太めの線で「結び（Musuhi）」を象徴する。
+ * 左右対称の輪と、中央で交差して垂れる2本の紐で水引らしさを表現。
+ */
 function MizuhikiBow({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 72 44"
+      viewBox="0 0 80 56"
       className={className}
       fill="none"
       stroke="#1e50a2"
-      strokeWidth="1.6"
+      strokeWidth="2.1"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {/* 左の輪（2本の線で水引らしい束感を出す） */}
-      <path d="M36 22 C 14 4, 3 12, 7 22 C 10 31, 26 30, 36 22 Z" />
-      <path d="M36 22 C 17 8, 8 14, 10 21" strokeWidth="1" />
+      {/* 左の輪 */}
+      <path d="M40 27 C 20 5, 5 15, 13 28 C 18 36, 33 34, 40 27" />
       {/* 右の輪 */}
-      <path d="M36 22 C 58 4, 69 12, 65 22 C 62 31, 46 30, 36 22 Z" />
-      <path d="M36 22 C 55 8, 64 14, 62 21" strokeWidth="1" />
-      {/* 左右の垂れ */}
-      <path d="M33 24 C 28 32, 24 37, 19 41" />
-      <path d="M39 24 C 44 32, 48 37, 53 41" />
+      <path d="M40 27 C 60 5, 75 15, 67 28 C 62 36, 47 34, 40 27" />
+      {/* 中央で交差して垂れる2本の紐 */}
+      <path d="M38 28 C 41 40, 47 47, 54 53" />
+      <path d="M42 28 C 39 40, 33 47, 26 53" />
       {/* 結び目 */}
-      <ellipse cx="36" cy="22" rx="3.4" ry="4.2" fill="#1e50a2" stroke="none" />
+      <ellipse cx="40" cy="27" rx="3" ry="4" fill="#1e50a2" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * ポラロイドを留める木製ミニクリップ（木製洗濯ばさみ）。
+ * イラスト調を避け、自然な木材の色味とウッドグレイン・金属バネで本物の質感に寄せる。
+ */
+function WoodenClip({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 48" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="clipWood" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#E0C195" />
+          <stop offset="0.45" stopColor="#C99C61" />
+          <stop offset="1" stopColor="#AE7C42" />
+        </linearGradient>
+        <linearGradient id="clipMetal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#d4d7db" />
+          <stop offset="1" stopColor="#969ca2" />
+        </linearGradient>
+      </defs>
+      {/* 接地影 */}
+      <ellipse cx="16" cy="45.5" rx="8.5" ry="2.2" fill="rgba(0,0,0,0.16)" />
+      {/* 木の本体 */}
+      <rect x="6.5" y="2" width="19" height="44" rx="4.5" fill="url(#clipWood)" />
+      {/* クリップの合わせ目（開口） */}
+      <line x1="16" y1="3" x2="16" y2="15" stroke="rgba(92,60,28,0.4)" strokeWidth="1" strokeLinecap="round" />
+      <line x1="16" y1="31" x2="16" y2="44.5" stroke="rgba(92,60,28,0.3)" strokeWidth="1" strokeLinecap="round" />
+      {/* ウッドグレイン */}
+      <path d="M11 5 C 10 18, 10 30, 11 43" stroke="rgba(120,78,38,0.25)" strokeWidth="0.8" fill="none" />
+      <path d="M21 5 C 22 18, 22 30, 21 43" stroke="rgba(120,78,38,0.22)" strokeWidth="0.8" fill="none" />
+      {/* ハイライト */}
+      <rect x="8" y="3.5" width="2.2" height="41" rx="1.1" fill="rgba(255,255,255,0.3)" />
+      {/* 金属バネ */}
+      <rect x="4.5" y="20" width="23" height="6.6" rx="3.3" fill="url(#clipMetal)" />
+      <circle cx="16" cy="23.3" r="3" fill="none" stroke="#7d848b" strokeWidth="1.4" />
+      <circle cx="16" cy="23.3" r="1" fill="#b7bbc0" />
     </svg>
   );
 }
@@ -477,8 +517,16 @@ export default function HomePage() {
             className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
-            {/* アルバム台紙 */}
-            <div className="relative bg-[#E8DDCD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+            {/* アルバム台紙：温かみのあるクリーム色＋壁紙のような微細なエンボス質感 */}
+            <div
+              className="relative bg-[#F3EBDD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.25)]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+                backgroundSize: "5px 5px",
+                backgroundPosition: "0 0, 2.5px 2.5px",
+              }}
+            >
               {/* 右上の×ボタン（半透明の円背景・スマホでも押しやすいサイズ） */}
               <button
                 type="button"
@@ -489,27 +537,20 @@ export default function HomePage() {
                 <X size={18} />
               </button>
 
-              {/* ポラロイド本体（白）：台紙の上に置かれた質感を出す柔らかい影 */}
-              <div className="relative bg-white rounded-[3px] px-3 pt-3 pb-5 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
-                {/* クラフト紙風マスキングテープ（1枚・写真上部中央／半透明・貼られた質感） */}
-                <div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-7 rotate-[-2deg] bg-[#C8D7C1]/70 shadow-[0_2px_4px_rgba(0,0,0,0.12)] z-10"
-                  style={{
-                    backgroundImage:
-                      "repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(0deg, rgba(120,130,110,0.12) 0px, rgba(120,130,110,0.12) 1px, transparent 1px, transparent 3px)",
-                  }}
-                  aria-hidden="true"
-                />
+              {/* ポラロイド本体（白）：上部・左右の白余白を多めに、台紙の上に置かれた柔らかい影 */}
+              <div className="relative bg-white rounded-[3px] px-5 sm:px-6 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
+                {/* 木製ミニクリップ（写真上部中央でポラロイドを留める） */}
+                <WoodenClip className="absolute -top-[15px] left-1/2 -translate-x-1/2 w-[26px] h-10 z-20 drop-shadow-[0_4px_5px_rgba(0,0,0,0.2)]" />
 
-                {/* 写真 */}
+                {/* 写真：極細の境界線で紙に現像された印象（額縁感は出さない） */}
                 {Array.isArray(selectedRecording.images) && selectedRecording.images.length > 0 ? (
                   <img
                     src={selectedRecording.images[0]}
                     alt={selectedRecording.title}
-                    className="w-full rounded-sm object-cover max-h-64 sm:max-h-72"
+                    className="w-full rounded-sm object-cover max-h-64 sm:max-h-72 ring-1 ring-black/[0.07]"
                   />
                 ) : (
-                  <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                  <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
                     {selectedRecording.emotions && selectedRecording.emotions.length > 0 && emotionToAnimal[selectedRecording.emotions[0]] ? (
                       <img src={emotionToAnimal[selectedRecording.emotions[0]]} alt="" className="w-24 h-24 object-contain" />
                     ) : (
@@ -520,10 +561,15 @@ export default function HomePage() {
 
                 {/* 写真下の余白に全要素を統合 */}
                 <div className="pt-4 px-1 space-y-3">
-                  {/* 1. タイトル（太文字） */}
-                  <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
-                    {selectedRecording.title}
-                  </p>
+                  {/* 1. タイトル（太文字）＋ 日時（同じ行の右端・小さめ） */}
+                  <div className="flex items-baseline justify-between gap-3 pr-9">
+                    <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
+                      {selectedRecording.title}
+                    </p>
+                    <p className="shrink-0 text-[10px] text-gray-400 whitespace-nowrap">
+                      {formatDateTime(selectedRecording.createdAt)}
+                    </p>
+                  </div>
 
                   {/* 2. テキストメモ（未入力時は表示せず自然な余白として扱う） */}
                   {selectedRecording.description && (
@@ -532,17 +578,19 @@ export default function HomePage() {
                     </p>
                   )}
 
-                  {/* 3. 波形表示の音声プレイヤー */}
+                  {/* 3. 波形表示の音声プレイヤー（柔らかい角丸コンテナで囲む） */}
                   {selectedRecording.audioUrl && (
-                    <WaveformPlayer
-                      src={selectedRecording.audioUrl}
-                      duration={selectedRecording.duration}
-                    />
+                    <div className="rounded-2xl bg-[#F4EEE2] px-3 py-2.5">
+                      <WaveformPlayer
+                        src={selectedRecording.audioUrl}
+                        duration={selectedRecording.duration}
+                      />
+                    </div>
                   )}
 
                   {/* 4. 感情タグ */}
                   {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 pr-10">
                       {selectedRecording.emotions.map((emotion: string) => (
                         <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
                           #{emotion}
@@ -550,15 +598,10 @@ export default function HomePage() {
                       ))}
                     </div>
                   )}
-
-                  {/* 5. 日時 */}
-                  <p className="text-xs text-gray-500">
-                    {formatDateTime(selectedRecording.createdAt)}
-                  </p>
                 </div>
 
-                {/* 水引（蝶結び）モチーフ：ポラロイド右下 */}
-                <MizuhikiBow className="absolute bottom-3 right-3 w-12 h-7" />
+                {/* 水引（蝶結び）モチーフ：ポラロイド右下のブランドシグネチャ */}
+                <MizuhikiBow className="absolute bottom-3.5 right-3.5 w-[52px] h-9" />
               </div>
             </div>
           </div>
