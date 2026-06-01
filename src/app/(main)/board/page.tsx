@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, MessageCircle, Play, Pause, Volume2, ArrowLeft } from "lucide-react";
+import { Heart, Play, Pause, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import RecordingModal from "@/components/RecordingModal";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
 
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
@@ -65,6 +66,7 @@ export default function BoardPage() {
   const [user, setUser] = useState<any>(null);
   const [commentsByBoard, setCommentsByBoard] = useState<Record<string, VoiceComment[]>>({});
   const [showAllCommentsByBoard, setShowAllCommentsByBoard] = useState<Record<string, boolean>>({});
+  const [openCommentsByBoard, setOpenCommentsByBoard] = useState<Record<string, boolean>>({});
   const [commentLoadingByBoard, setCommentLoadingByBoard] = useState<Record<string, boolean>>({});
   const [commentErrorByBoard, setCommentErrorByBoard] = useState<Record<string, string | null>>({});
   const [commentModalBoardId, setCommentModalBoardId] = useState<string | null>(null);
@@ -300,6 +302,19 @@ export default function BoardPage() {
     }
   }
 
+  // ボイスコメントの折りたたみ開閉。初回展開時にコメントを取得する。
+  function toggleListenComments(boardId: string, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const willOpen = !openCommentsByBoard[boardId];
+    setOpenCommentsByBoard((prev) => ({ ...prev, [boardId]: willOpen }));
+
+    if (willOpen && !commentsByBoard[boardId]) {
+      void fetchComments(boardId);
+    }
+  }
+
   async function handleVoiceCommentSubmit(payload: { audioBlob: Blob; duration: number }) {
     if (!commentModalBoardId) {
       throw new Error("対象ボードが見つかりません");
@@ -514,6 +529,7 @@ export default function BoardPage() {
                   const comments = commentsByBoard[post.id] || [];
                   const voiceComments = comments.filter((comment) => Boolean(comment.audioUrl));
                   const showAllComments = showAllCommentsByBoard[post.id] || false;
+                  const commentsOpen = openCommentsByBoard[post.id] || false;
                   const visibleVoiceComments = showAllComments ? voiceComments : voiceComments.slice(0, 3);
                   const emotions = Array.isArray(post.recording?.emotions) ? post.recording?.emotions : [];
                   const imageUrl = Array.isArray(post.recording?.images) ? post.recording?.images[0] : null;
@@ -523,108 +539,106 @@ export default function BoardPage() {
 
                   return (
                     <div key={post.id} className="bg-white rounded-2xl shadow-md p-4">
-                      <div className="flex items-center gap-4">
-                        {/* Thumbnail with Play Button */}
-                        <div className="relative w-16 h-16 flex-shrink-0">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={post.title}
-                              className="w-full h-full rounded-xl object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              {animalImageSrc ? (
-                                <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                      <div className="flex gap-4">
+                        {/* 左: サムネイル（再生オーバーレイなし）＋ 投稿ユーザー（サムネ下） */}
+                        <div className="flex-shrink-0 w-16">
+                          <div className="w-16 h-16">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={post.title}
+                                className="w-full h-full rounded-xl object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                                {animalImageSrc ? (
+                                  <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                                ) : (
+                                  <span className="text-3xl">🎵</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {/* 投稿ユーザー（アイコン＋名前）をサムネイルの下に配置 */}
+                          <div className="flex flex-col items-center gap-1 mt-2">
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
+                              {post.author.avatarUrl ? (
+                                <img src={post.author.avatarUrl} alt={post.author.displayName || post.author.name} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-3xl">🎵</span>
+                                <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
+                                  {(post.author.displayName || post.author.name)[0]}
+                                </span>
                               )}
                             </div>
-                          )}
-                          {post.audioUrl && (
-                            <>
-                              <button
-                                onClick={(e) => togglePlayPause(post, e)}
-                                className={clsx(
-                                  "absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-all rounded-xl",
-                                  playingId === post.id && isPlaying && "bg-black/30"
-                                )}
-                                aria-label={playingId === post.id && isPlaying ? "一時停止" : "再生"}
-                              >
-                                {playingId === post.id && isPlaying ? (
-                                  <Pause className="text-white drop-shadow-lg" size={24} fill="white" />
-                                ) : (
-                                  <Play className="text-white drop-shadow-lg" size={24} fill="white" />
-                                )}
-                              </button>
-                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
-                                <Volume2 size={12} className="text-[#2A5CAA]" />
-                              </div>
-                            </>
-                          )}
+                            <span className="w-full text-[10px] text-gray-600 text-center leading-tight truncate">
+                              {post.author.displayName || post.author.name}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-800 truncate">{post.title}</h4>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                        {/* 右: コンテンツ */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {/* 1. タイトル（太文字） */}
+                          <h4 className="font-bold text-gray-800 truncate">{post.title}</h4>
+
+                          {/* 2. 録音日 */}
+                          <p className="text-xs text-gray-500">
                             {formatDate(post.createdAt)}
-                            {post.duration && ` · ${formatDuration(post.duration)}`}
+                            {post.duration ? ` · ${formatDuration(post.duration)}` : ""}
                           </p>
-                          {emotions.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
+
+                          {/* 3. テキストメモ（未入力時は表示せず自然な余白） */}
+                          {post.content && (
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                              {post.content}
+                            </p>
+                          )}
+
+                          {/* 4. 波形表示の音声プレイヤー（ボイスアルバム詳細モーダルと同じ） */}
+                          {post.audioUrl && (
+                            <div className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5">
+                              <WaveformPlayer src={post.audioUrl} duration={post.duration ?? undefined} />
+                            </div>
+                          )}
+
+                          {/* 5. 感情タグ ＋ 右端のハートいいねボタン */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-1 min-w-0">
                               {emotions.slice(0, 3).map((emotion) => (
                                 <span key={String(emotion)} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
                                   #{String(emotion)}
                                 </span>
                               ))}
                             </div>
-                          )}
-                           <div className="flex items-center gap-2 mt-2">
-                              <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200">
-                                {post.author.avatarUrl ? (
-                                  <img src={post.author.avatarUrl} alt={post.author.displayName || post.author.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-xs text-gray-500 flex items-center justify-center w-full h-full">
-                                    {(post.author.displayName || post.author.name)[0]}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-xs text-gray-600">{post.author.displayName || post.author.name}</span>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-col items-center gap-4">
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleLike(post.id);
-                            }}
-                            className={clsx(
-                              "flex items-center gap-1 transition-all",
-                              isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
-                            )}
-                          >
-                            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-                            <span className="text-xs font-medium">{post._count.likes}</span>
-                          </button>
-                          <button 
-                           onClick={(e) => {
-                            openVoiceCommentModal(post.id, e);
-                           }}
-                           className="flex items-center gap-1 transition-colors text-gray-400 hover:text-[#2A5CAA]"
-                          >
-                            <MessageCircle size={18} />
-                            <span className="text-xs font-medium">{post._count.comments}</span>
-                          </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleLike(post.id);
+                              }}
+                              className={clsx(
+                                "shrink-0 flex items-center gap-1 transition-all",
+                                isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+                              )}
+                              aria-label="いいね"
+                            >
+                              <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                              <span className="text-xs font-medium">{post._count.likes}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
                       <div className="mt-4 border-t pt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-semibold text-gray-700">ボイスコメント</p>
+                          {/* ボイスコメントは折りたたみ。「コメントを聞く（件数）」で開閉 */}
+                          <button
+                            onClick={(e) => toggleListenComments(post.id, e)}
+                            className="text-sm font-semibold text-[#2A5CAA] hover:text-[#1F4580]"
+                            aria-expanded={commentsOpen}
+                          >
+                            {commentsOpen ? "コメントを閉じる" : "コメントを聞く"}（{post._count.comments}）
+                          </button>
                           <button
                             onClick={(e) => openVoiceCommentModal(post.id, e)}
                             className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580]"
@@ -633,6 +647,8 @@ export default function BoardPage() {
                           </button>
                         </div>
 
+                        {commentsOpen && (
+                          <>
                         {commentErrorByBoard[post.id] && (
                           <p className="text-xs text-red-500 mb-2">{commentErrorByBoard[post.id]}</p>
                         )}
@@ -696,11 +712,13 @@ export default function BoardPage() {
                                 className="text-xs text-[#2A5CAA] font-medium hover:text-[#1F4580] ml-4"
                               >
                                 {showAllComments
-                                  ? "コメントを閉じる"
+                                  ? "コメントを折りたたむ"
                                   : `さらに${voiceComments.length - 3}件のコメントを見る`}
                               </button>
                             )}
                           </div>
+                        )}
+                          </>
                         )}
                       </div>
                     </div>
