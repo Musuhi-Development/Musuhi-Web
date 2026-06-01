@@ -17,12 +17,29 @@ export async function GET(request: Request, { params }: Params) {
         owner: {
           select: { id: true, name: true, displayName: true, avatarUrl: true },
         },
+        recordings: {
+          include: {
+            recording: { select: { id: true, title: true, duration: true } },
+            contributor: { select: { id: true, name: true, displayName: true, avatarUrl: true } },
+          },
+        },
+        participants: {
+          include: {
+            user: { select: { id: true, name: true, displayName: true, avatarUrl: true } },
+          },
+        },
       },
     });
 
     if (!voiceGift) {
       return NextResponse.json({ error: "Voice gift not found" }, { status: 404 });
     }
+
+    const uniqueContributors = Array.from(
+      new Map(
+        voiceGift.recordings.map((r) => [r.contributor.id, r.contributor])
+      ).values()
+    );
 
     return NextResponse.json({
       voiceGift: {
@@ -32,6 +49,19 @@ export async function GET(request: Request, { params }: Params) {
         status: voiceGift.status,
         sendAt: voiceGift.sendAt,
         owner: voiceGift.owner,
+        recordingCount: voiceGift.recordings.length,
+        recordings: voiceGift.recordings.map((r) => ({
+          id: r.id,
+          title: r.recording.title,
+          duration: r.recording.duration,
+          contributorName: r.contributor.displayName ?? r.contributor.name,
+          contributorAvatarUrl: r.contributor.avatarUrl,
+        })),
+        contributors: uniqueContributors.map((c) => ({
+          id: c.id,
+          name: c.displayName ?? c.name,
+          avatarUrl: c.avatarUrl,
+        })),
       },
     });
   } catch (error: any) {
