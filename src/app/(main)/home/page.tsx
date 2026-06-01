@@ -1,10 +1,39 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Grid3x3, List, MapPin, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft } from "lucide-react";
+import { Grid3x3, List, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
+
+/** ポラロイド右下に置く水引（蝶結び）モチーフ。瑠璃色 #1e50a2 の1色。 */
+function MizuhikiBow({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 72 44"
+      className={className}
+      fill="none"
+      stroke="#1e50a2"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* 左の輪（2本の線で水引らしい束感を出す） */}
+      <path d="M36 22 C 14 4, 3 12, 7 22 C 10 31, 26 30, 36 22 Z" />
+      <path d="M36 22 C 17 8, 8 14, 10 21" strokeWidth="1" />
+      {/* 右の輪 */}
+      <path d="M36 22 C 58 4, 69 12, 65 22 C 62 31, 46 30, 36 22 Z" />
+      <path d="M36 22 C 55 8, 64 14, 62 21" strokeWidth="1" />
+      {/* 左右の垂れ */}
+      <path d="M33 24 C 28 32, 24 37, 19 41" />
+      <path d="M39 24 C 44 32, 48 37, 53 41" />
+      {/* 結び目 */}
+      <ellipse cx="36" cy="22" rx="3.4" ry="4.2" fill="#1e50a2" stroke="none" />
+    </svg>
+  );
+}
 
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
@@ -448,11 +477,31 @@ export default function HomePage() {
             className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="relative bg-[#fffdf8] rounded-2xl p-4 sm:p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)] border border-[#f1eadb]">
-              <div className="absolute top-2 left-6 w-16 h-5 rounded-sm bg-[#f6e7a8]/80 rotate-[-6deg] shadow-sm" />
-              <div className="absolute top-2 right-8 w-16 h-5 rounded-sm bg-[#d9e8ff]/80 rotate-[8deg] shadow-sm" />
+            {/* アルバム台紙 */}
+            <div className="relative bg-[#E8DDCD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+              {/* 右上の×ボタン（半透明の円背景・スマホでも押しやすいサイズ） */}
+              <button
+                type="button"
+                onClick={() => setSelectedRecording(null)}
+                aria-label="閉じる"
+                className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 transition-colors"
+              >
+                <X size={18} />
+              </button>
 
-              <div className="relative bg-white p-3 sm:p-4 rounded-md border border-[#eee6d6] shadow-[0_10px_22px_rgba(0,0,0,0.12)]">
+              {/* ポラロイド本体（白）：台紙の上に置かれた質感を出す柔らかい影 */}
+              <div className="relative bg-white rounded-[3px] px-3 pt-3 pb-5 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
+                {/* クラフト紙風マスキングテープ（1枚・写真上部中央／半透明・貼られた質感） */}
+                <div
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-7 rotate-[-2deg] bg-[#C8D7C1]/70 shadow-[0_2px_4px_rgba(0,0,0,0.12)] z-10"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(0deg, rgba(120,130,110,0.12) 0px, rgba(120,130,110,0.12) 1px, transparent 1px, transparent 3px)",
+                  }}
+                  aria-hidden="true"
+                />
+
+                {/* 写真 */}
                 {Array.isArray(selectedRecording.images) && selectedRecording.images.length > 0 ? (
                   <img
                     src={selectedRecording.images[0]}
@@ -469,57 +518,47 @@ export default function HomePage() {
                   </div>
                 )}
 
-                <div className="pt-4 pb-2 px-1">
-                  <p className="text-lg text-gray-800 tracking-wide font-semibold">{selectedRecording.title}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formatDateTime(selectedRecording.createdAt)} ・ {formatDuration(selectedRecording.duration)}
+                {/* 写真下の余白に全要素を統合 */}
+                <div className="pt-4 px-1 space-y-3">
+                  {/* 1. タイトル（太文字） */}
+                  <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
+                    {selectedRecording.title}
                   </p>
 
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
-                    {getVisibilityIcon(selectedRecording.visibility)}
-                    <span>{getVisibilityLabel(selectedRecording.visibility)}</span>
-                    {selectedRecording.location && (
-                      <>
-                        <span>・</span>
-                        <MapPin size={12} />
-                        <span>{selectedRecording.location}</span>
-                      </>
-                    )}
-                  </div>
+                  {/* 2. テキストメモ（未入力時は表示せず自然な余白として扱う） */}
+                  {selectedRecording.description && (
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {selectedRecording.description}
+                    </p>
+                  )}
+
+                  {/* 3. 波形表示の音声プレイヤー */}
+                  {selectedRecording.audioUrl && (
+                    <WaveformPlayer
+                      src={selectedRecording.audioUrl}
+                      duration={selectedRecording.duration}
+                    />
+                  )}
+
+                  {/* 4. 感情タグ */}
+                  {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRecording.emotions.map((emotion: string) => (
+                        <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
+                          #{emotion}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 5. 日時 */}
+                  <p className="text-xs text-gray-500">
+                    {formatDateTime(selectedRecording.createdAt)}
+                  </p>
                 </div>
-              </div>
 
-              {selectedRecording.audioUrl && (
-                <div className="mt-4 px-1">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">再生</p>
-                  <audio controls src={selectedRecording.audioUrl} className="w-full" preload="metadata" />
-                </div>
-              )}
-
-              {selectedRecording.emotions && selectedRecording.emotions.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {selectedRecording.emotions.map((emotion: string) => (
-                    <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
-                      #{emotion}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 px-1">
-                <p className="text-xs font-semibold text-gray-500 mb-2">テキストメモ</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {selectedRecording.description || "メモは設定されていません"}
-                </p>
-              </div>
-
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={() => setSelectedRecording(null)}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  閉じる
-                </button>
+                {/* 水引（蝶結び）モチーフ：ポラロイド右下 */}
+                <MizuhikiBow className="absolute bottom-3 right-3 w-12 h-7" />
               </div>
             </div>
           </div>
