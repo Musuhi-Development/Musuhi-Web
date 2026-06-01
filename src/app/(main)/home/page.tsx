@@ -31,46 +31,10 @@ function MizuhikiBow({ className }: { className?: string }) {
       {/* 中央で交差して垂れる2本の紐 */}
       <path d="M38 28 C 41 40, 47 47, 54 53" />
       <path d="M42 28 C 39 40, 33 47, 26 53" />
+      {/* 横線（左右に渡る水引の紐） */}
+      <path d="M6 27 C 22 24, 58 24, 74 27" />
       {/* 結び目 */}
       <ellipse cx="40" cy="27" rx="3" ry="4" fill="#1e50a2" stroke="none" />
-    </svg>
-  );
-}
-
-/**
- * ポラロイドを留める木製ミニクリップ（木製洗濯ばさみ）。
- * イラスト調を避け、自然な木材の色味とウッドグレイン・金属バネで本物の質感に寄せる。
- */
-function WoodenClip({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 48" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id="clipWood" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#E0C195" />
-          <stop offset="0.45" stopColor="#C99C61" />
-          <stop offset="1" stopColor="#AE7C42" />
-        </linearGradient>
-        <linearGradient id="clipMetal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d4d7db" />
-          <stop offset="1" stopColor="#969ca2" />
-        </linearGradient>
-      </defs>
-      {/* 接地影 */}
-      <ellipse cx="16" cy="45.5" rx="8.5" ry="2.2" fill="rgba(0,0,0,0.16)" />
-      {/* 木の本体 */}
-      <rect x="6.5" y="2" width="19" height="44" rx="4.5" fill="url(#clipWood)" />
-      {/* クリップの合わせ目（開口） */}
-      <line x1="16" y1="3" x2="16" y2="15" stroke="rgba(92,60,28,0.4)" strokeWidth="1" strokeLinecap="round" />
-      <line x1="16" y1="31" x2="16" y2="44.5" stroke="rgba(92,60,28,0.3)" strokeWidth="1" strokeLinecap="round" />
-      {/* ウッドグレイン */}
-      <path d="M11 5 C 10 18, 10 30, 11 43" stroke="rgba(120,78,38,0.25)" strokeWidth="0.8" fill="none" />
-      <path d="M21 5 C 22 18, 22 30, 21 43" stroke="rgba(120,78,38,0.22)" strokeWidth="0.8" fill="none" />
-      {/* ハイライト */}
-      <rect x="8" y="3.5" width="2.2" height="41" rx="1.1" fill="rgba(255,255,255,0.3)" />
-      {/* 金属バネ */}
-      <rect x="4.5" y="20" width="23" height="6.6" rx="3.3" fill="url(#clipMetal)" />
-      <circle cx="16" cy="23.3" r="3" fill="none" stroke="#7d848b" strokeWidth="1.4" />
-      <circle cx="16" cy="23.3" r="1" fill="#b7bbc0" />
     </svg>
   );
 }
@@ -539,8 +503,16 @@ export default function HomePage() {
 
               {/* ポラロイド本体（白）：上部・左右の白余白を多めに、台紙の上に置かれた柔らかい影 */}
               <div className="relative bg-white rounded-[3px] px-5 sm:px-6 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
-                {/* 木製ミニクリップ（写真上部中央でポラロイドを留める） */}
-                <WoodenClip className="absolute -top-[15px] left-1/2 -translate-x-1/2 w-[26px] h-10 z-20 drop-shadow-[0_4px_5px_rgba(0,0,0,0.2)]" />
+                {/* クラフト紙テープ（写真上部中央／セージグリーン・繊維感のあるマットな質感・自然な傾き） */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22),inset_0_0_10px_rgba(60,75,50,0.18)]"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+                    backgroundSize: "3px 3px, auto",
+                  }}
+                  aria-hidden="true"
+                />
 
                 {/* 写真：極細の境界線で紙に現像された印象（額縁感は出さない） */}
                 {Array.isArray(selectedRecording.images) && selectedRecording.images.length > 0 ? (
@@ -578,9 +550,9 @@ export default function HomePage() {
                     </p>
                   )}
 
-                  {/* 3. 波形表示の音声プレイヤー（柔らかい角丸コンテナで囲む） */}
+                  {/* 3. 波形表示の音声プレイヤー（透明背景＋薄い瑠璃色の枠線） */}
                   {selectedRecording.audioUrl && (
-                    <div className="rounded-2xl bg-[#F4EEE2] px-3 py-2.5">
+                    <div className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5">
                       <WaveformPlayer
                         src={selectedRecording.audioUrl}
                         duration={selectedRecording.duration}
