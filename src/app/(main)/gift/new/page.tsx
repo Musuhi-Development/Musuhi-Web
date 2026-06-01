@@ -69,6 +69,8 @@ function NewGiftPageInner() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedTag, setSelectedTag] = useState("全て");
   const [recordingKeyword, setRecordingKeyword] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendMode, setSendMode] = useState<SendMode>("draft");
@@ -466,6 +468,9 @@ function NewGiftPageInner() {
 
   const filteredRecordings = useMemo(() => {
     const normalizedKeyword = recordingKeyword.trim().toLowerCase();
+    // 開始日は0時、終了日はその日の終わり(翌日0時)までを範囲に含める
+    const fromTime = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const toTime = dateTo ? new Date(`${dateTo}T00:00:00`).getTime() + 24 * 60 * 60 * 1000 : null;
 
     return recordings.filter((recording) => {
       const tagMatch =
@@ -474,6 +479,19 @@ function NewGiftPageInner() {
 
       if (!tagMatch) {
         return false;
+      }
+
+      if (fromTime !== null || toTime !== null) {
+        const recordedTime = new Date(recording.createdAt).getTime();
+        if (Number.isNaN(recordedTime)) {
+          return false;
+        }
+        if (fromTime !== null && recordedTime < fromTime) {
+          return false;
+        }
+        if (toTime !== null && recordedTime >= toTime) {
+          return false;
+        }
       }
 
       if (!normalizedKeyword) {
@@ -485,7 +503,7 @@ function NewGiftPageInner() {
       const emotionText = Array.isArray(recording.emotions) ? recording.emotions.join(" ").toLowerCase() : "";
       return title.includes(normalizedKeyword) || description.includes(normalizedKeyword) || emotionText.includes(normalizedKeyword);
     });
-  }, [recordings, selectedTag, recordingKeyword]);
+  }, [recordings, selectedTag, recordingKeyword, dateFrom, dateTo]);
 
   const primaryActionLabel = useMemo(() => {
     if (giftStyle === "collab") return "募集開始";
@@ -795,6 +813,46 @@ function NewGiftPageInner() {
             />
           </div>
 
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-gray-500">録音日で検索</span>
+              {(dateFrom || dateTo) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                  className="text-xs text-[#2A5CAA] font-medium hover:underline"
+                  disabled={sending}
+                >
+                  クリア
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateFrom(e.target.value)}
+                aria-label="録音日の開始日"
+                className="flex-1 min-w-0 bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-3 rounded-lg focus:outline-none focus:bg-white focus:border-[#2A5CAA] text-sm"
+                disabled={sending}
+              />
+              <span className="text-gray-400 text-sm">〜</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+                aria-label="録音日の終了日"
+                className="flex-1 min-w-0 bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-3 rounded-lg focus:outline-none focus:bg-white focus:border-[#2A5CAA] text-sm"
+                disabled={sending}
+              />
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -802,7 +860,9 @@ function NewGiftPageInner() {
           ) : filteredRecordings.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500 mb-3">
-                {selectedTag === "全て" ? "録音がありません" : "このタグの録音がありません"}
+                {selectedTag === "全て" && !recordingKeyword && !dateFrom && !dateTo
+                  ? "録音がありません"
+                  : "条件に合う録音がありません"}
               </p>
               <button
                 onClick={() => router.push("/record")}
