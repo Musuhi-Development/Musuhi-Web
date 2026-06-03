@@ -109,6 +109,12 @@ export default function GiftDetailPage() {
 		return Array.isArray(firstRec?.emotions) ? firstRec.emotions : [];
 	}, [gift]);
 
+	// ポラロイド内のメッセージ = 音声ジャーナル詳細モーダルのメッセージ（録音の description）
+	const repDescription = useMemo(() => {
+		const firstRec = (gift?.recordings || [])[0]?.recording;
+		return firstRec?.description || "";
+	}, [gift]);
+
 	const shareLink = useMemo(() => {
 		if (!gift?.shareToken) return "";
 		if (typeof window === "undefined") return "";
@@ -279,10 +285,10 @@ export default function GiftDetailPage() {
 								{displayTitle}
 							</p>
 
-							{/* メッセージをポラロイド内に表示 */}
-							{gift.message && (
+							{/* ポラロイド内のメッセージ（音声ジャーナル詳細と同じ＝録音のテキストメモ） */}
+							{repDescription && (
 								<p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-									{gift.message}
+									{repDescription}
 								</p>
 							)}
 
@@ -374,9 +380,11 @@ export default function GiftDetailPage() {
 					</div>
 				)}
 
-				{canEdit && gift.status !== "sent" && (
+				{/* 音声追加は複数人で作成（音声寄せ書き）のみ。1人で作成では非表示 */}
+				{canEdit && isCollab && gift.status !== "sent" && (
 					<div className="bg-white rounded-3xl shadow-md p-6 space-y-4">
 						<h3 className="text-sm font-bold text-gray-700">音声を追加</h3>
+
 						{recordings.length === 0 ? (
 							<p className="text-sm text-gray-500">録音がありません</p>
 						) : (
