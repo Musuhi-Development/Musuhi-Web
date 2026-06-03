@@ -7,38 +7,6 @@ import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 
-/**
- * 祝儀袋の蝶結び水引をミニマルに再解釈したブランドシグネチャ。
- * 瑠璃色 #1e50a2 の1色・太めの線で「結び（Musuhi）」を象徴する。
- * 左右対称の輪と、中央で交差して垂れる2本の紐で水引らしさを表現。
- */
-function MizuhikiBow({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 80 56"
-      className={className}
-      fill="none"
-      stroke="#1e50a2"
-      strokeWidth="2.1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {/* 左の輪 */}
-      <path d="M40 27 C 20 5, 5 15, 13 28 C 18 36, 33 34, 40 27" />
-      {/* 右の輪 */}
-      <path d="M40 27 C 60 5, 75 15, 67 28 C 62 36, 47 34, 40 27" />
-      {/* 中央で交差して垂れる2本の紐 */}
-      <path d="M38 28 C 41 40, 47 47, 54 53" />
-      <path d="M42 28 C 39 40, 33 47, 26 53" />
-      {/* 横線（左右に渡る水引の紐） */}
-      <path d="M6 27 C 22 24, 58 24, 74 27" />
-      {/* 結び目 */}
-      <ellipse cx="40" cy="27" rx="3" ry="4" fill="#1e50a2" stroke="none" />
-    </svg>
-  );
-}
-
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
   "感謝": "/animal/rabbit.png",
@@ -119,12 +87,6 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
   function formatDate(dateString: string): string {
@@ -381,7 +343,7 @@ export default function HomePage() {
                           </div>
                           <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(recording.createdAt)} · {formatDuration(recording.duration)}
+                            {formatDate(recording.createdAt)}
                           </p>
                           {recording.emotions && recording.emotions.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
@@ -532,16 +494,11 @@ export default function HomePage() {
                 )}
 
                 {/* 写真下の余白に全要素を統合 */}
-                <div className="pt-4 px-1 space-y-3">
-                  {/* 1. タイトル（太文字）＋ 日時（同じ行の右端・小さめ） */}
-                  <div className="flex items-baseline justify-between gap-3 pr-9">
-                    <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
-                      {selectedRecording.title}
-                    </p>
-                    <p className="shrink-0 text-[10px] text-gray-400 whitespace-nowrap">
-                      {formatDateTime(selectedRecording.createdAt)}
-                    </p>
-                  </div>
+                <div className="pt-4 px-1 space-y-3 pb-3">
+                  {/* 1. タイトル（太文字） */}
+                  <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
+                    {selectedRecording.title}
+                  </p>
 
                   {/* 2. テキストメモ（未入力時は表示せず自然な余白として扱う） */}
                   {selectedRecording.description && (
@@ -572,8 +529,10 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* 水引（蝶結び）モチーフ：ポラロイド右下のブランドシグネチャ */}
-                <MizuhikiBow className="absolute bottom-3.5 right-3.5 w-[52px] h-9" />
+                {/* 録音日時：ポラロイド右下に配置 */}
+                <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+                  {formatDateTime(selectedRecording.createdAt)}
+                </p>
               </div>
             </div>
           </div>
