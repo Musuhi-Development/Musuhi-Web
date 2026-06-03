@@ -7,12 +7,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
+import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
+import { Postmark } from "@/components/shared/Postmark";
 
 const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
-  { id: "received", label: "受信済み", icon: Mail },
-  { id: "sent", label: "送信済み", icon: Send },
-  { id: "draft", label: "作成中", icon: Users },
-  { id: "scheduled", label: "予約送信", icon: Calendar },
+  { id: "received", label: "届いた", icon: Mail },
+  { id: "sent", label: "贈った", icon: Send },
+  { id: "draft", label: "下書き", icon: Users },
+  { id: "scheduled", label: "未来送信", icon: Calendar },
 ];
 
 const emotionToAnimal: { [key: string]: string } = {
@@ -33,20 +35,38 @@ export default function GiftPage() {
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(activeFilter);
   const router = useRouter();
 
-  const statusToneClass: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-700 border border-blue-200",
-    emerald: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    amber: "bg-amber-50 text-amber-700 border border-amber-200",
-    slate: "bg-gray-100 text-gray-700 border border-gray-200",
-  };
+  function pad(n: number) {
+    return String(n).padStart(2, "0");
+  }
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    });
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
+  }
+
+  function formatDateTime(dateString: string) {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  // 予約送信日時: YYYY/MM/DD/HH:MM お贈り予定
+  function formatScheduled(dateString: string) {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${pad(date.getHours())}:${pad(date.getMinutes())} お贈り予定`;
+  }
+
+  // 寄せ音声版（複数人で作成）の判定
+  function getDistinctContributors(gift: any) {
+    const contributors = (gift.recordings || [])
+      .map((recording: any) => recording.contributor)
+      .filter(Boolean);
+    return Array.from(new Map(contributors.map((item: any) => [item.id, item])).values());
+  }
+
+  function isCollabGift(gift: any) {
+    const distinctContributors = getDistinctContributors(gift).length;
+    const participantCount = (gift.participants || []).length;
+    return distinctContributors > 1 || participantCount > 1;
   }
 
   function getParticipantUsers(gift: any) {
@@ -61,81 +81,173 @@ export default function GiftPage() {
     return Array.from(new Map(merged.map((item: any) => [item.id, item])).values());
   }
 
-  function getSenderLabel(gift: any): string {
-    const ownerName = gift.owner?.displayName || gift.owner?.name || "不明";
-    return `から: ${ownerName}`;
+  // タイトル = 添付された音声ジャーナル（録音）のタイトル（代表録音）
+  function getGiftDisplayTitle(gift: any): string {
+    const first = (gift.recordings || [])[0];
+    const title = first?.recording?.title;
+    return title && String(title).trim() ? title : "無題";
   }
 
-  function getRecipientLabel(gift: any): string {
-    const recipients = gift.recipients || [];
-    const names = recipients.map((r: any) => {
-      if (r.recipient?.displayName || r.recipient?.name) {
-        return r.recipient.displayName || r.recipient.name;
-      }
-      return r.recipientEmail || "不明";
-    });
-    if (names.length === 0) return "送信先: 未設定";
-    if (names.length <= 2) return `送信先: ${names.join("、")}`;
-    return `送信先: ${names.slice(0, 2).join("、")} 他${names.length - 2}名`;
+  function getSenderName(gift: any): string {
+    return gift.owner?.displayName || gift.owner?.name || "不明";
   }
 
-  function getRecordingPreviews(gift: any) {
-    const previews = (gift.recordings || []).map((item: any) => {
-      const recording = item.recording;
-      const imageUrl = Array.isArray(recording?.images) ? recording.images[0] : undefined;
-      const animalImageSrc =
-        recording?.emotions && recording.emotions.length > 0
-          ? (emotionToAnimal[recording.emotions[0]] ?? null)
-          : null;
-
-      return {
-        imageUrl,
-        animalImageSrc,
-      };
-    });
-
-    return previews.slice(0, 4);
+  // 宛名 = VoiceGift.title に保存している
+  function getRecipientName(gift: any): string {
+    return gift.title || "";
   }
 
-  function getGiftStatusBadges(gift: any) {
-    const isOwnerOrParticipant =
-      gift.ownerId === user?.id ||
-      (gift.participants || []).some((participant: any) => participant.userId === user?.id);
-    const recipient = (gift.recipients || []).find(
-      (r: any) => r.recipientId === user?.id || (user?.email && r.recipientEmail === user.email)
+  function getFirstEmotions(gift: any): string[] {
+    const first = (gift.recordings || [])[0];
+    const emotions = first?.recording?.emotions;
+    return Array.isArray(emotions) ? emotions.slice(0, 3) : [];
+  }
+
+  function getThumb(gift: any): { imageUrl?: string; animalImageSrc?: string | null } | null {
+    const first = (gift.recordings || [])[0];
+    const recording = first?.recording;
+    if (!recording) return null;
+    const imageUrl = Array.isArray(recording.images) ? recording.images[0] : undefined;
+    const animalImageSrc =
+      recording.emotions && recording.emotions.length > 0
+        ? (emotionToAnimal[recording.emotions[0]] ?? null)
+        : null;
+    return { imageUrl, animalImageSrc };
+  }
+
+  // 寄せ音声版のみ表示する参加者アイコン＋音声件数
+  function renderCollabMeta(gift: any) {
+    if (!isCollabGift(gift)) return null;
+    const participantUsers = getParticipantUsers(gift);
+    const visibleParticipants = participantUsers.slice(0, 4);
+    const hiddenParticipantCount = Math.max(participantUsers.length - visibleParticipants.length, 0);
+
+    return (
+      <div className="flex items-center gap-1 pt-1">
+        {visibleParticipants.map((participant: any) => {
+          const displayName = participant.displayName || participant.name || "U";
+          return (
+            <div
+              key={participant.id}
+              title={displayName}
+              className="w-6 h-6 rounded-full border border-white bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[10px] font-bold overflow-hidden shadow-sm"
+            >
+              {participant.avatarUrl ? (
+                <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                displayName[0].toUpperCase()
+              )}
+            </div>
+          );
+        })}
+        {hiddenParticipantCount > 0 && (
+          <div className="w-6 h-6 rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-[10px] font-semibold flex items-center justify-center">
+            +{hiddenParticipantCount}
+          </div>
+        )}
+        <span className="text-[10px] text-gray-400 ml-1">{gift.recordings?.length || 0}件の音声</span>
+      </div>
     );
+  }
 
-    const badges: Array<{ label: string; tone: "blue" | "emerald" | "amber" | "slate" }> = [];
+  function renderThumb(gift: any) {
+    const thumb = getThumb(gift);
+    return (
+      <div className="relative w-16 h-16 flex-shrink-0">
+        <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
+          {thumb?.imageUrl ? (
+            <img src={thumb.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : thumb?.animalImageSrc ? (
+            <img src={thumb.animalImageSrc} alt="" className="w-full h-full object-contain p-2" />
+          ) : (
+            <span className="text-3xl">🎵</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-    if (gift.status === "draft") {
-      badges.push({ label: "下書き", tone: "slate" });
-    } else if (gift.status === "scheduled") {
-      badges.push({ label: "予約送信", tone: "amber" });
-    } else if (gift.status === "sent") {
-      badges.push({ label: recipient && !isOwnerOrParticipant ? "受信済み" : "送信済み", tone: recipient && !isOwnerOrParticipant ? "emerald" : "blue" });
-    } else {
-      badges.push({ label: "作成中", tone: "slate" });
-    }
+  function renderEmotionTags(gift: any) {
+    const emotions = getFirstEmotions(gift);
+    if (emotions.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {emotions.map((emotion) => (
+          <span key={emotion} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+            #{emotion}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
-    if (gift.status === "sent") {
-      if (recipient && !isOwnerOrParticipant) {
-        badges.push({ label: recipient.status === "opened" ? "既読" : "未読", tone: recipient.status === "opened" ? "emerald" : "slate" });
-      } else {
-        const totalRecipients = (gift.recipients || []).length;
-        const openedRecipients = (gift.recipients || []).filter((item: any) => item.status === "opened").length;
-        if (totalRecipients > 0) {
-          if (openedRecipients === 0) {
-            badges.push({ label: "未読", tone: "slate" });
-          } else if (openedRecipients === totalRecipients) {
-            badges.push({ label: "全員既読", tone: "emerald" });
-          } else {
-            badges.push({ label: `一部既読 ${openedRecipients}/${totalRecipients}`, tone: "amber" });
-          }
-        }
-      }
-    }
+  // 「届いた」タブ: 開封体験重視の便箋風カード
+  function renderReceivedCard(gift: any) {
+    return (
+      <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
+        <div
+          className="relative rounded-2xl border border-[#e7ddd0] bg-[#FAF7F2] shadow-sm hover:shadow-md transition-all p-4"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(120,95,55,0.05) 0.5px, transparent 0.5px), radial-gradient(rgba(255,255,255,0.6) 0.5px, transparent 0.5px)",
+            backgroundSize: "5px 5px",
+            backgroundPosition: "0 0, 2.5px 2.5px",
+          }}
+        >
+          {/* 郵便消印風の装飾アクセント（右上） */}
+          <Postmark className="pointer-events-none absolute top-2 right-2 w-12 h-12 rotate-[-8deg] opacity-50" />
 
-    return badges;
+          <div className="pr-12">
+            <h4 className="text-base font-bold text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
+            <p className="text-xs text-gray-500 mt-1">{getSenderName(gift)}より</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{formatDateTime(gift.sendAt || gift.createdAt)}</p>
+            {renderCollabMeta(gift)}
+          </div>
+
+          {/* 便箋らしい薄い横罫線 ＋ 右下に水引（結びマーク） */}
+          <div className="mt-4 border-t border-[#e7ddd0] pt-2 flex justify-end">
+            <MizuhikiBow className="w-9 h-6 opacity-80" />
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // 「贈った / 下書き / 未来送信」タブの標準カード
+  function renderStandardCard(gift: any) {
+    return (
+      <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
+        <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4">
+          <div className="flex items-start gap-4">
+            {renderThumb(gift)}
+
+            <div className="flex-1 min-w-0 space-y-1">
+              {/* 1行目: タイトル（=録音タイトル、太字・1行固定・サイズ固定） */}
+              <h4 className="text-base font-bold text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
+
+              {/* 2行目: メッセージ冒頭 */}
+              {gift.message && <p className="text-xs text-gray-600 truncate">{gift.message}</p>}
+
+              {/* 3行目: 感情タグ */}
+              {renderEmotionTags(gift)}
+
+              {/* 4行目: 宛名 + へ */}
+              <p className="text-xs text-[#2A5CAA] font-medium truncate">{getRecipientName(gift)}へ</p>
+
+              {/* 5行目: 日時（sent=送信日時 / scheduled=お贈り予定 / draft=なし） */}
+              {activeFilter === "scheduled" && gift.sendAt && (
+                <p className="text-[11px] text-amber-600">{formatScheduled(gift.sendAt)}</p>
+              )}
+              {activeFilter === "sent" && (
+                <p className="text-[11px] text-gray-400">{formatDateTime(gift.sendAt || gift.createdAt)}</p>
+              )}
+
+              {renderCollabMeta(gift)}
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
   }
 
   return (
@@ -168,13 +280,13 @@ export default function GiftPage() {
       <div className="px-6 py-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-800">All Voice Gifts</h2>
-            <p className="text-xs text-gray-500">声のギフト一覧</p>
+            <h2 className="text-lg font-bold text-gray-800">Voice Gift</h2>
+            <p className="text-xs text-gray-500">声の贈りもの</p>
           </div>
           <Link href="/gift/new">
             <button className="bg-[#2A5CAA] text-white font-bold px-4 py-2 rounded-full shadow-md hover:bg-[#1F4580] transition-all flex items-center gap-2">
               <Plus size={16} />
-              新規
+              贈る
             </button>
           </Link>
         </div>
@@ -221,123 +333,9 @@ export default function GiftPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {voiceGifts.map((gift) => {
-              const participantUsers = getParticipantUsers(gift);
-              const visibleParticipants = participantUsers.slice(0, 4);
-              const hiddenParticipantCount = Math.max(participantUsers.length - visibleParticipants.length, 0);
-              const recordingPreviews = getRecordingPreviews(gift);
-              const statusBadges = getGiftStatusBadges(gift);
-              const gridSlots: Array<{ imageUrl?: string; animalImageSrc?: string | null } | null> = [null, null, null, null];
-
-              if (recordingPreviews.length === 2) {
-                gridSlots[0] = recordingPreviews[0];
-                gridSlots[3] = recordingPreviews[1];
-              } else if (recordingPreviews.length === 3) {
-                gridSlots[0] = recordingPreviews[0];
-                gridSlots[1] = recordingPreviews[1];
-                gridSlots[2] = recordingPreviews[2];
-              } else if (recordingPreviews.length >= 4) {
-                recordingPreviews.slice(0, 4).forEach((preview: any, index: number) => {
-                  gridSlots[index] = preview;
-                });
-              }
-
-              return (
-                <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
-                  <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-16 h-16 flex-shrink-0">
-                        {recordingPreviews.length <= 1 ? (
-                          <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center overflow-hidden">
-                            {recordingPreviews[0]?.imageUrl ? (
-                              <img src={recordingPreviews[0].imageUrl} alt={gift.title} className="w-full h-full object-cover" />
-                            ) : recordingPreviews[0]?.animalImageSrc ? (
-                              <img src={recordingPreviews[0].animalImageSrc} alt="" className="w-full h-full object-contain p-2" />
-                            ) : (
-                              <span className="text-3xl">🎵</span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1">
-                            {gridSlots.map((preview, index) => (
-                              <div
-                                key={`${gift.id}-preview-${index}`}
-                                className="w-full h-full rounded-md bg-gray-200 overflow-hidden flex items-center justify-center"
-                              >
-                                {preview?.imageUrl ? (
-                                  <img src={preview.imageUrl} alt={gift.title} className="w-full h-full object-cover" />
-                                ) : preview?.animalImageSrc ? (
-                                  <img src={preview.animalImageSrc} alt="" className="w-full h-full object-contain p-1" />
-                                ) : preview ? (
-                                  <span className="text-sm">🎵</span>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-gray-800 truncate">{gift.title}</h4>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {formatDate(gift.createdAt)} ・ {gift.recordings?.length || 0}件の音声
-                        </p>
-                        {activeFilter === "received" ? (
-                          <p className="text-xs text-[#2A5CAA] mt-0.5 flex items-center gap-1 font-medium">
-                            <Mail size={11} />
-                            {getSenderLabel(gift)}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1 font-medium">
-                            <Send size={11} />
-                            {getRecipientLabel(gift)}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-1 mt-2">
-                          {visibleParticipants.map((participant: any) => {
-                            const displayName = participant.displayName || participant.name || "U";
-                            return (
-                              <div
-                                key={participant.id}
-                                title={displayName}
-                                className="w-7 h-7 rounded-full border border-white bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[11px] font-bold overflow-hidden shadow-sm"
-                              >
-                                {participant.avatarUrl ? (
-                                  <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                                ) : (
-                                  displayName[0].toUpperCase()
-                                )}
-                              </div>
-                            );
-                          })}
-                          {hiddenParticipantCount > 0 && (
-                            <div className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-[10px] font-semibold flex items-center justify-center">
-                              +{hiddenParticipantCount}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 w-24 flex-shrink-0">
-                        {statusBadges.map((badge, index) => (
-                          <span
-                            key={`${gift.id}-status-${index}`}
-                            className={clsx(
-                              "px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap",
-                              statusToneClass[badge.tone]
-                            )}
-                          >
-                            {badge.label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {voiceGifts.map((gift) =>
+              activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
+            )}
           </div>
         )}
       </div>

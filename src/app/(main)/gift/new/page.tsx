@@ -246,9 +246,15 @@ function NewGiftPageInner() {
   }, [minScheduleDate]);
 
   const handleToggleRecording = (recordingId: string) => {
-    setSelectedRecordingIds((prev) =>
-      prev.includes(recordingId) ? prev.filter((id) => id !== recordingId) : [...prev, recordingId]
-    );
+    setSelectedRecordingIds((prev) => {
+      // 1人で作成（solo）は音声を1つだけ選択。複数人で作成（寄せ音声）は従来どおり複数可。
+      if (giftStyle === "solo") {
+        return prev.includes(recordingId) ? [] : [recordingId];
+      }
+      return prev.includes(recordingId)
+        ? prev.filter((id) => id !== recordingId)
+        : [...prev, recordingId];
+    });
   };
 
   const handleAddRecipientUser = (user: UserResult) => {
@@ -339,7 +345,17 @@ function NewGiftPageInner() {
 
   const handleSend = async () => {
     if (!title.trim()) {
-      alert("タイトルを入力してください");
+      alert("宛名を入力してください");
+      return;
+    }
+
+    if (title.trim().length > 20) {
+      alert("宛名は20文字以内で入力してください");
+      return;
+    }
+
+    if (!message.trim()) {
+      alert("メッセージを入力してください");
       return;
     }
 
@@ -349,6 +365,11 @@ function NewGiftPageInner() {
     }
 
     const isCollab = giftStyle === "collab";
+
+    if (!isCollab && selectedRecordingIds.length !== 1) {
+      alert("音声を1つ選択してください");
+      return;
+    }
 
     if (isCollab && selectedParticipants.length === 0 && !issueShareLink) {
       alert("共同作成では、共同メンバーを追加するかリンク発行を有効にしてください");
@@ -539,14 +560,18 @@ function NewGiftPageInner() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div>
-          <label className="text-xs font-bold text-gray-500 mb-1 block">
-            タイトル <span className="text-red-500">※</span>
-          </label>
+          <div className="flex items-baseline justify-between mb-1">
+            <label className="text-xs font-bold text-gray-500 block">
+              宛名 <span className="text-red-500">※</span>
+            </label>
+            <span className="text-[10px] text-gray-400">{title.length}/20</span>
+          </div>
           <input
             type="text"
-            placeholder="例: お誕生日おめでとう"
+            placeholder="例: お母さん"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => setTitle(e.target.value.slice(0, 20))}
+            maxLength={20}
             disabled={sending}
             className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 placeholder:text-gray-400"
           />
@@ -669,6 +694,8 @@ function NewGiftPageInner() {
                 setGiftStyle("solo");
                 setIssueShareLink(false);
                 setSelectedParticipants([]);
+                // soloは音声1つのみ。複数選択済みなら先頭だけ残す
+                setSelectedRecordingIds((prev) => prev.slice(0, 1));
               }}
               className={clsx(
                 "rounded-xl border px-3 py-3 text-sm font-semibold",
@@ -782,7 +809,8 @@ function NewGiftPageInner() {
 
         <div>
           <label className="text-xs font-bold text-gray-500 mb-2 block">
-            音声を選択（複数選択可）
+            音声を選択（{giftStyle === "solo" ? "1つ" : "複数選択可"}）
+            {giftStyle === "solo" && <span className="text-red-500"> ※</span>}
           </label>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
             {emotionTags.map((tag) => (
@@ -944,7 +972,9 @@ function NewGiftPageInner() {
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-500 mb-1 block">メッセージ（任意）</label>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">
+            メッセージ <span className="text-red-500">※</span>
+          </label>
           <textarea
             placeholder="相手へのメッセージを入力..."
             value={message}
