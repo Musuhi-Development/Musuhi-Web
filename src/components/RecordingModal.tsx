@@ -110,8 +110,8 @@ export default function RecordingModal({
   };
 
   const handleImageUpload = async (file: File) => {
-    if (uploadedImages.length >= 5) {
-      alert("画像は最大5枚まで追加できます");
+    if (uploadedImages.length >= 1) {
+      alert("画像は1枚まで追加できます");
       return;
     }
 
@@ -304,14 +304,19 @@ export default function RecordingModal({
                     <div className="space-y-5">
                     {/* Title */}
                     <div>
-                      <label className="text-xs font-bold text-gray-500 mb-2 block">
-                        タイトル <span className="text-red-500">※</span>
-                      </label>
+                      <div className="flex items-baseline justify-between mb-2">
+                        <label className="text-xs font-bold text-gray-500 block">
+                          タイトル <span className="text-red-500">※</span>
+                          <span className="ml-1 font-normal text-gray-400">（20文字以内）</span>
+                        </label>
+                        <span className="text-[10px] text-gray-400">{title.length}/20</span>
+                      </div>
                       <input
                         type="text"
                         placeholder="タイトルを入力..."
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => setTitle(e.target.value.slice(0, 20))}
+                        maxLength={20}
                         className="w-full text-base font-semibold border-b-2 border-gray-200 py-2 focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-300"
                         disabled={saving}
                       />
@@ -376,7 +381,7 @@ export default function RecordingModal({
                       </div>
                     )}
 
-                    {uploadedImages.length < 5 && (
+                    {uploadedImages.length < 1 && (
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={saving || uploadingImage}
@@ -390,7 +395,7 @@ export default function RecordingModal({
                         ) : (
                           <>
                             <ImageIcon size={18} />
-                            写真を追加 ({uploadedImages.length}/5)
+                            写真を追加 ({uploadedImages.length}/1)
                           </>
                         )}
                       </button>

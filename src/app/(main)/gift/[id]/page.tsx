@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Copy, Gift, Loader2, Play, Pause, Users, Check } from "lucide-react";
+import { Calendar, Copy, Loader2, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { useUser } from "@/hooks/useUser";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
+import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 
 type Recording = {
 	id: string;
 	title: string;
 	duration: number;
+};
+
+const emotionToAnimal: { [key: string]: string } = {
+	"嬉しい": "/animal/dog.png",
+	"感謝": "/animal/rabbit.png",
+	"楽しい": "/animal/horse.png",
+	"幸せ": "/animal/cat.png",
+	"ワクワク": "/animal/lion.png",
+	"応援": "/animal/tiger.png",
+	"疲れた": "/animal/monkey.png",
+	"悲しい": "/animal/turtle.png",
+	"イライラ": "/animal/bear.png",
 };
 
 export default function GiftDetailPage() {
@@ -27,24 +41,12 @@ export default function GiftDetailPage() {
 	const [updatingSchedule, setUpdatingSchedule] = useState(false);
 	const [sendingNow, setSendingNow] = useState(false);
 	const [copied, setCopied] = useState(false);
-	const [playingId, setPlayingId] = useState<string | null>(null);
-	const [isPlaying, setIsPlaying] = useState(false);
-	const audioRef = useRef<HTMLAudioElement | null>(null);
 
 	useEffect(() => {
 		if (!giftId) return;
 		fetchGift(giftId);
 		fetchRecordings();
 	}, [giftId]);
-
-	useEffect(() => {
-		return () => {
-			if (audioRef.current) {
-				audioRef.current.pause();
-				audioRef.current = null;
-			}
-		};
-	}, []);
 
 	async function fetchGift(id: string) {
 		setLoading(true);
@@ -82,6 +84,37 @@ export default function GiftDetailPage() {
 	const isParticipant = gift?.participants?.some((p: any) => p.userId === user?.id);
 	const canEdit = isOwner || isParticipant;
 
+	const distinctContributorCount = useMemo(() => {
+		const ids = new Set(
+			(gift?.recordings || []).map((r: any) => r.contributor?.id).filter(Boolean)
+		);
+		return ids.size;
+	}, [gift]);
+	const isCollab = distinctContributorCount > 1 || (gift?.participants?.length || 0) > 1;
+
+	const displayTitle = useMemo(() => {
+		const first = (gift?.recordings || [])[0];
+		const title = first?.recording?.title;
+		return title && String(title).trim() ? title : "無題";
+	}, [gift]);
+
+	const repImage = useMemo(() => {
+		const firstRec = (gift?.recordings || [])[0]?.recording;
+		const images = firstRec?.images;
+		return Array.isArray(images) && images.length > 0 ? images[0] : null;
+	}, [gift]);
+
+	const repEmotions: string[] = useMemo(() => {
+		const firstRec = (gift?.recordings || [])[0]?.recording;
+		return Array.isArray(firstRec?.emotions) ? firstRec.emotions : [];
+	}, [gift]);
+
+	// ポラロイド内のメッセージ = 音声ジャーナル詳細モーダルのメッセージ（録音の description）
+	const repDescription = useMemo(() => {
+		const firstRec = (gift?.recordings || [])[0]?.recording;
+		return firstRec?.description || "";
+	}, [gift]);
+
 	const shareLink = useMemo(() => {
 		if (!gift?.shareToken) return "";
 		if (typeof window === "undefined") return "";
@@ -93,53 +126,6 @@ export default function GiftDetailPage() {
 		await navigator.clipboard.writeText(`ボイスギフトを作りませんか？\n${shareLink}`);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
-	};
-
-	const togglePlayPause = (recording: { id: string; audioUrl?: string }) => {
-		if (!recording.audioUrl) {
-			alert("音声ファイルが見つかりません");
-			return;
-		}
-
-		if (playingId === recording.id && isPlaying) {
-			audioRef.current?.pause();
-			setIsPlaying(false);
-			return;
-		}
-
-		if (playingId !== recording.id) {
-			if (audioRef.current) {
-				audioRef.current.pause();
-				audioRef.current = null;
-			}
-
-			const audio = new Audio(recording.audioUrl);
-			audioRef.current = audio;
-			setPlayingId(recording.id);
-
-			audio.onended = () => {
-				setIsPlaying(false);
-				setPlayingId(null);
-			};
-
-			audio.onerror = () => {
-				alert("音声の再生に失敗しました");
-				setIsPlaying(false);
-				setPlayingId(null);
-			};
-
-			audio.play().then(() => {
-				setIsPlaying(true);
-			}).catch((err) => {
-				console.error("Playback error:", err);
-				alert("音声の再生に失敗しました");
-				setIsPlaying(false);
-				setPlayingId(null);
-			});
-		} else {
-			audioRef.current?.play();
-			setIsPlaying(true);
-		}
 	};
 
 	const handleToggleRecording = (recordingId: string) => {
@@ -218,9 +204,10 @@ export default function GiftDetailPage() {
 		}
 	};
 
-	const formatDate = (dateString: string) => {
+	const formatDateTime = (dateString: string) => {
 		const date = new Date(dateString);
-		return date.toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" });
+		const pad = (n: number) => String(n).padStart(2, "0");
+		return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	};
 
 	if (loading) {
@@ -247,26 +234,129 @@ export default function GiftDetailPage() {
 			<div className="bg-white px-6 py-4 shadow-sm">
 				<div className="flex items-center justify-between">
 					<button onClick={() => router.back()} className="text-gray-500">戻る</button>
-					<h1 className="text-lg font-bold text-gray-800">ボイスギフト詳細</h1>
-					<span className="text-xs text-gray-400">{gift.status}</span>
+					<h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
+					<span className="w-8" />
 				</div>
 			</div>
 
 			<div className="px-6 py-6 space-y-6">
-				<div className="bg-white rounded-3xl shadow-md p-6">
-					<div className="flex items-center gap-4 mb-4">
-						<div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white">
-							<Gift size={24} />
+				{/* ポラロイドカード（ボイスアルバムの音声ジャーナル詳細と統一） */}
+				<div
+					className="relative bg-[#F3EBDD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+					style={{
+						backgroundImage:
+							"radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+						backgroundSize: "5px 5px",
+						backgroundPosition: "0 0, 2.5px 2.5px",
+					}}
+				>
+					<div className="relative bg-white rounded-[3px] px-5 sm:px-6 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.25)]">
+						{/* クラフト紙テープ */}
+						<div
+							className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22),inset_0_0_10px_rgba(60,75,50,0.18)]"
+							style={{
+								backgroundImage:
+									"radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+								backgroundSize: "3px 3px, auto",
+							}}
+							aria-hidden="true"
+						/>
+
+						{/* 写真 */}
+						{repImage ? (
+							<img
+								src={repImage}
+								alt={displayTitle}
+								className="w-full rounded-sm object-cover max-h-64 sm:max-h-72 ring-1 ring-black/[0.07]"
+							/>
+						) : (
+							<div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
+								{repEmotions.length > 0 && emotionToAnimal[repEmotions[0]] ? (
+									<img src={emotionToAnimal[repEmotions[0]]} alt="" className="w-24 h-24 object-contain" />
+								) : (
+									<span className="text-6xl">🎵</span>
+								)}
+							</div>
+						)}
+
+						<div className="pt-4 px-1 space-y-3 pb-3">
+							{/* タイトル（=録音タイトル） */}
+							<p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
+								{displayTitle}
+							</p>
+
+							{/* ポラロイド内のメッセージ（音声ジャーナル詳細と同じ＝録音のテキストメモ） */}
+							{repDescription && (
+								<p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+									{repDescription}
+								</p>
+							)}
+
+							{/* 収録音声（複数＝寄せ音声は貢献者名付きで列挙） */}
+							{(gift.recordings || []).length === 0 ? (
+								<p className="text-sm text-gray-500">まだ音声がありません</p>
+							) : (
+								<div className="space-y-2">
+									{gift.recordings.map((item: any) => (
+										<div
+											key={item.id}
+											className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5"
+										>
+											{isCollab && (
+												<p className="text-[11px] text-gray-500 mb-1">
+													{item.contributor?.displayName || item.contributor?.name || "ユーザー"}
+												</p>
+											)}
+											{item.recording?.audioUrl ? (
+												<WaveformPlayer src={item.recording.audioUrl} duration={item.recording.duration} />
+											) : (
+												<p className="text-xs text-gray-400">{item.recording?.title || "音声"}</p>
+											)}
+										</div>
+									))}
+								</div>
+							)}
+
+							{/* 感情タグ */}
+							{repEmotions.length > 0 && (
+								<div className="flex flex-wrap gap-2 pr-10">
+									{repEmotions.map((emotion: string) => (
+										<span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
+											#{emotion}
+										</span>
+									))}
+								</div>
+							)}
 						</div>
-						<div>
-							<h2 className="text-xl font-bold text-gray-800">{gift.title}</h2>
-							<p className="text-xs text-gray-500">作成日: {formatDate(gift.createdAt)}</p>
-						</div>
+
+						{/* 録音日時：ポラロイド右下に配置 */}
+						<p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+							{formatDateTime(gift.sendAt || gift.createdAt)}
+						</p>
 					</div>
-					{gift.message && <p className="text-sm text-gray-600">{gift.message}</p>}
 				</div>
 
-				{isOwner && (
+				{/* 手紙エリア（ポラロイド直下・便箋風） */}
+				<div
+					className="relative rounded-2xl bg-[#FAF7F2] shadow-sm px-6 sm:px-8 py-7 pb-12"
+					style={{
+						backgroundImage:
+							"repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
+					}}
+				>
+					{/* 宛名「○○へ」 */}
+					<p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
+					{/* メッセージ本文 */}
+					<p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
+						{gift.message || ""}
+					</p>
+					{/* 右下に水引モチーフ */}
+					<MizuhikiBow className="absolute bottom-3 right-4 w-10 h-7 opacity-80" />
+				</div>
+
+				{/* ─── 以下は編集可能なオーナー/参加者向けの管理UI ─── */}
+				{/* 共有リンクは複数人で作成（寄せ音声）の場合のみ表示。1人で作成（通常版）では非表示 */}
+				{isOwner && isCollab && (
 					<div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 shadow-md">
 						<h3 className="text-sm font-bold text-gray-700 mb-2">共有リンク</h3>
 						<p className="text-xs text-gray-600 mb-3">
@@ -290,65 +380,11 @@ export default function GiftDetailPage() {
 					</div>
 				)}
 
-				<div className="bg-white rounded-3xl shadow-md p-6">
-					<h3 className="text-sm font-bold text-gray-700 mb-3">送信者</h3>
-					<div className="flex flex-wrap gap-2">
-						{(gift.recordings || []).map((recording: any) => recording.contributor)
-							.filter((contributor: any, index: number, list: any[]) =>
-								list.findIndex((c) => c.id === contributor.id) === index
-							)
-							.map((contributor: any) => (
-								<span key={contributor.id} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs">
-									{contributor.displayName || contributor.name}
-								</span>
-							))}
-					</div>
-				</div>
-
-				<div className="bg-white rounded-3xl shadow-md p-6">
-					<h3 className="text-sm font-bold text-gray-700 mb-3">受信者</h3>
-					<div className="flex flex-wrap gap-2">
-						{gift.recipients.map((recipient: any) => (
-							<span key={recipient.id} className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs">
-								{recipient.recipient?.displayName || recipient.recipient?.name || recipient.recipientEmail || "未設定"}
-							</span>
-						))}
-					</div>
-				</div>
-
-				<div className="bg-white rounded-3xl shadow-md p-6">
-					<h3 className="text-sm font-bold text-gray-700 mb-3">収録音声</h3>
-					{gift.recordings.length === 0 ? (
-						<p className="text-sm text-gray-500">まだ音声がありません</p>
-					) : (
-						<div className="space-y-2">
-							{gift.recordings.map((item: any) => (
-								<div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-										<button
-											onClick={() => togglePlayPause(item.recording)}
-											className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center"
-										>
-											{playingId === item.recording.id && isPlaying ? (
-												<Pause size={16} className="text-[#2A5CAA]" />
-											) : (
-												<Play size={16} className="text-[#2A5CAA]" />
-											)}
-										</button>
-									<div className="flex-1">
-										<p className="text-sm font-semibold text-gray-800">{item.recording.title}</p>
-										<p className="text-xs text-gray-500">
-											{item.contributor.displayName || item.contributor.name}
-										</p>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-
-				{canEdit && gift.status !== "sent" && (
+				{/* 音声追加は複数人で作成（音声寄せ書き）のみ。1人で作成では非表示 */}
+				{canEdit && isCollab && gift.status !== "sent" && (
 					<div className="bg-white rounded-3xl shadow-md p-6 space-y-4">
 						<h3 className="text-sm font-bold text-gray-700">音声を追加</h3>
+
 						{recordings.length === 0 ? (
 							<p className="text-sm text-gray-500">録音がありません</p>
 						) : (
@@ -414,11 +450,6 @@ export default function GiftDetailPage() {
 						</div>
 					</div>
 				)}
-
-				<div className="text-xs text-gray-500 bg-white rounded-2xl p-4 shadow-sm flex items-center gap-2">
-					<Users size={14} />
-					ボイスギフトは複数の送信者が参加し、同じ内容で複数の受信者へ届けられます。
-				</div>
 			</div>
 		</div>
 	);
