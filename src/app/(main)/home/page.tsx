@@ -6,7 +6,6 @@ import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
-import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
@@ -88,12 +87,6 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
   function formatDate(dateString: string): string {
@@ -350,7 +343,7 @@ export default function HomePage() {
                           </div>
                           <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(recording.createdAt)} · {formatDuration(recording.duration)}
+                            {formatDate(recording.createdAt)}
                           </p>
                           {recording.emotions && recording.emotions.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
@@ -501,16 +494,11 @@ export default function HomePage() {
                 )}
 
                 {/* 写真下の余白に全要素を統合 */}
-                <div className="pt-4 px-1 space-y-3">
-                  {/* 1. タイトル（太文字）＋ 日時（同じ行の右端・小さめ） */}
-                  <div className="flex items-baseline justify-between gap-3 pr-9">
-                    <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
-                      {selectedRecording.title}
-                    </p>
-                    <p className="shrink-0 text-[10px] text-gray-400 whitespace-nowrap">
-                      {formatDateTime(selectedRecording.createdAt)}
-                    </p>
-                  </div>
+                <div className="pt-4 px-1 space-y-3 pb-3">
+                  {/* 1. タイトル（太文字） */}
+                  <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
+                    {selectedRecording.title}
+                  </p>
 
                   {/* 2. テキストメモ（未入力時は表示せず自然な余白として扱う） */}
                   {selectedRecording.description && (
@@ -541,8 +529,10 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* 水引（蝶結び）モチーフ：ポラロイド右下のブランドシグネチャ */}
-                <MizuhikiBow className="absolute bottom-3.5 right-3.5 w-[52px] h-9" />
+                {/* 録音日時：ポラロイド右下に配置 */}
+                <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+                  {formatDateTime(selectedRecording.createdAt)}
+                </p>
               </div>
             </div>
           </div>

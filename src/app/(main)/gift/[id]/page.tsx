@@ -273,16 +273,18 @@ export default function GiftDetailPage() {
 							</div>
 						)}
 
-						<div className="pt-4 px-1 space-y-3">
-							{/* タイトル（=録音タイトル）＋ 日時 */}
-							<div className="flex items-baseline justify-between gap-3 pr-9">
-								<p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
-									{displayTitle}
+						<div className="pt-4 px-1 space-y-3 pb-3">
+							{/* タイトル（=録音タイトル） */}
+							<p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
+								{displayTitle}
+							</p>
+
+							{/* メッセージをポラロイド内に表示 */}
+							{gift.message && (
+								<p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+									{gift.message}
 								</p>
-								<p className="shrink-0 text-[10px] text-gray-400 whitespace-nowrap">
-									{formatDateTime(gift.sendAt || gift.createdAt)}
-								</p>
-							</div>
+							)}
 
 							{/* 収録音声（複数＝寄せ音声は貢献者名付きで列挙） */}
 							{(gift.recordings || []).length === 0 ? (
@@ -321,8 +323,10 @@ export default function GiftDetailPage() {
 							)}
 						</div>
 
-						{/* 水引（蝶結び）モチーフ */}
-						<MizuhikiBow className="absolute bottom-3.5 right-3.5 w-[52px] h-9" />
+						{/* 録音日時：ポラロイド右下に配置 */}
+						<p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+							{formatDateTime(gift.sendAt || gift.createdAt)}
+						</p>
 					</div>
 				</div>
 
@@ -345,7 +349,8 @@ export default function GiftDetailPage() {
 				</div>
 
 				{/* ─── 以下は編集可能なオーナー/参加者向けの管理UI ─── */}
-				{isOwner && (
+				{/* 共有リンクは複数人で作成（寄せ音声）の場合のみ表示。1人で作成（通常版）では非表示 */}
+				{isOwner && isCollab && (
 					<div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 shadow-md">
 						<h3 className="text-sm font-bold text-gray-700 mb-2">共有リンク</h3>
 						<p className="text-xs text-gray-600 mb-3">
