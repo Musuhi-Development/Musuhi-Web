@@ -65,6 +65,7 @@ function NewGiftPageInner() {
   const prefillTitle = searchParams.get("title") || "";
   const [title, setTitle] = useState(prefillTitle);
   const [message, setMessage] = useState("");
+  const [senderName, setSenderName] = useState("");
   const [selectedRecordingIds, setSelectedRecordingIds] = useState<string[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedTag, setSelectedTag] = useState("全て");
@@ -398,6 +399,7 @@ function NewGiftPageInner() {
       const payload: any = {
         title: title.trim(),
         message: message.trim() || null,
+        senderName: senderName.trim() || null,
         recipientIds: selectedUsers.map((user) => user.id),
         recipientEmails,
         participantIds: isCollab ? selectedParticipants.map((participant) => participant.id) : [],
@@ -982,6 +984,20 @@ function NewGiftPageInner() {
             rows={4}
             disabled={sending}
             className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 placeholder:text-gray-400 resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">
+            贈り主
+          </label>
+          <input
+            type="text"
+            placeholder="例: 山田太郎"
+            value={senderName}
+            onChange={(e) => setSenderName(e.target.value)}
+            disabled={sending}
+            className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 placeholder:text-gray-400"
           />
         </div>
 

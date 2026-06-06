@@ -133,6 +133,7 @@ export async function POST(request: Request) {
     const {
       title,
       message,
+      senderName,
       recipientIds,
       recipientEmails,
       participantIds,
@@ -254,6 +255,7 @@ export async function POST(request: Request) {
       data: {
         title,
         message: message || null,
+        senderName: senderName || null,
         ownerId: user.id,
         status,
         sendAt: effectiveSendAt,
@@ -297,14 +299,14 @@ export async function POST(request: Request) {
     });
 
     // ─── メール送信（非同期・失敗してもレスポンスはブロックしない）───
-    const senderName =
+    const emailSenderName =
       voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
     const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
 
     // 1) ギフト受信通知 — メールアドレス宛の受信者
     if (status === "sent" && normalizedRecipientEmails.length > 0) {
       const deliveryEmailOptions = {
-        senderName,
+        senderName: emailSenderName,
         giftTitle: voiceGift.title,
         giftMessage: voiceGift.message,
         giftUrl,
@@ -313,7 +315,7 @@ export async function POST(request: Request) {
         normalizedRecipientEmails.map((to) =>
           sendEmail({
             to,
-            subject: `【Musuhi】${senderName} さんから声のギフトが届きました`,
+            subject: `【Musuhi】${emailSenderName} さんから声のギフトが届きました`,
             html: giftDeliveryHtml(deliveryEmailOptions),
             text: giftDeliveryText(deliveryEmailOptions),
           })
@@ -342,7 +344,7 @@ export async function POST(request: Request) {
           if (inviteEmails.length === 0) return;
 
           const inviteOptions = {
-            inviterName: senderName,
+            inviterName: emailSenderName,
             giftTitle: voiceGift.title,
             giftMessage: voiceGift.message,
             inviteUrl: giftUrl,
@@ -351,7 +353,7 @@ export async function POST(request: Request) {
             inviteEmails.map((to) =>
               sendEmail({
                 to,
-                subject: `【Musuhi】${senderName} さんから声のギフト作りに招待されました`,
+                subject: `【Musuhi】${emailSenderName} さんから声のギフト作りに招待されました`,
                 html: collabInviteHtml(inviteOptions),
                 text: collabInviteText(inviteOptions),
               })
