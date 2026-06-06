@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Image as ImageIcon, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
@@ -196,7 +196,7 @@ export default function RecordPage() {
                     </div>
                   )}
                   
-                  {uploadedImages.length < 5 && (
+                  {uploadedImages.length < 1 && (
                     <>
                       {!showImageOptions ? (
                         <button 
