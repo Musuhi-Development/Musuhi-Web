@@ -1,19 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft } from "lucide-react";
+import { Image as ImageIcon, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
+import { getDailyQuestion } from "@/lib/daily-question";
 
 const emotionTags = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
-const MAX_RECORDING_SECONDS = 180; // 3分
-
-type JournalingPrompt = {
-  headline: string;
-  message: string;
-  recordingText: string;
-};
+const MAX_RECORDING_SECONDS = 180;
 
 export default function RecordPage() {
   const router = useRouter();
@@ -27,41 +22,8 @@ export default function RecordPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
-  const [prompt, setPrompt] = useState<JournalingPrompt | null>(null);
+  const [todayQuestion] = useState<string>(() => getDailyQuestion());
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetch("/api/journaling/prompt", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch journaling prompt");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        setPrompt({
-          headline: data.headline || "AIからの提案",
-          message: data.message || "こんなことを録音してみませんか？",
-          recordingText: data.recordingText || "今日いちばん心に残ったこと",
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to load journaling prompt:", error);
-        if (!isMounted) return;
-        setPrompt({
-          headline: "AIからの提案",
-          message: "今日はどんな気持ちで過ごしたか、短く残してみませんか？",
-          recordingText: "今日いちばん心に残ったこと",
-        });
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -75,8 +37,8 @@ export default function RecordPage() {
   };
 
   const handleImageUpload = async (file: File) => {
-    if (uploadedImages.length >= 5) {
-      alert("画像は最大5枚まで追加できます");
+    if (uploadedImages.length >= 1) {
+      alert("写真は1枚まで選択できます");
       return;
     }
 
@@ -198,84 +160,19 @@ export default function RecordPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        {prompt && (
-          <div className="px-4 pt-4">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-              <p className="text-[11px] font-bold text-[#2A5CAA]">{prompt.headline || "AIからの提案"}</p>
-              <p className="text-xs text-gray-700 mt-1">{prompt.message}</p>
-              <p className="text-xs text-gray-600 mt-1">「{prompt.recordingText}」</p>
-            </div>
+        <div className="px-4 space-y-6 pt-4 pb-8">
+
+          {/* ① 今日の問い */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="text-sm font-bold text-[#1e50a2]">今日の問い　{todayQuestion}</p>
+            <p className="text-[11px] text-gray-500 mt-1">この問いをヒントに今の気持ちを残してみよう</p>
           </div>
-        )}
 
-        {/* Recording Component */}
-        <VoiceRecorder
-          onRecordingComplete={handleRecordingComplete}
-          maxDuration={MAX_RECORDING_SECONDS}
-          className="mb-6"
-        />
-
-        {/* Metadata Form */}
-        <div className="px-4 space-y-6">
-            {/* Title */}
-            <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">
-                  タイトル <span className="text-red-500">※</span>
-                </label>
-                <input 
-                    type="text" 
-                    placeholder="タイトルを入力..." 
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full text-lg font-bold border-b border-gray-200 py-2 focus:outline-none focus:border-orange-300 placeholder:text-gray-300"
-                    disabled={saving}
-                />
-            </div>
-
-            {/* Tags */}
-            <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block">
-                  感情タグ
-                </label>
-                <div className="flex flex-wrap gap-2">
-                    {emotionTags.map(tag => (
-                        <button 
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
-                            disabled={saving}
-                            className={clsx(
-                                "px-3 py-1.5 text-sm rounded-full border-2 transition-colors",
-                                selectedTags.includes(tag) 
-                                    ? "bg-orange-100 border-orange-400 text-orange-700 font-medium" 
-                                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                            )}
-                        >
-                            {tag}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Memo */}
-            <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">テキストメモ</label>
-                <textarea 
-                    placeholder="メモを入力（任意）"
-                    value={memo}
-                    onChange={(e) => setMemo(e.target.value)}
-                    rows={3}
-                    disabled={saving}
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 placeholder:text-gray-400 resize-none"
-                />
-            </div>
-
-            {/* Location & Media */}
-            <div className="space-y-3">
-                {/* 写真を追加 */}
-                <div>
-                  <label className="text-xs font-bold text-gray-500 mb-2 block">
-                    写真を追加（最大5枚）
-                  </label>
+          {/* ② 写真選択 */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-2 block">
+              気持ちを表す１枚を選択
+            </label>
                   
                   {/* 画像プレビュー */}
                   {uploadedImages.length > 0 && (
@@ -360,39 +257,86 @@ export default function RecordPage() {
                     </>
                   )}
                 </div>
+          </div>
 
-                {/* 位置情報 */}
-                <button 
+          {/* ③ 音声録音 */}
+          <VoiceRecorder
+            onRecordingComplete={handleRecordingComplete}
+            maxDuration={MAX_RECORDING_SECONDS}
+          />
+
+          {/* ④ 感情タグ */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-2 block">感情タグ</label>
+            <div className="flex flex-wrap gap-2">
+              {emotionTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-3 bg-gray-100 rounded-lg text-sm text-gray-600 w-full justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className={clsx(
+                    "px-3 py-1.5 text-sm rounded-full border-2 transition-colors",
+                    selectedTags.includes(tag)
+                      ? "bg-orange-100 border-orange-400 text-orange-700 font-medium"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  )}
                 >
-                    <MapPin size={18} />
-                    位置情報ON
+                  {tag}
                 </button>
+              ))}
             </div>
+          </div>
 
-            {/* Visibility */}
-            <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block">
-                  公開範囲 <span className="text-red-500">※</span>
-                </label>
-                <div className="relative">
-                    <select 
-                        value={visibility}
-                        onChange={(e) => setVisibility(e.target.value)}
-                        disabled={saving}
-                        className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 disabled:opacity-50"
-                    >
-                        <option value="private">自分のみ (Closed)</option>
-                        <option value="friends">家族・友人/知人のみ (Board Friend)</option>
-                        <option value="public">全体公開 (Board Public)</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <ChevronDown size={16} />
-                    </div>
-                </div>
+          {/* ⑤ タイトル */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">
+              タイトル <span className="text-red-500">※</span>
+            </label>
+            <input
+              type="text"
+              placeholder="タイトルを入力..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full text-lg font-bold border-b border-gray-200 py-2 focus:outline-none focus:border-orange-300 placeholder:text-gray-300"
+              disabled={saving}
+            />
+          </div>
+
+          {/* ⑥ テキストメモ（任意） */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">テキストメモ（任意）</label>
+            <textarea
+              placeholder="メモを入力（任意）"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              rows={3}
+              disabled={saving}
+              className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 placeholder:text-gray-400 resize-none"
+            />
+          </div>
+
+          {/* ⑦ 公開範囲 */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-2 block">
+              公開範囲 <span className="text-red-500">※</span>
+            </label>
+            <div className="relative">
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value)}
+                disabled={saving}
+                className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 disabled:opacity-50"
+              >
+                <option value="private">自分のみ (Closed)</option>
+                <option value="friends">家族・友人/知人のみ (Board Friend)</option>
+                <option value="public">全体公開 (Board Public)</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown size={16} />
+              </div>
             </div>
-            
+          </div>
+
         </div>
       </div>
     </div>
