@@ -344,14 +344,20 @@ export default function GiftDetailPage() {
 							"repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
 					}}
 				>
+					{/* 右上に水引モチーフ */}
+					<MizuhikiBow className="absolute top-3 right-4 w-24 h-7 opacity-80" />
 					{/* 宛名「○○へ」 */}
 					<p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
 					{/* メッセージ本文 */}
 					<p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
 						{gift.message || ""}
 					</p>
-					{/* 右下に水引モチーフ */}
-					<MizuhikiBow className="absolute bottom-3 right-4 w-24 h-7 opacity-80" />
+					{/* 右下に贈り主名 */}
+					{gift.senderName && (
+						<p className="absolute bottom-3 right-4 text-sm text-gray-500 font-medium">
+							{gift.senderName}より
+						</p>
+					)}
 				</div>
 
 				{/* ─── 以下は編集可能なオーナー/参加者向けの管理UI ─── */}

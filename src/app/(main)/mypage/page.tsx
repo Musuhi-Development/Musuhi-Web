@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Users, ChevronRight, Edit3, Loader2, ArrowLeft } from "lucide-react";
+import { Settings, Users, ChevronRight, Edit3, Loader2 } from "lucide-react";
 
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
@@ -159,10 +159,7 @@ export default function MyPage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
-              <ArrowLeft size={22} />
-            </button>
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Profile</h1>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">My Page</h1>
           </div>
           <button
             onClick={() => router.push('/mypage/settings')}

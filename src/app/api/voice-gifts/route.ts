@@ -133,6 +133,7 @@ export async function POST(request: Request) {
     const {
       title,
       message,
+      senderName,
       recipientIds,
       recipientEmails,
       participantIds,
@@ -254,6 +255,7 @@ export async function POST(request: Request) {
       data: {
         title,
         message: message || null,
+        senderName: senderName || null,
         ownerId: user.id,
         status,
         sendAt: effectiveSendAt,

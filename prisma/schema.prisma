@@ -71,6 +71,7 @@ model VoiceGift {
   id         String   @id @default(cuid())
   title      String
   message    String?
+  senderName String?
   ownerId    String
   status     String   @default("draft") // draft, scheduled, sent, canceled
   sendAt     DateTime?

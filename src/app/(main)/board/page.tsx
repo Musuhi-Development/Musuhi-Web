@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, Play, Pause, ArrowLeft } from "lucide-react";
+import { Heart, Play, Pause } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import RecordingModal from "@/components/RecordingModal";
@@ -450,10 +450,7 @@ export default function BoardPage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
-              <ArrowLeft size={22} />
-            </button>
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Board</h1>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Voice Board</h1>
           </div>
           <button
             onClick={() => router.push('/mypage')}
