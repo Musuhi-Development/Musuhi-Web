@@ -14,7 +14,7 @@ export default function FloatingActionButton() {
           className="flex items-center justify-center w-16 h-16 bg-[#2A5CAA] text-white rounded-full shadow-2xl hover:bg-[#1F4580] hover:scale-110 transition-all duration-200"
           aria-label="録音"
         >
-          <img src="/icons/mic.png" alt="" className="w-7 h-7 object-contain" />
+          <img src="/icons/mic.png" alt="" className="w-14 h-14 object-contain" />
         </button>
       </div>
       

@@ -206,7 +206,7 @@ export default function GiftPage() {
 
           {/* 便箋らしい薄い横罫線 ＋ 右下に水引（結びマーク） */}
           <div className="mt-4 border-t border-[#e7ddd0] pt-2 flex justify-end">
-            <MizuhikiBow className="w-9 h-6 opacity-80" />
+            <MizuhikiBow className="w-20 h-6 opacity-80" />
           </div>
         </div>
       </Link>
