@@ -272,7 +272,7 @@ export default function GiftDetailPage() {
 						) : (
 							<div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
 								{repEmotions.length > 0 && emotionToAnimal[repEmotions[0]] ? (
-									<img src={emotionToAnimal[repEmotions[0]]} alt="" className="w-24 h-24 object-contain" />
+									<img src={emotionToAnimal[repEmotions[0]]} alt="" className="w-full h-full object-contain" />
 								) : (
 									<span className="text-6xl">🎵</span>
 								)}

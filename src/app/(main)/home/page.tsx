@@ -327,7 +327,7 @@ export default function HomePage() {
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
                               {animalImageSrc ? (
-                                <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                                <img src={animalImageSrc} alt="" className="w-full h-full object-contain" />
                               ) : (
                                 <span className="text-3xl">🎵</span>
                               )}
@@ -385,7 +385,7 @@ export default function HomePage() {
                           ) : (
                             <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
                               {animalImageSrc ? (
-                                <img src={animalImageSrc} alt="" className="w-16 h-16 object-contain" />
+                                <img src={animalImageSrc} alt="" className="w-full h-full object-contain" />
                               ) : (
                                 <span className="text-5xl">🎵</span>
                               )}
@@ -486,7 +486,7 @@ export default function HomePage() {
                 ) : (
                   <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
                     {selectedRecording.emotions && selectedRecording.emotions.length > 0 && emotionToAnimal[selectedRecording.emotions[0]] ? (
-                      <img src={emotionToAnimal[selectedRecording.emotions[0]]} alt="" className="w-24 h-24 object-contain" />
+                      <img src={emotionToAnimal[selectedRecording.emotions[0]]} alt="" className="w-full h-full object-contain" />
                     ) : (
                       <span className="text-6xl">🎵</span>
                     )}

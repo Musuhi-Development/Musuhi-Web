@@ -255,7 +255,7 @@ export default function MyPage() {
                 <div className="bg-gray-50 rounded-2xl p-4 text-center">
                   <div className="text-3xl mb-2">
                     {emotionToAnimal[dominantEmotion] ? (
-                      <img src={emotionToAnimal[dominantEmotion]} alt={dominantEmotion} className="w-8 h-8 mx-auto object-contain" />
+                      <img src={emotionToAnimal[dominantEmotion]} alt={dominantEmotion} className="w-12 h-12 mx-auto object-contain" />
                     ) : "🎵"}
                   </div>
                   <p className="text-xs text-gray-600 mb-1">感情動物</p>
