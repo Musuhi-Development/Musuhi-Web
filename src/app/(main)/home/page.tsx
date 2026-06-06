@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Grid3x3, List, Lock, Globe, Users, Volume2, Play, Pause, X } from "lucide-react";
+import { Grid3x3, List, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
