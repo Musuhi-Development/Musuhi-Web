@@ -552,7 +552,7 @@ export default function BoardPage() {
                             ) : (
                               <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
                                 {animalImageSrc ? (
-                                  <img src={animalImageSrc} alt="" className="w-10 h-10 object-contain" />
+                                  <img src={animalImageSrc} alt="" className="w-full h-full object-contain" />
                                 ) : (
                                   <span className="text-3xl">🎵</span>
                                 )}
