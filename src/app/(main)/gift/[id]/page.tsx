@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Copy, Loader2, Check } from "lucide-react";
+import { Calendar, Copy, Loader2, Check, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useUser } from "@/hooks/useUser";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
@@ -233,9 +233,14 @@ export default function GiftDetailPage() {
 		<div className="min-h-screen bg-gray-50 pb-24">
 			<div className="bg-white px-6 py-4 shadow-sm">
 				<div className="flex items-center justify-between">
-					<button onClick={() => router.back()} className="text-gray-500">戻る</button>
-					<h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
 					<span className="w-8" />
+					<h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
+					<button
+						onClick={() => router.push("/gift")}
+						className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors"
+					>
+						<X size={22} />
+					</button>
 				</div>
 			</div>
 
@@ -344,14 +349,20 @@ export default function GiftDetailPage() {
 							"repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
 					}}
 				>
+					{/* 右上に水引モチーフ */}
+					<MizuhikiBow className="absolute top-3 right-4 w-24 h-7 opacity-80" />
 					{/* 宛名「○○へ」 */}
 					<p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
 					{/* メッセージ本文 */}
 					<p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
 						{gift.message || ""}
 					</p>
-					{/* 右下に水引モチーフ */}
-					<MizuhikiBow className="absolute bottom-3 right-4 w-24 h-7 opacity-80" />
+					{/* 右下に贈り主名 */}
+					{gift.senderName && (
+						<p className="absolute bottom-3 right-4 text-sm text-gray-500 font-medium">
+							{gift.senderName}より
+						</p>
+					)}
 				</div>
 
 				{/* ─── 以下は編集可能なオーナー/参加者向けの管理UI ─── */}

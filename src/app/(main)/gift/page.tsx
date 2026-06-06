@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Send, Users, Mail, Calendar, ArrowLeft } from "lucide-react";
+import { Plus, Send, Users, Mail, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -255,9 +255,6 @@ export default function GiftPage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
-              <ArrowLeft size={22} />
-            </button>
             <h1 className="text-xl font-bold text-[#2A5CAA]">Voice Gift</h1>
           </div>
           <button
@@ -279,10 +276,7 @@ export default function GiftPage() {
 
       <div className="px-6 py-6 space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Voice Gift</h2>
-            <p className="text-xs text-gray-500">声の贈りもの</p>
-          </div>
+          <div />
           <Link href="/gift/new">
             <button className="bg-[#2A5CAA] text-white font-bold px-4 py-2 rounded-full shadow-md hover:bg-[#1F4580] transition-all flex items-center gap-2">
               <Plus size={16} />
