@@ -7,71 +7,34 @@ import { BookHeart, Gift, MessageSquare, User, X } from "lucide-react";
 import { clsx } from "clsx";
 import RecordingModal from "@/components/RecordingModal";
 import { useUser } from "@/hooks/useUser";
+import { getDailyQuestion } from "@/lib/daily-question";
 
-type JournalingPrompt = {
-  headline: string;
-  message: string;
-  recordingText: string;
-  source?: string;
-};
+const DISMISS_KEY_PREFIX = "musuhi-daily-question-dismissed";
 
-const LOGIN_SESSION_STORAGE_KEY = "musuhi-login-session-id";
-const PROMPT_DISMISS_PREFIX = "musuhi-recording-prompt-dismissed";
+function getTodayKey(): string {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return `${DISMISS_KEY_PREFIX}:${jst.toISOString().slice(0, 10)}`;
+}
 
 export default function FooterNav() {
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
-  const [prompt, setPrompt] = useState<JournalingPrompt | null>(null);
+  const [question] = useState<string>(() => getDailyQuestion());
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     if (!user?.id) {
-      setPrompt(null);
       setShowPrompt(false);
       return;
     }
-
-    const loginSessionId = localStorage.getItem(LOGIN_SESSION_STORAGE_KEY) || "default";
-    const dismissKey = `${PROMPT_DISMISS_PREFIX}:${loginSessionId}`;
-
-    if (localStorage.getItem(dismissKey) === "1") {
-      setShowPrompt(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    fetch("/api/journaling/prompt", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load prompt");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        setPrompt({
-          headline: data.headline || "こんなことを録音してみませんか？",
-          message: data.message || "今日のあなたの気持ちを声にしてみよう",
-          recordingText: data.recordingText || "今日いちばん心に残ったこと",
-          source: data.source,
-        });
-        setShowPrompt(true);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch journaling prompt:", error);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    const dismissed = localStorage.getItem(getTodayKey()) === "1";
+    setShowPrompt(!dismissed);
   }, [user?.id]);
 
-  const dismissPromptForThisLogin = () => {
-    const loginSessionId = localStorage.getItem(LOGIN_SESSION_STORAGE_KEY) || "default";
-    const dismissKey = `${PROMPT_DISMISS_PREFIX}:${loginSessionId}`;
-    localStorage.setItem(dismissKey, "1");
+  const dismissPrompt = () => {
+    localStorage.setItem(getTodayKey(), "1");
     setShowPrompt(false);
   };
 
@@ -137,19 +100,17 @@ export default function FooterNav() {
           })}
 
           <div className="relative flex items-center justify-center">
-            {showPrompt && prompt && (
-              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 rounded-xl border border-blue-100 bg-white shadow-lg p-3 z-50">
+            {showPrompt && (
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-60 rounded-xl border border-blue-100 bg-white shadow-lg px-3 py-2.5 z-50">
                 <button
                   type="button"
-                  onClick={dismissPromptForThisLogin}
-                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                  onClick={dismissPrompt}
+                  className="absolute top-1.5 right-1.5 text-gray-400 hover:text-gray-600"
                   aria-label="閉じる"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
-                <p className="text-[11px] font-bold text-[#2A5CAA] pr-4">{prompt.headline}</p>
-                <p className="text-[11px] text-gray-700 mt-1 leading-relaxed">{prompt.message}</p>
-                <p className="text-[11px] text-gray-600 mt-1">「{prompt.recordingText}」</p>
+                <p className="text-[12px] text-gray-800 pr-4 leading-relaxed">{question}</p>
                 <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white" />
               </div>
             )}

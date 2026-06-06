@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, useRef, Fragment, useEffect } from "react";
-import { X, Image as ImageIcon, MapPin, ChevronDown, Camera, FolderOpen, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, ChevronDown, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { Dialog, Transition } from "@headlessui/react";
 import { ScreenOverlay } from "@/components/ui/Overlay";
+import { getDailyQuestion } from "@/lib/daily-question";
 
 const emotionTags = ["嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
-const MAX_RECORDING_SECONDS = 180; // 3分
-
-type JournalingPrompt = {
-  headline: string;
-  message: string;
-  recordingText: string;
-};
+const MAX_RECORDING_SECONDS = 180;
 
 interface RecordingModalProps {
   isOpen: boolean;
@@ -42,7 +37,7 @@ export default function RecordingModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
-  const [prompt, setPrompt] = useState<JournalingPrompt | null>(null);
+  const [todayQuestion] = useState<string>(() => getDailyQuestion());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,46 +52,8 @@ export default function RecordingModal({
       setUploadingImage(false);
       setMemo("");
       setSaving(false);
-      setPrompt(null);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || isVoiceCommentMode) {
-      return;
-    }
-
-    let isMounted = true;
-
-    fetch("/api/journaling/prompt", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch journaling prompt");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        setPrompt({
-          headline: data.headline || "AIからの提案",
-          message: data.message || "こんなことを録音してみませんか？",
-          recordingText: data.recordingText || "今日いちばん心に残ったこと",
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to load journaling prompt in modal:", error);
-        if (!isMounted) return;
-        setPrompt({
-          headline: "AIからの提案",
-          message: "今日はどんな気持ちで過ごしたか、短く残してみませんか？",
-          recordingText: "今日いちばん心に残ったこと",
-        });
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, isVoiceCommentMode]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -284,152 +241,146 @@ export default function RecordingModal({
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto max-h-[calc(100vh-200px)] px-6 py-4">
-                  {!isVoiceCommentMode && prompt && (
-                    <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-3">
-                      <p className="text-[11px] font-bold text-[#2A5CAA]">{prompt.headline || "AIからの提案"}</p>
-                      <p className="text-xs text-gray-700 mt-1">{prompt.message}</p>
-                      <p className="text-xs text-gray-600 mt-1">「{prompt.recordingText}」</p>
-                    </div>
+                <div className="overflow-y-auto max-h-[calc(100vh-200px)] px-6 py-4 space-y-5">
+
+                  {!isVoiceCommentMode && (
+                    <>
+                      {/* ① 今日の問い */}
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                        <p className="text-sm font-bold text-[#1e50a2]">今日の問い　{todayQuestion}</p>
+                        <p className="text-[11px] text-gray-500 mt-1">この問いをヒントに今の気持ちを残してみよう</p>
+                      </div>
+
+                      {/* ② 写真選択 */}
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 mb-2 block">
+                          気持ちを表す１枚を選択
+                        </label>
+                        {uploadedImages.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 mb-2">
+                            {uploadedImages.map((url, index) => (
+                              <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
+                                <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => removeImage(index)}
+                                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                                  disabled={saving}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {uploadedImages.length < 1 && (
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={saving || uploadingImage}
+                            className="flex items-center gap-2 px-4 py-3 bg-gray-100 rounded-2xl text-sm text-gray-600 w-full justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          >
+                            {uploadingImage ? (
+                              <><Loader2 size={18} className="animate-spin" />アップロード中...</>
+                            ) : (
+                              <><ImageIcon size={18} />写真を選ぶ</>
+                            )}
+                          </button>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    </>
                   )}
 
-                  {/* Recording Component */}
+                  {/* ③ 音声録音 */}
                   <VoiceRecorder
                     onRecordingComplete={handleRecordingComplete}
                     maxDuration={isVoiceCommentMode ? 60 : MAX_RECORDING_SECONDS}
-                    className="mb-6"
                   />
 
                   {!isVoiceCommentMode && (
-                    <div className="space-y-5">
-                    {/* Title */}
-                    <div>
-                      <div className="flex items-baseline justify-between mb-2">
-                        <label className="text-xs font-bold text-gray-500 block">
-                          タイトル <span className="text-red-500">※</span>
-                          <span className="ml-1 font-normal text-gray-400">（20文字以内）</span>
-                        </label>
-                        <span className="text-[10px] text-gray-400">{title.length}/20</span>
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="タイトルを入力..."
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value.slice(0, 20))}
-                        maxLength={20}
-                        className="w-full text-base font-semibold border-b-2 border-gray-200 py-2 focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-300"
-                        disabled={saving}
-                      />
-                    </div>
-
-                    {/* Tags */}
-                    <div>
-                      <label className="text-xs font-bold text-gray-500 mb-2 block">
-                        感情タグ
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {emotionTags.map(tag => (
-                          <button
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
-                            disabled={saving}
-                            className={clsx(
-                              "px-3 py-1.5 text-sm rounded-full transition-all",
-                              selectedTags.includes(tag)
-                                ? "bg-[#2A5CAA] text-white shadow-md"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            )}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Memo */}
-                    <div>
-                      <label className="text-xs font-bold text-gray-500 mb-2 block">テキストメモ</label>
-                      <textarea
-                        placeholder="メモを入力（任意）"
-                        value={memo}
-                        onChange={(e) => setMemo(e.target.value)}
-                        rows={3}
-                        disabled={saving}
-                        className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl focus:outline-none focus:bg-white focus:border-teal-300 placeholder:text-gray-400 resize-none"
-                      />
-                    </div>
-
-                    {/* Images */}
-                    {uploadedImages.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {uploadedImages.map((url, index) => (
-                          <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                            <img
-                              src={url}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
+                    <>
+                      {/* ④ 感情タグ */}
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 mb-2 block">感情タグ</label>
+                        <div className="flex flex-wrap gap-2">
+                          {emotionTags.map(tag => (
                             <button
-                              onClick={() => removeImage(index)}
-                              className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                              key={tag}
+                              onClick={() => toggleTag(tag)}
                               disabled={saving}
+                              className={clsx(
+                                "px-3 py-1.5 text-sm rounded-full transition-all",
+                                selectedTags.includes(tag)
+                                  ? "bg-[#2A5CAA] text-white shadow-md"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              )}
                             >
-                              <X size={14} />
+                              {tag}
                             </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {uploadedImages.length < 1 && (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={saving || uploadingImage}
-                        className="flex items-center gap-2 px-4 py-3 bg-gray-100 rounded-2xl text-sm text-gray-600 w-full justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
-                      >
-                        {uploadingImage ? (
-                          <>
-                            <Loader2 size={18} className="animate-spin" />
-                            アップロード中...
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon size={18} />
-                            写真を追加 ({uploadedImages.length}/1)
-                          </>
-                        )}
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-
-                    {/* Visibility */}
-                    <div>
-                      <label className="text-xs font-bold text-gray-500 mb-2 block">
-                        公開範囲 <span className="text-red-500">※</span>
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={visibility}
-                          onChange={(e) => setVisibility(e.target.value)}
-                          disabled={saving}
-                          className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl focus:outline-none focus:bg-white focus:border-teal-300 disabled:opacity-50"
-                        >
-                          <option value="private">自分のみ</option>
-                          <option value="friends">家族・友人/知人のみ</option>
-                          <option value="public">全体公開</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                          <ChevronDown size={16} />
+                          ))}
                         </div>
                       </div>
-                    </div>
-                    </div>
+
+                      {/* ⑤ タイトル */}
+                      <div>
+                        <div className="flex items-baseline justify-between mb-2">
+                          <label className="text-xs font-bold text-gray-500 block">
+                            タイトル <span className="text-red-500">※</span>
+                            <span className="ml-1 font-normal text-gray-400">（20文字以内）</span>
+                          </label>
+                          <span className="text-[10px] text-gray-400">{title.length}/20</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="タイトルを入力..."
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value.slice(0, 20))}
+                          maxLength={20}
+                          className="w-full text-base font-semibold border-b-2 border-gray-200 py-2 focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-300"
+                          disabled={saving}
+                        />
+                      </div>
+
+                      {/* ⑥ テキストメモ（任意） */}
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 mb-2 block">テキストメモ（任意）</label>
+                        <textarea
+                          placeholder="メモを入力（任意）"
+                          value={memo}
+                          onChange={(e) => setMemo(e.target.value)}
+                          rows={3}
+                          disabled={saving}
+                          className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl focus:outline-none focus:bg-white focus:border-teal-300 placeholder:text-gray-400 resize-none"
+                        />
+                      </div>
+
+                      {/* ⑦ 公開範囲 */}
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 mb-2 block">
+                          公開範囲 <span className="text-red-500">※</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={visibility}
+                            onChange={(e) => setVisibility(e.target.value)}
+                            disabled={saving}
+                            className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl focus:outline-none focus:bg-white focus:border-teal-300 disabled:opacity-50"
+                          >
+                            <option value="private">自分のみ</option>
+                            <option value="friends">家族・友人/知人のみ</option>
+                            <option value="public">全体公開</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                            <ChevronDown size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </Dialog.Panel>
