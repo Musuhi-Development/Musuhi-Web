@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Copy, Loader2, Check } from "lucide-react";
+import { Calendar, Copy, Loader2, Check, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useUser } from "@/hooks/useUser";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
@@ -233,9 +233,14 @@ export default function GiftDetailPage() {
 		<div className="min-h-screen bg-gray-50 pb-24">
 			<div className="bg-white px-6 py-4 shadow-sm">
 				<div className="flex items-center justify-between">
-					<button onClick={() => router.back()} className="text-gray-500">戻る</button>
-					<h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
 					<span className="w-8" />
+					<h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
+					<button
+						onClick={() => router.push("/gift")}
+						className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors"
+					>
+						<X size={22} />
+					</button>
 				</div>
 			</div>
 

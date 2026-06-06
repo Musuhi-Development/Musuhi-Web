@@ -276,9 +276,7 @@ export default function GiftPage() {
 
       <div className="px-6 py-6 space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Voice Gift</h2>
-          </div>
+          <div />
           <Link href="/gift/new">
             <button className="bg-[#2A5CAA] text-white font-bold px-4 py-2 rounded-full shadow-md hover:bg-[#1F4580] transition-all flex items-center gap-2">
               <Plus size={16} />

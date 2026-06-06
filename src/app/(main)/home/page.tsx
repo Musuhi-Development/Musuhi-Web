@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Grid3x3, List, Lock, Globe, Users, Volume2, Play, Pause, ArrowLeft, X } from "lucide-react";
+import { Grid3x3, List, Lock, Globe, Users, Volume2, Play, Pause, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import { ScreenOverlay } from "@/components/ui/Overlay";
@@ -190,10 +190,7 @@ export default function HomePage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
-              <ArrowLeft size={22} />
-            </button>
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Home</h1>
+            <h1 className="text-xl font-bold text-[#1e50a2]">Voice Album</h1>
           </div>
           <button
             onClick={() => router.push('/mypage')}
@@ -218,7 +215,7 @@ export default function HomePage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-gray-800">
-              {selectedTag === "全て" ? "All Recordings" : selectedTag}
+              {selectedTag === "全て" ? "全て" : selectedTag}
             </h3>
             <button 
               onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
@@ -315,61 +312,65 @@ export default function HomePage() {
                   >
                     {viewMode === "list" ? (
                       // List View
-                      <div className="flex items-center gap-4">
-                        {/* Thumbnail */}
-                        <div className="relative w-16 h-16 flex-shrink-0">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={recording.title}
-                              className="w-full h-full rounded-xl object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              {animalImageSrc ? (
-                                <img src={animalImageSrc} alt="" className="w-full h-full object-contain" />
-                              ) : (
-                                <span className="text-3xl">🎵</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                      <div>
+                        <div className="flex items-center gap-4">
+                          {/* Thumbnail */}
+                          <div className="relative w-16 h-16 flex-shrink-0">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={recording.title}
+                                className="w-full h-full rounded-xl object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                                {animalImageSrc ? (
+                                  <img src={animalImageSrc} alt="" className="w-full h-full object-contain" />
+                                ) : (
+                                  <span className="text-3xl">🎵</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-gray-400 flex items-center gap-1 text-[10px] mb-1">
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {formatDate(recording.createdAt)}
+                            </p>
+                            {recording.emotions && recording.emotions.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {recording.emotions.slice(0, 3).map((e: string) => (
+                                  <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
+                                    #{e}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={(e) => togglePlayPause(recording, e)}
+                            className={clsx(
+                              "w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#2A5CAA] hover:bg-gray-50 transition-colors",
+                              playingId === recording.id && isPlaying && "bg-[#2A5CAA] text-white border-[#2A5CAA]"
+                            )}
+                            aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
+                          >
+                            {playingId === recording.id && isPlaying ? (
+                              <Pause size={18} fill="currentColor" />
+                            ) : (
+                              <Play size={18} fill="currentColor" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex justify-end mt-1">
+                          <div className="text-gray-400 flex items-center gap-1 text-[10px]">
                             {getVisibilityIcon(recording.visibility)}
                             <span>{getVisibilityLabel(recording.visibility)}</span>
                           </div>
-                          <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(recording.createdAt)}
-                          </p>
-                          {recording.emotions && recording.emotions.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {recording.emotions.slice(0, 3).map((e: string) => (
-                                <span key={e} className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-[#2A5CAA] rounded-md">
-                                  #{e}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-
-                        <button
-                          onClick={(e) => togglePlayPause(recording, e)}
-                          className={clsx(
-                            "w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#2A5CAA] hover:bg-gray-50 transition-colors",
-                            playingId === recording.id && isPlaying && "bg-[#2A5CAA] text-white border-[#2A5CAA]"
-                          )}
-                          aria-label={playingId === recording.id && isPlaying ? "一時停止" : "再生"}
-                        >
-                          {playingId === recording.id && isPlaying ? (
-                            <Pause size={18} fill="currentColor" />
-                          ) : (
-                            <Play size={18} fill="currentColor" />
-                          )}
-                        </button>
                       </div>
                     ) : (
                       // Grid View
@@ -394,10 +395,6 @@ export default function HomePage() {
                         </div>
 
                         {/* Info */}
-                        <div className="text-gray-400 flex items-center gap-1 text-[10px] mb-1">
-                          {getVisibilityIcon(recording.visibility)}
-                          <span>{getVisibilityLabel(recording.visibility)}</span>
-                        </div>
                         <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
                           {recording.title}
                         </h4>
@@ -427,6 +424,12 @@ export default function HomePage() {
                             ))}
                           </div>
                         )}
+                        <div className="flex justify-end mt-1">
+                          <div className="text-gray-400 flex items-center gap-1 text-[10px]">
+                            {getVisibilityIcon(recording.visibility)}
+                            <span>{getVisibilityLabel(recording.visibility)}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
