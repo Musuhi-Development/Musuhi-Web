@@ -158,7 +158,7 @@ export default function GiftPage() {
           {thumb?.imageUrl ? (
             <img src={thumb.imageUrl} alt="" className="w-full h-full object-cover" />
           ) : thumb?.animalImageSrc ? (
-            <img src={thumb.animalImageSrc} alt="" className="w-full h-full object-contain p-2" />
+            <img src={thumb.animalImageSrc} alt="" className="w-full h-full object-contain" />
           ) : (
             <span className="text-3xl">🎵</span>
           )}
