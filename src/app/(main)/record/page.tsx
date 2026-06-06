@@ -256,7 +256,6 @@ export default function RecordPage() {
                       />
                     </>
                   )}
-                </div>
           </div>
 
           {/* ③ 音声録音 */}
