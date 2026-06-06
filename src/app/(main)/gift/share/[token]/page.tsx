@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Gift, Loader2, UserPlus, LogIn, Mic, Lock } from "lucide-react";
+import { Gift, Loader2, UserPlus, LogIn, Lock } from "lucide-react";
 
 type Contributor = {
   id: string;
@@ -140,7 +140,7 @@ export default function GiftSharePage() {
           <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
             <div className="px-5 pt-4 pb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Mic size={15} className="text-[#2A5CAA]" />
+                <img src="/icons/mic.png" alt="" className="w-4 h-4 object-contain" />
                 <span className="text-sm font-bold text-gray-700">収録された音声</span>
               </div>
               <span className="text-xs bg-[#EBF2FF] text-[#2A5CAA] font-bold px-2.5 py-0.5 rounded-full">
@@ -160,7 +160,7 @@ export default function GiftSharePage() {
                   </div>
 
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EBF2FF] to-[#BFDBFE] flex items-center justify-center flex-shrink-0">
-                    <Mic size={14} className="text-[#2A5CAA]" />
+                    <img src="/icons/mic.png" alt="" className="w-3.5 h-3.5 object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{rec.title}</p>

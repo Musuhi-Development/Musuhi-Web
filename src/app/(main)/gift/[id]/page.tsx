@@ -351,7 +351,7 @@ export default function GiftDetailPage() {
 						{gift.message || ""}
 					</p>
 					{/* 右下に水引モチーフ */}
-					<MizuhikiBow className="absolute bottom-3 right-4 w-10 h-7 opacity-80" />
+					<MizuhikiBow className="absolute bottom-3 right-4 w-24 h-7 opacity-80" />
 				</div>
 
 				{/* ─── 以下は編集可能なオーナー/参加者向けの管理UI ─── */}
