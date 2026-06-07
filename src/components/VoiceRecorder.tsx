@@ -186,7 +186,7 @@ export default function VoiceRecorder({
           // 録音開始ボタン
           <button
             onClick={startRecording}
-            className="w-16 h-16 bg-[#2A5CAA] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1F4580] transition-all"
+            className="w-14 h-14 bg-[#2A5CAA] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1F4580] transition-all"
           >
             <img src="/icons/mic.png" alt="" className="w-full h-full object-contain" />
           </button>

@@ -336,7 +336,7 @@ export default function GiftDetailPage() {
 
 						{/* 録音日時：ポラロイド右下に配置 */}
 						<p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-							{formatDateTime(gift.sendAt || gift.createdAt)}
+							録音日：{formatDateTime(gift.sendAt || gift.createdAt)}
 						</p>
 					</div>
 				</div>

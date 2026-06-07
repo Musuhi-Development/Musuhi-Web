@@ -100,13 +100,8 @@ export default function HomePage() {
 
   function formatDateTime(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleString("ja-JP", { 
-      year: "numeric", 
-      month: "2-digit", 
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
   // Audio playback functions
@@ -230,7 +225,7 @@ export default function HomePage() {
           </div>
 
           {/* Emotion Filter Tags */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {emotionTags.map(tag => (
               <button
                 key={tag}
@@ -335,7 +330,7 @@ export default function HomePage() {
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-800 truncate">{recording.title}</h4>
+                            <h4 className="font-semibold text-gray-800 break-words line-clamp-2">{recording.title}</h4>
                             <p className="text-xs text-gray-500 mt-0.5">
                               {formatDate(recording.createdAt)}
                             </p>
@@ -395,7 +390,7 @@ export default function HomePage() {
                         </div>
 
                         {/* Info */}
-                        <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
+                        <h4 className="font-semibold text-gray-800 text-sm break-words line-clamp-2 mb-1">
                           {recording.title}
                         </h4>
                         <div className="flex items-center justify-between gap-2">
@@ -534,7 +529,7 @@ export default function HomePage() {
 
                 {/* 録音日時：ポラロイド右下に配置 */}
                 <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-                  {formatDateTime(selectedRecording.createdAt)}
+                  録音日：{formatDateTime(selectedRecording.createdAt)}
                 </p>
               </div>
             </div>
