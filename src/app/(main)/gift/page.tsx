@@ -201,13 +201,13 @@ export default function GiftPage() {
             {renderCollabMeta(gift)}
           </div>
 
-          {/* 送り主名（罫線の上・右寄せ）*/}
-          <div className="mt-3 flex justify-end">
+          {/* 送り主名（罫線の上・左寄り／消印直下を避ける）*/}
+          <div className="mt-3 mb-1">
             <p className="text-xs text-gray-500">{getSenderName(gift)}より</p>
           </div>
 
-          {/* 横罫線 ＋ 水引（左下） */}
-          <div className="border-t border-[#e7ddd0] pt-2 flex justify-start">
+          {/* 横罫線 ＋ 水引（右下） */}
+          <div className="border-t border-[#e7ddd0] pt-2 flex justify-end">
             <MizuhikiBow className="w-16 h-5 opacity-80" />
           </div>
         </div>

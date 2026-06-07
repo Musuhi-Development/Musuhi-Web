@@ -186,9 +186,9 @@ export default function VoiceRecorder({
           // 録音開始ボタン
           <button
             onClick={startRecording}
-            className="w-14 h-14 flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="w-14 h-14 bg-[#2A5CAA] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1F4580] transition-all"
           >
-            <img src="/icons/mic-blue.png" alt="" className="w-full h-full object-contain" />
+            <img src="/icons/mic.png" alt="" className="w-full h-full object-contain" />
           </button>
         ) : isRecording ? (
           // 録音中: 一時停止 & 停止
@@ -197,7 +197,7 @@ export default function VoiceRecorder({
               onClick={isPaused ? resumeRecording : pauseRecording}
               className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-300"
             >
-              {isPaused ? <img src="/icons/mic-blue.png" alt="" className="w-8 h-8 object-contain" /> : <Pause size={24} />}
+              {isPaused ? <img src="/icons/mic.png" alt="" className="w-10 h-10 object-contain" /> : <Pause size={24} />}
             </button>
             <button
               onClick={stopRecording}
