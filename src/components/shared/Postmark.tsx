@@ -22,6 +22,7 @@ export function Postmark({ className }: { className?: string }) {
       className={className}
       fill="none"
       stroke={VERMILION}
+      overflow="visible"
       aria-hidden="true"
     >
       <defs>
@@ -30,6 +31,11 @@ export function Postmark({ className }: { className?: string }) {
         {/* 下弧 */}
         <path id={arcBottomId} d="M25 53 A25 25 0 0 0 75 53" />
       </defs>
+
+      {/* 郵便消印キャンセリングライン（消印の左側から3本の平行横線） */}
+      <line x1="-25" y1="43" x2="84" y2="43" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="-25" y1="50" x2="84" y2="50" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="-25" y1="57" x2="84" y2="57" strokeWidth="1.8" strokeLinecap="round" />
 
       {/* 二重円 */}
       <circle cx="50" cy="50" r="34" strokeWidth="2.4" />
