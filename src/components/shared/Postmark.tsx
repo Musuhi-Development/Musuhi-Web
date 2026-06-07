@@ -22,6 +22,7 @@ export function Postmark({ className }: { className?: string }) {
       className={className}
       fill="none"
       stroke={VERMILION}
+      overflow="visible"
       aria-hidden="true"
     >
       <defs>
@@ -30,6 +31,11 @@ export function Postmark({ className }: { className?: string }) {
         {/* 下弧 */}
         <path id={arcBottomId} d="M25 53 A25 25 0 0 0 75 53" />
       </defs>
+
+      {/* 郵便消印キャンセリングライン（消印の左側から3本の平行波線） */}
+      <path d="M -25 43 C -20.6 41.5 -17.4 41.5 -13 43 C -8.6 44.5 -5.4 44.5 -1 43 C 3.4 41.5 6.6 41.5 11 43 C 15.4 44.5 18.6 44.5 23 43 C 27.4 41.5 30.6 41.5 35 43 C 39.4 44.5 42.6 44.5 47 43 C 51.4 41.5 54.6 41.5 59 43 C 63.4 44.5 66.6 44.5 71 43 C 75.4 41.5 78.6 41.5 83 43 L 84 43" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <path d="M -25 50 C -20.6 48.5 -17.4 48.5 -13 50 C -8.6 51.5 -5.4 51.5 -1 50 C 3.4 48.5 6.6 48.5 11 50 C 15.4 51.5 18.6 51.5 23 50 C 27.4 48.5 30.6 48.5 35 50 C 39.4 51.5 42.6 51.5 47 50 C 51.4 48.5 54.6 48.5 59 50 C 63.4 51.5 66.6 51.5 71 50 C 75.4 48.5 78.6 48.5 83 50 L 84 50" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <path d="M -25 57 C -20.6 55.5 -17.4 55.5 -13 57 C -8.6 58.5 -5.4 58.5 -1 57 C 3.4 55.5 6.6 55.5 11 57 C 15.4 58.5 18.6 58.5 23 57 C 27.4 55.5 30.6 55.5 35 57 C 39.4 58.5 42.6 58.5 47 57 C 51.4 55.5 54.6 55.5 59 57 C 63.4 58.5 66.6 58.5 71 57 C 75.4 55.5 78.6 55.5 83 57 L 84 57" strokeWidth="1.8" fill="none" strokeLinecap="round" />
 
       {/* 二重円 */}
       <circle cx="50" cy="50" r="34" strokeWidth="2.4" />

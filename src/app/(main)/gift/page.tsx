@@ -115,7 +115,7 @@ export default function GiftPage() {
     return { imageUrl, animalImageSrc };
   }
 
-  // 寄せ音声版のみ表示する参加者アイコン＋音声件数
+  // 寄せ音声版のみ表示する参加者アイコン（届いたタブ用）
   function renderCollabMeta(gift: any) {
     if (!isCollabGift(gift)) return null;
     const participantUsers = getParticipantUsers(gift);
@@ -145,7 +145,6 @@ export default function GiftPage() {
             +{hiddenParticipantCount}
           </div>
         )}
-        <span className="text-[10px] text-gray-400 ml-1">{gift.recordings?.length || 0}件の音声</span>
       </div>
     );
   }
@@ -199,14 +198,17 @@ export default function GiftPage() {
 
           <div className="pr-12">
             <h4 className="text-base font-bold text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
-            <p className="text-xs text-gray-500 mt-1">{getSenderName(gift)}より</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">{formatDateTime(gift.sendAt || gift.createdAt)}</p>
             {renderCollabMeta(gift)}
           </div>
 
-          {/* 便箋らしい薄い横罫線 ＋ 右下に水引（結びマーク） */}
-          <div className="mt-4 border-t border-[#e7ddd0] pt-2 flex justify-end">
-            <MizuhikiBow className="w-20 h-6 opacity-80" />
+          {/* 送り主名（罫線の上・左寄り／消印直下を避ける）*/}
+          <div className="mt-3 mb-1">
+            <p className="text-xs text-gray-500">{getSenderName(gift)}より</p>
+          </div>
+
+          {/* 横罫線 ＋ 水引（右下） */}
+          <div className="border-t border-[#e7ddd0] pt-2 flex justify-end">
+            <MizuhikiBow className="w-16 h-5 opacity-80" />
           </div>
         </div>
       </Link>
@@ -215,36 +217,77 @@ export default function GiftPage() {
 
   // 「贈った / 下書き / 未来送信」タブの標準カード
   function renderStandardCard(gift: any) {
+    const isCollab = isCollabGift(gift);
+    const participantUsers = isCollab ? getParticipantUsers(gift) : [];
+    const recipientName = getRecipientName(gift);
+
     return (
       <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
-        <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4">
+        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-8">
           <div className="flex items-start gap-4">
-            {renderThumb(gift)}
+            {/* サムネ + 下書き寄せ音声バッジ */}
+            <div className="flex-shrink-0">
+              {renderThumb(gift)}
+              {activeFilter === "draft" && isCollab && (
+                <div className="mt-1 flex justify-center">
+                  <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
+                </div>
+              )}
+            </div>
 
             <div className="flex-1 min-w-0 space-y-1">
-              {/* 1行目: タイトル（=録音タイトル、太字・1行固定・サイズ固定） */}
-              <h4 className="text-base font-bold text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
+              {/* 宛名（太文字で瑠璃色） */}
+              {recipientName && (
+                <p className="text-sm font-bold text-[#2A5CAA] truncate">{recipientName}へ</p>
+              )}
 
-              {/* 2行目: メッセージ冒頭 */}
+              {/* タイトル（=録音タイトル） */}
+              <h4 className="text-sm text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
+
+              {/* メッセージ冒頭 */}
               {gift.message && <p className="text-xs text-gray-600 truncate">{gift.message}</p>}
 
-              {/* 3行目: 感情タグ */}
-              {renderEmotionTags(gift)}
+              {/* 下書き: 参加者数 + アイコン（寄せ音声のみ） */}
+              {activeFilter === "draft" && isCollab && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400">{participantUsers.length}名参加</span>
+                  {participantUsers.slice(0, 4).map((participant: any) => {
+                    const displayName = participant.displayName || participant.name || "U";
+                    return (
+                      <div
+                        key={participant.id}
+                        title={displayName}
+                        className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden"
+                      >
+                        {participant.avatarUrl ? (
+                          <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                        ) : (
+                          displayName[0].toUpperCase()
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* 4行目: 宛名 + へ */}
-              <p className="text-xs text-[#2A5CAA] font-medium truncate">{getRecipientName(gift)}へ</p>
-
-              {/* 5行目: 日時（sent=送信日時 / scheduled=お贈り予定 / draft=なし） */}
+              {/* 未来送信: お贈り予定日 */}
               {activeFilter === "scheduled" && gift.sendAt && (
                 <p className="text-[11px] text-amber-600">{formatScheduled(gift.sendAt)}</p>
               )}
-              {activeFilter === "sent" && (
-                <p className="text-[11px] text-gray-400">{formatDateTime(gift.sendAt || gift.createdAt)}</p>
-              )}
-
-              {renderCollabMeta(gift)}
             </div>
           </div>
+
+          {/* 右下: 送信日時（贈った）/ 作成日時（下書き） */}
+          {activeFilter === "sent" && (
+            <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+              {formatDateTime(gift.sendAt || gift.createdAt)}
+            </p>
+          )}
+          {activeFilter === "draft" && (
+            <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+              {formatDateTime(gift.createdAt)}
+            </p>
+          )}
         </div>
       </Link>
     );

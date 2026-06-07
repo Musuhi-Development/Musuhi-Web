@@ -117,7 +117,7 @@ export default function FooterNav() {
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mx-auto flex items-center justify-center w-14 h-14 bg-[#2A5CAA] text-white rounded-full shadow-xl hover:bg-[#1F4580] transition-all"
+              className="mx-auto flex items-center justify-center w-12 h-12 bg-[#2A5CAA] text-white rounded-full shadow-xl hover:bg-[#1F4580] transition-all"
               aria-label="録音"
             >
               <img src="/icons/mic.png" alt="" className="w-full h-full object-contain" />
