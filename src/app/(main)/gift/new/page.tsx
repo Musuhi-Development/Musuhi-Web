@@ -570,7 +570,7 @@ function NewGiftPageInner() {
           </div>
           <input
             type="text"
-            placeholder='※「お母さん」「田中さん」など、呼びかけたい名前を入力してください'
+            placeholder='「お母さん」「田中さん」など、呼びかけたい名前'
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, 20))}
             maxLength={20}

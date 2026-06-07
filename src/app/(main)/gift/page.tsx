@@ -201,9 +201,13 @@ export default function GiftPage() {
             {renderCollabMeta(gift)}
           </div>
 
-          {/* 便箋らしい薄い横罫線 ＋ 送り主名（右寄せ）＋ 水引（結びマーク） */}
-          <div className="mt-4 border-t border-[#e7ddd0] pt-2 flex items-center">
-            <p className="text-xs text-gray-500 ml-auto mr-3">{getSenderName(gift)}より</p>
+          {/* 送り主名（罫線の上・右寄せ）*/}
+          <div className="mt-3 flex justify-end">
+            <p className="text-xs text-gray-500">{getSenderName(gift)}より</p>
+          </div>
+
+          {/* 横罫線 ＋ 水引（左下） */}
+          <div className="border-t border-[#e7ddd0] pt-2 flex justify-start">
             <MizuhikiBow className="w-16 h-5 opacity-80" />
           </div>
         </div>
@@ -243,9 +247,27 @@ export default function GiftPage() {
               {/* メッセージ冒頭 */}
               {gift.message && <p className="text-xs text-gray-600 truncate">{gift.message}</p>}
 
-              {/* 下書き: 参加者数（寄せ音声のみ） */}
+              {/* 下書き: 参加者数 + アイコン（寄せ音声のみ） */}
               {activeFilter === "draft" && isCollab && (
-                <p className="text-[10px] text-gray-400">{participantUsers.length}名参加</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400">{participantUsers.length}名参加</span>
+                  {participantUsers.slice(0, 4).map((participant: any) => {
+                    const displayName = participant.displayName || participant.name || "U";
+                    return (
+                      <div
+                        key={participant.id}
+                        title={displayName}
+                        className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden"
+                      >
+                        {participant.avatarUrl ? (
+                          <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                        ) : (
+                          displayName[0].toUpperCase()
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
               {/* 未来送信: お贈り予定日 */}
