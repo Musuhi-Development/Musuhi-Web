@@ -381,40 +381,94 @@ function GiftPageInner() {
 
   // みんなで贈るタブのカード（寄せ音声）
   function renderYosegakiCard(yosegaki: any) {
-    const contributed = yosegaki.contributions?.some((c: any) => c.contributorId === user?.id);
+    const contributions = yosegaki.contributions || [];
+    const totalCount = contributions.length + 1;
+    const visibleContribs = contributions.slice(0, 3);
+    const snippet = yosegaki.description
+      ? yosegaki.description.slice(0, 55) + (yosegaki.description.length > 55 ? "…" : "")
+      : null;
+    const contributed = contributions.some((c: any) => c.contributorId === user?.id);
     const isCreator = yosegaki.creatorId === user?.id;
+    const dateValue = yosegaki.deliverAt || yosegaki.updatedAt || yosegaki.createdAt;
+
     return (
       <Link key={yosegaki.id} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
-        <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-4 border border-gray-100">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
-              <p className="text-xs text-gray-600 truncate mt-0.5">{yosegaki.title}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">企画: {yosegaki.organizerName}</p>
+        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-7">
+          <div className="flex items-start gap-3">
+            {/* サムネイル + バッジ */}
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
+                {yosegaki.organizerImageUrl ? (
+                  <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">🎙️</span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-col items-center gap-0.5">
+                <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded-full whitespace-nowrap font-medium ${
+                  yosegaki.status === "collecting"
+                    ? "bg-amber-100 text-amber-700"
+                    : yosegaki.status === "draft"
+                    ? "bg-gray-100 text-gray-500"
+                    : "bg-green-100 text-green-700"
+                }`}>
+                  {yosegakiStatusLabel(yosegaki)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                yosegaki.status === "collecting"
-                  ? "bg-amber-100 text-amber-700"
-                  : yosegaki.status === "draft"
-                  ? "bg-gray-100 text-gray-500"
-                  : "bg-green-100 text-green-700"
-              }`}>
-                {yosegakiStatusLabel(yosegaki)}
-              </span>
-              <span className={`text-[9px] px-2 py-0.5 rounded-full ${
-                contributed || isCreator
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-orange-100 text-orange-600"
-              }`}>
-                {isCreator ? "企画者" : contributed ? "参加済み" : "未参加"}
-              </span>
+
+            {/* テキスト情報 */}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex items-start justify-between gap-1">
+                <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
+                {/* 企画者バッジ（保持） */}
+                <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full ${
+                  isCreator
+                    ? "bg-blue-100 text-blue-700"
+                    : contributed
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "bg-orange-100 text-orange-600"
+                }`}>
+                  {isCreator ? "企画者" : contributed ? "参加済み" : "未参加"}
+                </span>
+              </div>
+              {snippet && (
+                <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{snippet}</p>
+              )}
+              {/* 参加者アイコン列 */}
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
+                  {yosegaki.creator?.avatarUrl ? (
+                    <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (yosegaki.organizerName?.[0] || "企").toUpperCase()
+                  )}
+                </div>
+                {visibleContribs.map((c: any, i: number) => {
+                  const name = c.participantName || c.contributor?.displayName || "参";
+                  return (
+                    <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
+                      {c.contributor?.avatarUrl ? (
+                        <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        name[0].toUpperCase()
+                      )}
+                    </div>
+                  );
+                })}
+                {contributions.length > 3 && (
+                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
+                    +{contributions.length - 3}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Heart size={11} className="text-rose-400" />
-            <p className="text-[10px] text-gray-400">{yosegaki.contributions?.length || 0}件の音声</p>
-          </div>
+          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(dateValue)}
+          </p>
         </div>
       </Link>
     );

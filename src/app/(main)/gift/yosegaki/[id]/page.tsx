@@ -721,10 +721,6 @@ function ContribModal({ contrib, onClose }: { contrib: any; onClose: () => void 
   const audioDuration = contrib.audioDuration || contrib.recording?.duration;
   const title = contrib.title || contrib.recording?.title || "（タイトルなし）";
   const name = contrib.participantName || "参加者";
-  const recordedAt = contrib.createdAt ? new Date(contrib.createdAt) : null;
-  const dateLabel = recordedAt
-    ? `${recordedAt.getFullYear()}/${pad(recordedAt.getMonth() + 1)}/${pad(recordedAt.getDate())}`
-    : null;
 
   return (
     <div
@@ -802,11 +798,6 @@ function ContribModal({ contrib, onClose }: { contrib: any; onClose: () => void 
               </div>
             </div>
 
-            {dateLabel && (
-              <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-                参加日：{dateLabel}
-              </p>
-            )}
           </div>
         </div>
       </div>
