@@ -170,40 +170,54 @@ model Gift {
 
 // 寄せ音声モデル（複数人からのメッセージ集）
 model Yosegaki {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  recipientName String
-  recipientEmail String?
-  creatorId   String
-  dueDate     DateTime?
-  status      String   @default("collecting") // collecting, completed, delivered
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  title               String
+  description         String?
+  recipientName       String
+  recipientEmail      String?
+  creatorId           String
+  organizerName       String    @default("")
+  senderName          String?
+  organizerComment    String?
+  organizerImageUrl     String?
+  organizerAudioUrl     String?
+  organizerAudioTitle   String?
+  organizerAudioComment String?
+  deadline            DateTime?
+  deliverAt           DateTime?
+  shareToken          String    @unique @default(cuid())
+  status              String    @default("draft") // draft, collecting, completed, delivered
+  isPublic            Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   creator       User                   @relation("YosegakiCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   contributions YosegakiContribution[]
 
   @@index([creatorId])
   @@index([status])
+  @@index([shareToken])
 }
 
 // 寄せ音声への個別貢献
 model YosegakiContribution {
-  id          String   @id @default(cuid())
-  yosegakiId  String
-  recordingId String
-  contributorId String
-  message     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  yosegakiId      String
+  recordingId     String?
+  contributorId   String?
+  participantName String?
+  imageUrl        String?
+  audioUrl        String?
+  audioDuration   Float?
+  title           String?
+  message         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  yosegaki    Yosegaki  @relation(fields: [yosegakiId], references: [id], onDelete: Cascade)
-  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
-  contributor User      @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+  yosegaki    Yosegaki   @relation(fields: [yosegakiId], references: [id], onDelete: Cascade)
+  recording   Recording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+  contributor User?      @relation(fields: [contributorId], references: [id], onDelete: SetNull)
 
-  @@unique([yosegakiId, contributorId])
   @@index([yosegakiId])
   @@index([contributorId])
 }

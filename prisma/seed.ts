@@ -137,8 +137,11 @@ async function main() {
       recipientName: '田中太郎',
       recipientEmail: 'tanaka@example.com',
       creatorId: user1.id,
+      organizerName: '山田',
+      organizerComment: '田中さんの退職に一言メッセージをお願いします',
       status: 'collecting',
-      dueDate: new Date('2026-03-31'),
+      deadline: new Date('2026-03-31'),
+      deliverAt: new Date('2026-04-01'),
       isPublic: false,
     },
   });
@@ -148,6 +151,8 @@ async function main() {
       yosegakiId: yosegaki1.id,
       recordingId: recording1.id,
       contributorId: user1.id,
+      participantName: '山田',
+      title: 'お疲れ様でした',
       message: 'これからも頑張ってください！',
     },
   });
@@ -157,6 +162,8 @@ async function main() {
       yosegakiId: yosegaki1.id,
       recordingId: recording4.id,
       contributorId: user2.id,
+      participantName: '佐藤',
+      title: '感謝を込めて',
       message: 'お疲れ様でした！',
     },
   });
