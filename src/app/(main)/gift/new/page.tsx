@@ -409,6 +409,11 @@ function NewGiftPageInner() {
     try {
       // 複数人で作成（寄せ音声）→ Yosegaki API
       if (isCollab) {
+        // 選択済み録音の1件目を企画者ポラロイドとして使用
+        const selectedRecording = selectedRecordingIds.length > 0
+          ? recordings.find((r) => r.id === selectedRecordingIds[0]) ?? null
+          : null;
+
         const res = await fetch("/api/yosegaki", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -421,6 +426,13 @@ function NewGiftPageInner() {
             organizerComment: collabOrganizerComment.trim(),
             deadline: collabDeadline,
             deliverAt: collabDeliverAt,
+            // 選択した録音を企画者ポラロイドとして反映
+            organizerAudioUrl: selectedRecording?.audioUrl ?? null,
+            organizerAudioTitle: selectedRecording?.title ?? null,
+            organizerImageUrl:
+              Array.isArray(selectedRecording?.images) && selectedRecording.images.length > 0
+                ? selectedRecording.images[0]
+                : null,
           }),
         });
         if (!res.ok) throw new Error("寄せ音声の作成に失敗しました");
@@ -883,10 +895,36 @@ function NewGiftPageInner() {
         )}
 
         <div>
-          <label className="text-xs font-bold text-gray-500 mb-2 block">
-            音声を選択（{giftStyle === "solo" ? "1つ" : "複数選択可"}）
-            {giftStyle === "solo" && <span className="text-red-500"> ※</span>}
+          <label className="text-xs font-bold text-gray-500 mb-1 block">
+            {giftStyle === "collab"
+              ? "企画者ポラロイドに使う音声を選ぶ（任意）"
+              : <>音声を選択（1つ）<span className="text-red-500"> ※</span></>}
           </label>
+          {giftStyle === "collab" && (
+            <p className="text-[11px] text-gray-400 mb-2">
+              選択した録音の画像・タイトル・音声が、あなたのポラロイドとして寄せ書きの先頭に表示されます
+            </p>
+          )}
+          {/* 選択済みポラロイドのプレビュー（collabのみ） */}
+          {giftStyle === "collab" && selectedRecordingIds.length > 0 && (() => {
+            const rec = recordings.find((r) => r.id === selectedRecordingIds[0]);
+            if (!rec) return null;
+            const imgUrl = Array.isArray(rec.images) ? rec.images[0] : null;
+            return (
+              <div className="mb-3 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-amber-100 to-rose-100">
+                  {imgUrl
+                    ? <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-amber-700 mb-0.5">企画者ポラロイドとして設定</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{rec.title}</p>
+                  <p className="text-xs text-gray-500">{Math.round(rec.duration)}秒</p>
+                </div>
+              </div>
+            );
+          })()}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
             {emotionTags.map((tag) => (
               <button
