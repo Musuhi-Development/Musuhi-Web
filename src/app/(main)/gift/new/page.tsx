@@ -418,6 +418,7 @@ function NewGiftPageInner() {
             recipientEmail: recipientEmails[0] || null,
             organizerName: collabOrganizerName.trim(),
             organizerComment: collabOrganizerComment.trim(),
+            senderName: senderName.trim() || null,
             deadline: collabDeadline,
             deliverAt: collabDeliverAt,
             // 選択した録音を企画者ポラロイドとして反映

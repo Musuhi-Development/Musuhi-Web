@@ -72,6 +72,7 @@ export async function PATCH(request: Request, { params }: Params) {
       organizerAudioUrl,
       organizerAudioTitle,
       organizerAudioComment,
+      senderName,
       deadline,
       isPublic,
     } = body;
@@ -90,6 +91,7 @@ export async function PATCH(request: Request, { params }: Params) {
         ...(organizerAudioUrl !== undefined && { organizerAudioUrl }),
         ...(organizerAudioTitle !== undefined && { organizerAudioTitle }),
         ...(organizerAudioComment !== undefined && { organizerAudioComment }),
+        ...(senderName !== undefined && { senderName: senderName || null }),
         ...(isPublic !== undefined && { isPublic }),
       },
       include: yosegakiInclude,

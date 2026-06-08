@@ -177,6 +177,7 @@ model Yosegaki {
   recipientEmail      String?
   creatorId           String
   organizerName       String    @default("")
+  senderName          String?
   organizerComment    String?
   organizerImageUrl     String?
   organizerAudioUrl     String?

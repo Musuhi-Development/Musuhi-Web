@@ -74,7 +74,7 @@ function PolaroidCard({
   );
 }
 
-function LetterView({ recipientName, message, organizerName }: { recipientName: string; message: string; organizerName?: string }) {
+function LetterView({ recipientName, message, organizerName, senderName }: { recipientName: string; message: string; organizerName?: string; senderName?: string }) {
   return (
     <div
       className="relative rounded-2xl bg-[#FAF7F2] shadow-sm px-6 py-6 pb-10"
@@ -86,8 +86,8 @@ function LetterView({ recipientName, message, organizerName }: { recipientName: 
       <MizuhikiBow className="absolute top-3 right-4 w-20 h-6 opacity-80" />
       <p className="text-lg font-bold text-gray-800 mb-4">{recipientName}へ</p>
       <p className="text-sm text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[3rem]">{message}</p>
-      {organizerName && (
-        <p className="absolute bottom-3 right-5 text-xs text-gray-400">{organizerName}より</p>
+      {(senderName || organizerName) && (
+        <p className="absolute bottom-3 right-5 text-xs text-gray-400">{senderName || organizerName}より</p>
       )}
     </div>
   );
@@ -286,7 +286,7 @@ export default function YosegakiDetailPage() {
         {/* ───── ドラフト画面 ───── */}
         {status === "draft" && (
           <>
-            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} organizerName={yosegaki.organizerName} />
+            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} senderName={yosegaki.senderName ?? undefined} organizerName={yosegaki.organizerName} />
 
             {/* 企画者ポラロイド */}
             <OrganizerPolaroid yosegaki={yosegaki} isCreator={isCreator} onRefresh={fetchYosegaki} id={id} />
@@ -333,7 +333,7 @@ export default function YosegakiDetailPage() {
             <OrganizerPolaroid yosegaki={yosegaki} isCreator={isCreator} onRefresh={fetchYosegaki} id={id} />
 
             {/* 便箋 */}
-            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} organizerName={yosegaki.organizerName} />
+            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} senderName={yosegaki.senderName ?? undefined} organizerName={yosegaki.organizerName} />
 
             {/* 共有URL + QR */}
             <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
@@ -428,7 +428,7 @@ export default function YosegakiDetailPage() {
         {(status === "completed" || status === "delivered") && (
           <>
             {/* 便箋を最上部に */}
-            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} organizerName={yosegaki.organizerName} />
+            <LetterView recipientName={yosegaki.recipientName} message={yosegaki.description || ""} senderName={yosegaki.senderName ?? undefined} organizerName={yosegaki.organizerName} />
 
             {/* ポラロイドグリッド（企画者先頭） */}
             <div className="space-y-3">
