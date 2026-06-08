@@ -78,24 +78,80 @@ export default async function YosegakiLandingPage({ params }: Props) {
         )}
 
         {/* 企画者ポラロイド */}
-        {yosegaki.organizerImageUrl && (
-          <div className="flex flex-col items-center">
+        {(yosegaki.organizerImageUrl || yosegaki.organizerAudioUrl || yosegaki.organizerAudioTitle) && (
+          <div
+            className="relative rounded-2xl p-5"
+            style={{
+              backgroundColor: "#F3EBDD",
+              backgroundImage:
+                "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+              backgroundSize: "5px 5px",
+              backgroundPosition: "0 0, 2.5px 2.5px",
+              boxShadow: "0 18px 40px rgba(0,0,0,0.25)",
+            }}
+          >
             <div
-              className="bg-white p-3 pb-8 shadow-md rounded-sm w-48"
-              style={{ transform: "rotate(-1.5deg)", boxShadow: "3px 4px 12px rgba(0,0,0,0.15)" }}
+              className="relative bg-white px-5 pt-6 pb-6"
+              style={{
+                borderRadius: "3px",
+                boxShadow: "0 16px 34px -8px rgba(0,0,0,0.35)",
+              }}
             >
-              <img
-                src={yosegaki.organizerImageUrl}
-                alt=""
-                className="w-full aspect-square object-cover"
+              {/* クラフト紙テープ */}
+              <div
+                className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 z-20"
+                style={{
+                  transform: "translateX(-50%) rotate(-3deg)",
+                  backgroundColor: "#9CB38D",
+                  boxShadow: "0 3px 6px -1px rgba(0,0,0,0.22), inset 0 0 10px rgba(60,75,50,0.18)",
+                  backgroundImage:
+                    "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+                  backgroundSize: "3px 3px, auto",
+                }}
+                aria-hidden="true"
               />
-              <p className="text-[11px] text-gray-600 font-medium mt-2 text-center truncate">
-                {yosegaki.organizerAudioTitle || "企画者メッセージ"}
-              </p>
-              <div className="flex items-center justify-center gap-1 mt-0.5">
-                <img src="/icons/mizuhiki-bow.png" alt="" className="w-4 h-3 object-contain" aria-hidden />
-                <p className="text-[10px] text-gray-400">{organizerName}</p>
+              {yosegaki.organizerImageUrl ? (
+                <img
+                  src={yosegaki.organizerImageUrl}
+                  alt=""
+                  className="w-full rounded-sm object-cover max-h-64"
+                  style={{ outline: "1px solid rgba(0,0,0,0.07)" }}
+                />
+              ) : (
+                <div
+                  className="w-full h-52 rounded-sm flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, #ccfbf1, #bfdbfe)",
+                    outline: "1px solid rgba(0,0,0,0.07)",
+                  }}
+                >
+                  <span className="text-6xl">🎵</span>
+                </div>
+              )}
+              <div className="pt-4 px-1 space-y-3 pb-3">
+                <p className="text-lg font-bold text-gray-800">
+                  {yosegaki.organizerAudioTitle || "（タイトルなし）"}
+                </p>
+                {yosegaki.organizerAudioComment && (
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {yosegaki.organizerAudioComment}
+                  </p>
+                )}
+                {yosegaki.organizerAudioUrl && (
+                  <div
+                    className="rounded-2xl px-3 py-2.5"
+                    style={{ border: "1px solid rgba(30,80,162,0.3)" }}
+                  >
+                    <audio src={yosegaki.organizerAudioUrl} controls className="w-full h-10" />
+                  </div>
+                )}
               </div>
+              <p
+                className="text-right"
+                style={{ fontSize: "10px", color: "#9ca3af" }}
+              >
+                {organizerName}
+              </p>
             </div>
           </div>
         )}

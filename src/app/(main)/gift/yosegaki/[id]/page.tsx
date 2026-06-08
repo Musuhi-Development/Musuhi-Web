@@ -616,7 +616,7 @@ function OrganizerPolaroid({
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <img src="/icons/mizuhiki-bow.png" alt="" className="w-5 h-4 object-contain" aria-hidden />
-          <p className="text-sm font-bold text-gray-700">{yosegaki.organizerName}さんのポラロイド</p>
+          <p className="text-sm font-bold text-gray-700">{yosegaki.organizerName}</p>
         </div>
         {isCreator && (
           <button onClick={() => setEditing(!editing)} className="text-xs text-[#2A5CAA]">

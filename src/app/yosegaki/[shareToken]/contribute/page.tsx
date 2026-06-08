@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Upload, Mic, Square } from "lucide-react";
+import { ImageIcon, Mic, Square } from "lucide-react";
 import Link from "next/link";
 
 export default function ContributePage() {
@@ -16,12 +16,15 @@ export default function ContributePage() {
   // フォーム
   const [participantName, setParticipantName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 録音
   const [isRecording, setIsRecording] = useState(false);
@@ -38,6 +41,31 @@ export default function ContributePage() {
       .then((d) => { if (d) setYosegaki(d.yosegaki); })
       .finally(() => setLoading(false));
   }, [shareToken]);
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    setImageUploading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/public", { method: "POST", body: formData });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "画像のアップロードに失敗しました");
+      }
+      const data = await res.json();
+      setImageUrl(data.url);
+    } catch (e: any) {
+      setError(e.message);
+      setImagePreview("");
+      setImageUrl("");
+    } finally {
+      setImageUploading(false);
+    }
+  }
 
   async function startRecording() {
     try {
@@ -95,6 +123,7 @@ export default function ContributePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!participantName.trim()) { setError("参加者名を入力してください"); return; }
+    if (!imageUrl) { setError("写真を選択してください"); return; }
     if (!audioUrl) { setError("音声を録音してください"); return; }
     setSubmitting(true);
     setError("");
@@ -174,17 +203,43 @@ export default function ContributePage() {
 
         {/* 写真 */}
         <div>
-          <label className="text-xs font-bold text-gray-500 mb-1 block">写真（任意）</label>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">
+            写真 <span className="text-red-500">※</span>
+          </label>
           <input
-            type="url"
-            placeholder="画像URLを貼り付ける"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] text-sm"
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            onChange={handleImageSelect}
+            className="hidden"
           />
-          {imageUrl && (
-            <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-              <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+          {!imagePreview ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex flex-col items-center gap-2 bg-white border-2 border-dashed border-gray-300 rounded-2xl py-8 text-gray-400 hover:border-[#2A5CAA] hover:text-[#2A5CAA] transition-colors"
+            >
+              <ImageIcon size={28} />
+              <span className="text-sm">ライブラリから写真を選ぶ</span>
+              <span className="text-[10px]">JPEG・PNG・WebP・GIF（5MB以内）</span>
+            </button>
+          ) : (
+            <div className="relative">
+              {imageUploading && (
+                <div className="absolute inset-0 bg-white/70 rounded-2xl flex items-center justify-center z-10">
+                  <div className="w-8 h-8 border-4 border-[#2A5CAA] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-square max-h-60">
+                <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+              </div>
+              <button
+                type="button"
+                onClick={() => { setImagePreview(""); setImageUrl(""); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                className="mt-2 text-xs text-gray-400 underline block"
+              >
+                写真を選び直す
+              </button>
             </div>
           )}
         </div>
@@ -274,7 +329,7 @@ export default function ContributePage() {
 
         <button
           type="submit"
-          disabled={submitting || !participantName.trim() || !audioUrl}
+          disabled={submitting || !participantName.trim() || !imageUrl || imageUploading || !audioUrl}
           className="w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold py-4 rounded-full shadow-lg text-sm disabled:opacity-50"
         >
           {submitting ? "送信中…" : "声を贈る 🎁"}
