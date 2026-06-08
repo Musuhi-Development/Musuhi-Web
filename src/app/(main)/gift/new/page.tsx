@@ -95,6 +95,12 @@ function NewGiftPageInner() {
   const [selectedParticipants, setSelectedParticipants] = useState<UserResult[]>([]);
   const [issueShareLink, setIssueShareLink] = useState(false);
 
+  // 複数人で作成（寄せ音声）専用フィールド
+  const [collabDeadline, setCollabDeadline] = useState("");
+  const [collabDeliverAt, setCollabDeliverAt] = useState("");
+  const [collabOrganizerComment, setCollabOrganizerComment] = useState("");
+  const [collabOrganizerName, setCollabOrganizerName] = useState("");
+
   useEffect(() => {
     fetchRecordings();
   }, []);
@@ -345,6 +351,8 @@ function NewGiftPageInner() {
   };
 
   const handleSend = async () => {
+    const isCollab = giftStyle === "collab";
+
     if (!title.trim()) {
       alert("宛名を入力してください");
       return;
@@ -355,26 +363,29 @@ function NewGiftPageInner() {
       return;
     }
 
-    if (!message.trim()) {
+    if (!isCollab && !message.trim()) {
       alert("メッセージを入力してください");
       return;
     }
 
-    if (selectedUsers.length === 0 && recipientEmails.length === 0) {
+    // 1人で作成の場合のみ宛先チェック
+    if (!isCollab && selectedUsers.length === 0 && recipientEmails.length === 0) {
       alert("宛先を1人以上追加してください");
       return;
     }
-
-    const isCollab = giftStyle === "collab";
 
     if (!isCollab && selectedRecordingIds.length !== 1) {
       alert("音声を1つ選択してください");
       return;
     }
+    // 複数人で作成（寄せ音声）は音声選択不要
 
-    if (isCollab && selectedParticipants.length === 0 && !issueShareLink) {
-      alert("共同作成では、共同メンバーを追加するかリンク発行を有効にしてください");
-      return;
+    // 複数人で作成（寄せ音声）の必須チェック
+    if (isCollab) {
+      if (!collabDeadline) { alert("募集期限を入力してください"); return; }
+      if (!collabDeliverAt) { alert("お届け日時を入力してください"); return; }
+      if (!collabOrganizerComment.trim()) { alert("参加者への依頼コメントを入力してください"); return; }
+      if (!collabOrganizerName.trim()) { alert("企画者名を入力してください"); return; }
     }
 
     if (!isCollab && sendMode === "scheduled") {
@@ -396,52 +407,48 @@ function NewGiftPageInner() {
     setSending(true);
 
     try {
+      // 複数人で作成（寄せ音声）→ Yosegaki API
+      if (isCollab) {
+        const res = await fetch("/api/yosegaki", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: message.trim() || null,
+            recipientName: title.trim(),
+            recipientEmail: recipientEmails[0] || null,
+            organizerName: collabOrganizerName.trim(),
+            organizerComment: collabOrganizerComment.trim(),
+            deadline: collabDeadline,
+            deliverAt: collabDeliverAt,
+          }),
+        });
+        if (!res.ok) throw new Error("寄せ音声の作成に失敗しました");
+        const data = await res.json();
+        router.push(`/gift/yosegaki/${data.yosegaki.id}`);
+        return;
+      }
+
+      // 1人で作成 → 既存 VoiceGift API
       const payload: any = {
         title: title.trim(),
         message: message.trim() || null,
         senderName: senderName.trim() || null,
         recipientIds: selectedUsers.map((user) => user.id),
         recipientEmails,
-        participantIds: isCollab ? selectedParticipants.map((participant) => participant.id) : [],
+        participantIds: [],
         recordingIds: selectedRecordingIds,
-        sendNow: !isCollab && sendMode === "now",
+        sendNow: sendMode === "now",
       };
-
-      if (!isCollab && sendMode === "scheduled") {
-        payload.sendAt = sendAt;
-      }
+      if (sendMode === "scheduled") payload.sendAt = sendAt;
 
       const res = await fetch("/api/voice-gifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        throw new Error("ボイスギフトの作成に失敗しました");
-      }
-
+      if (!res.ok) throw new Error("ボイスギフトの作成に失敗しました");
       const data = await res.json();
-
-      if (isCollab) {
-        const shareToken = data?.voiceGift?.shareToken;
-        const shareLink =
-          shareToken && typeof window !== "undefined"
-            ? `${window.location.origin}/gift/share/${shareToken}`
-            : "";
-
-        if (issueShareLink && shareLink) {
-          try {
-            await navigator.clipboard.writeText(`一緒にボイスギフトを作りませんか？\n${shareLink}`);
-            alert("募集を開始しました。共有リンクをコピーしました。ドラフト画面で最終送信してください。");
-          } catch {
-            alert(`募集を開始しました。共有リンク: ${shareLink}`);
-          }
-        } else {
-          alert("募集を開始しました。ドラフト画面でメンバーの音声を集めてから送信してください。");
-        }
-      }
-
       router.push(`/gift/${data.voiceGift.id}`);
     } catch (error) {
       console.error("Send voice gift error:", error);
@@ -808,6 +815,72 @@ function NewGiftPageInner() {
             </div>
           )}
         </div>
+
+        {/* ─── 複数人で作成（寄せ音声）専用フィールド ─── */}
+        {giftStyle === "collab" && (
+          <div className="space-y-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p className="text-xs font-bold text-amber-800">声の寄せ書き設定</p>
+
+            {/* 募集期限 */}
+            <div>
+              <label className="text-xs font-bold text-gray-600 mb-1 block">
+                募集期限 <span className="text-red-500">※</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={collabDeadline}
+                onChange={(e) => setCollabDeadline(e.target.value)}
+                disabled={sending}
+                className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
+              />
+            </div>
+
+            {/* お届け日 */}
+            <div>
+              <label className="text-xs font-bold text-gray-600 mb-1 block">
+                お届け日時 <span className="text-red-500">※</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={collabDeliverAt}
+                onChange={(e) => setCollabDeliverAt(e.target.value)}
+                disabled={sending}
+                className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
+              />
+            </div>
+
+            {/* 参加者への依頼コメント */}
+            <div>
+              <label className="text-xs font-bold text-gray-600 mb-1 block">
+                参加者への依頼コメント <span className="text-red-500">※</span>
+              </label>
+              <textarea
+                placeholder="例: ○○さんの誕生日に贈る声の寄せ書きです。一言メッセージをお願いします！"
+                value={collabOrganizerComment}
+                onChange={(e) => setCollabOrganizerComment(e.target.value)}
+                rows={3}
+                disabled={sending}
+                className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-400 resize-none text-sm"
+              />
+            </div>
+
+            {/* 企画者名 */}
+            <div>
+              <label className="text-xs font-bold text-gray-600 mb-1 block">
+                企画者名 <span className="text-red-500">※</span>
+              </label>
+              <input
+                type="text"
+                placeholder="例: 山田（幹事）"
+                value={collabOrganizerName}
+                onChange={(e) => setCollabOrganizerName(e.target.value)}
+                disabled={sending}
+                className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-400 text-sm"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">宛先の方に表示される企画者名です</p>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-bold text-gray-500 mb-2 block">
