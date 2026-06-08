@@ -253,15 +253,9 @@ function NewGiftPageInner() {
   }, [minScheduleDate]);
 
   const handleToggleRecording = (recordingId: string) => {
-    setSelectedRecordingIds((prev) => {
-      // 1人で作成（solo）は音声を1つだけ選択。複数人で作成（寄せ音声）は従来どおり複数可。
-      if (giftStyle === "solo") {
-        return prev.includes(recordingId) ? [] : [recordingId];
-      }
-      return prev.includes(recordingId)
-        ? prev.filter((id) => id !== recordingId)
-        : [...prev, recordingId];
-    });
+    setSelectedRecordingIds((prev) =>
+      prev.includes(recordingId) ? [] : [recordingId]
+    );
   };
 
   const handleAddRecipientUser = (user: UserResult) => {
@@ -921,12 +915,11 @@ function NewGiftPageInner() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-amber-700 mb-0.5">企画者ポラロイドとして設定</p>
                   <p className="text-sm font-semibold text-gray-800 truncate">{rec.title}</p>
-                  <p className="text-xs text-gray-500">{Math.round(rec.duration)}秒</p>
                 </div>
               </div>
             );
           })()}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {emotionTags.map((tag) => (
               <button
                 key={tag}
@@ -1077,7 +1070,6 @@ function NewGiftPageInner() {
                       )}
                     </div>
                     <p className="text-sm font-semibold text-gray-800 truncate">{recording.title}</p>
-                    <p className="text-xs text-gray-500">{formatDuration(recording.duration)}</p>
                   </div>
                 );
               })}

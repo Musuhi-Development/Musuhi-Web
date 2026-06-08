@@ -492,8 +492,8 @@ function GiftPageInner() {
           </Link>
         </div>
 
-        {/* タブ: 横スクロールなし2行対応 */}
-        <div className="flex flex-wrap gap-1.5 pb-1">
+        {/* タブ: 1行横スクロール */}
+        <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
           {filters.map((filter) => {
             const Icon = filter.icon;
             return (
@@ -501,13 +501,13 @@ function GiftPageInner() {
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
                 className={clsx(
-                  "px-2.5 py-1 text-[11px] rounded-full whitespace-nowrap transition-colors font-medium flex items-center gap-1",
+                  "px-2.5 py-1 text-[10px] rounded-full whitespace-nowrap transition-colors font-medium flex items-center gap-0.5 flex-shrink-0",
                   activeFilter === filter.id
                     ? "bg-[#2A5CAA] text-white shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 )}
               >
-                <Icon size={11} />
+                <Icon size={10} />
                 {filter.label}
               </button>
             );
