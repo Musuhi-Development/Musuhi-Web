@@ -375,7 +375,7 @@ export default function YosegakiDetailPage() {
                       key={c.id}
                       imageUrl={c.imageUrl || (Array.isArray(c.recording?.images) ? c.recording.images[0] : null)}
                       title={c.title || c.recording?.title}
-                      name={c.participantName || c.contributor?.displayName || c.contributor?.name || "参加者"}
+                      name={c.participantName || "参加者"}
                       audioUrl={c.audioUrl || c.recording?.audioUrl}
                       index={i}
                       onClick={() => setModal(c)}
@@ -447,7 +447,7 @@ export default function YosegakiDetailPage() {
                       title: yosegaki.organizerAudioTitle,
                       participantName: yosegaki.organizerName,
                       audioUrl: yosegaki.organizerAudioUrl,
-                      message: yosegaki.organizerComment,
+                      message: yosegaki.organizerAudioComment,
                       isOrganizer: true,
                     })
                   }
@@ -720,7 +720,7 @@ function ContribModal({ contrib, onClose }: { contrib: any; onClose: () => void 
   const audioUrl = contrib.audioUrl || contrib.recording?.audioUrl;
   const audioDuration = contrib.audioDuration || contrib.recording?.duration;
   const title = contrib.title || contrib.recording?.title || "（タイトルなし）";
-  const name = contrib.participantName || contrib.contributor?.displayName || contrib.contributor?.name || "参加者";
+  const name = contrib.participantName || "参加者";
   const recordedAt = contrib.createdAt ? new Date(contrib.createdAt) : null;
   const dateLabel = recordedAt
     ? `${recordedAt.getFullYear()}/${pad(recordedAt.getMonth() + 1)}/${pad(recordedAt.getDate())}`
