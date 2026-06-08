@@ -199,12 +199,16 @@ export default function YosegakiDetailPage() {
     if (!isCreator || sendingNow) return;
     setSendingNow(true);
     try {
-      await fetch(`/api/yosegaki/${id}`, {
+      const res = await fetch(`/api/yosegaki/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "delivered", deliverAt: new Date().toISOString() }),
       });
-      await fetchYosegaki();
+      if (res.ok) {
+        router.push("/gift?tab=sent");
+      } else {
+        await fetchYosegaki();
+      }
     } finally {
       setSendingNow(false);
     }

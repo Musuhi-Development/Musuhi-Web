@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { Plus, Send, Users, Mail, Calendar, Heart } from "lucide-react";
 import { clsx } from "clsx";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
@@ -32,8 +32,10 @@ const emotionToAnimal: { [key: string]: string } = {
   "イライラ": "/animal/bear.png",
 };
 
-export default function GiftPage() {
-  const [activeFilter, setActiveFilter] = useState<GiftTabFilter>("received");
+function GiftPageInner() {
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as GiftTabFilter) || "received";
+  const [activeFilter, setActiveFilter] = useState<GiftTabFilter>(initialTab);
   const { user } = useUser();
 
   // みんなで贈るタブ用の寄せ音声リスト
@@ -43,6 +45,9 @@ export default function GiftPage() {
 
   // 下書きタブ用: 自分が作成した寄せ音声
   const [draftYosegakiList, setDraftYosegakiList] = useState<any[]>([]);
+
+  // 贈ったタブ用: 自分が配信済みの寄せ音声
+  const [deliveredYosegakiList, setDeliveredYosegakiList] = useState<any[]>([]);
 
   const fetchYosegakiList = useCallback(async () => {
     setYosegakiLoading(true);
@@ -71,10 +76,23 @@ export default function GiftPage() {
     } catch {}
   }, []);
 
+  const fetchDeliveredYosegakiList = useCallback(async () => {
+    try {
+      const res = await fetch("/api/yosegaki?type=created");
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = (data.yosegakiList || []).filter(
+        (y: any) => y.status === "delivered"
+      );
+      setDeliveredYosegakiList(list);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (activeFilter === "collaborative") fetchYosegakiList();
     if (activeFilter === "draft") fetchDraftYosegakiList();
-  }, [activeFilter, fetchYosegakiList, fetchDraftYosegakiList]);
+    if (activeFilter === "sent") fetchDeliveredYosegakiList();
+  }, [activeFilter, fetchYosegakiList, fetchDraftYosegakiList, fetchDeliveredYosegakiList]);
 
   const voiceGiftFilter = activeFilter === "collaborative" ? "received" : activeFilter;
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(voiceGiftFilter as VoiceGiftFilter);
@@ -547,6 +565,8 @@ export default function GiftPage() {
           <div className="space-y-3">
             {/* 下書きタブ: 寄せ音声カードを先頭に表示 */}
             {activeFilter === "draft" && draftYosegakiList.map((y) => renderDraftYosegakiCard(y))}
+            {/* 贈ったタブ: 配信済み寄せ音声を先頭に表示 */}
+            {activeFilter === "sent" && deliveredYosegakiList.map((y) => renderDraftYosegakiCard(y))}
             {voiceGifts.map((gift) =>
               activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
             )}
@@ -554,5 +574,13 @@ export default function GiftPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GiftPage() {
+  return (
+    <Suspense>
+      <GiftPageInner />
+    </Suspense>
   );
 }

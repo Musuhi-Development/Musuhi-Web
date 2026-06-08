@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/voice-gifts/process",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/yosegaki/process",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
