@@ -2,149 +2,221 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Calendar, ChevronDown, X } from "lucide-react";
+import { Calendar, Clock, Users, Upload, Mic } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 export default function NewYosegakiPage() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const { user } = useUser();
+
+  // 基本情報
+  const [recipientName, setRecipientName] = useState("");
+  const [mainMessage, setMainMessage] = useState("");
+  const [organizerName, setOrganizerName] = useState("");
+  const [organizerComment, setOrganizerComment] = useState("");
+
+  // 日時
   const [deadline, setDeadline] = useState("");
-  const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
+  const [deliverAt, setDeliverAt] = useState("");
 
-  // ダミーの友達リスト
-  const friends = ["山田太郎", "佐藤花子", "鈴木一郎", "田中美咲", "高橋健太"];
+  // 企画者ポラロイド
+  const [organizerImageUrl, setOrganizerImageUrl] = useState("");
+  const [organizerAudioTitle, setOrganizerAudioTitle] = useState("");
 
-  const toggleFriend = (friend: string) => {
-    setSelectedFriends(prev => 
-      prev.includes(friend) ? prev.filter(f => f !== friend) : [...prev, friend]
-    );
-  };
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleCreate = () => {
-    // 作成処理
-    router.push("/gift");
-  };
+  const isValid =
+    recipientName.trim() &&
+    mainMessage.trim() &&
+    organizerName.trim() &&
+    organizerComment.trim() &&
+    deadline &&
+    deliverAt;
+
+  async function handleCreate() {
+    if (!isValid || creating) return;
+    setCreating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/yosegaki", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recipientName.trim(),
+          description: mainMessage.trim(),
+          recipientName: recipientName.trim(),
+          organizerName: organizerName.trim(),
+          organizerComment: organizerComment.trim(),
+          organizerImageUrl: organizerImageUrl || null,
+          organizerAudioTitle: organizerAudioTitle || null,
+          deadline,
+          deliverAt,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "作成に失敗しました");
+      }
+      const data = await res.json();
+      router.push(`/gift/yosegaki/${data.yosegaki.id}`);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
-    <div className="pb-24 min-h-screen bg-gray-50 flex flex-col">
-      <header className="px-4 py-3 flex justify-between items-center border-b bg-white">
-        <button onClick={() => router.back()} className="text-gray-500">キャンセル</button>
-        <span className="font-bold">新しい寄せ書き</span>
-        <button 
+    <div className="min-h-screen bg-[#FAF7F2] flex flex-col pb-12">
+      <header className="px-4 py-3 flex justify-between items-center border-b bg-white sticky top-0 z-10">
+        <button onClick={() => router.back()} className="text-gray-500 text-sm">
+          キャンセル
+        </button>
+        <span className="font-bold text-gray-800">声の寄せ書きを作る</span>
+        <button
           onClick={handleCreate}
-          className="text-orange-500 font-bold disabled:text-gray-300"
-          disabled={!title || !deadline || selectedFriends.length === 0}
+          disabled={!isValid || creating}
+          className="text-[#2A5CAA] font-bold text-sm disabled:text-gray-300"
         >
-          作成
+          {creating ? "作成中…" : "作成"}
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* プロジェクトアイコン */}
-        <div className="flex flex-col items-center py-4">
-          <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-pink-400 rounded-2xl flex items-center justify-center mb-2 shadow-lg">
-            <Users className="text-white" size={48} />
+      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        {/* ヘッダービジュアル */}
+        <div className="flex flex-col items-center py-3 gap-2">
+          <div className="w-20 h-20 bg-gradient-to-br from-amber-300 to-rose-300 rounded-2xl flex items-center justify-center shadow-lg">
+            <Users className="text-white" size={40} />
           </div>
+          <p className="text-xs text-gray-500 text-center">
+            みんなの声を集めて、<br />大切な人へ届けよう
+          </p>
         </div>
 
-        {/* タイトル */}
+        {/* 宛名 */}
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
-            プロジェクトタイトル <span className="text-red-500">※</span>
+            宛名（お届け先のお名前）<span className="text-red-500"> ※</span>
           </label>
-          <input 
-            type="text" 
-            placeholder="例: 田中さんの誕生日" 
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-lg font-medium border-b-2 border-gray-200 py-2 focus:outline-none focus:border-orange-400 placeholder:text-gray-300 bg-transparent"
+          <input
+            type="text"
+            placeholder="例: 田中さん"
+            value={recipientName}
+            onChange={(e) => setRecipientName(e.target.value)}
+            className="w-full text-base border-b-2 border-gray-200 py-2 focus:outline-none focus:border-[#2A5CAA] bg-transparent placeholder:text-gray-300"
           />
         </div>
 
-        {/* 締切日 */}
+        {/* メインメッセージ（便箋） */}
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
-            締切日 <span className="text-red-500">※</span>
+            メインメッセージ（便箋に表示）<span className="text-red-500"> ※</span>
+          </label>
+          <div
+            className="relative rounded-xl bg-[#FBF8F0] border border-[#e7ddd0] px-4 py-3"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 27px, rgba(120,95,55,0.10) 27px, rgba(120,95,55,0.10) 28px)",
+            }}
+          >
+            <textarea
+              placeholder="みんなへ呼びかける言葉を書いてください"
+              value={mainMessage}
+              onChange={(e) => setMainMessage(e.target.value)}
+              rows={4}
+              className="w-full bg-transparent focus:outline-none text-sm text-gray-700 placeholder:text-gray-300 resize-none leading-7"
+            />
+          </div>
+        </div>
+
+        {/* 募集期限 */}
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1">
+            <Clock size={12} />
+            募集期限<span className="text-red-500"> ※</span>
           </label>
           <div className="relative">
-            <input 
-              type="date" 
+            <input
+              type="datetime-local"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-orange-400"
+              className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
             />
-            <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           </div>
         </div>
 
-        {/* 招待する人 */}
+        {/* お届け日 */}
         <div>
-          <label className="text-xs font-bold text-gray-500 mb-2 block">
-            招待する人 <span className="text-red-500">※</span>
+          <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1">
+            <Calendar size={12} />
+            お届け日時<span className="text-red-500"> ※</span>
           </label>
-          
-          {/* 選択済みの友達 */}
-          {selectedFriends.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {selectedFriends.map(friend => (
-                <div key={friend} className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">
-                  {friend}
-                  <button onClick={() => toggleFriend(friend)} className="ml-1 hover:bg-orange-200 rounded-full p-0.5">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 友達選択 */}
-          <div className="space-y-2">
-            {friends.map(friend => (
-              <button
-                key={friend}
-                onClick={() => toggleFriend(friend)}
-                className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                  selectedFriends.includes(friend)
-                    ? "bg-orange-50 border-orange-200"
-                    : "bg-white border-gray-200 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                  <span className="font-medium text-gray-800">{friend}</span>
-                </div>
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                  selectedFriends.includes(friend)
-                    ? "bg-orange-500 border-orange-500"
-                    : "border-gray-300"
-                }`}>
-                  {selectedFriends.includes(friend) && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-            ))}
+          <div className="relative">
+            <input
+              type="datetime-local"
+              value={deliverAt}
+              onChange={(e) => setDeliverAt(e.target.value)}
+              className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
+            />
+            <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           </div>
         </div>
 
-        {/* 相手へのメッセージ */}
+        {/* 参加者への依頼コメント */}
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
-            相手へのメッセージ
+            参加者への依頼コメント<span className="text-red-500"> ※</span>
           </label>
-          <textarea 
-            placeholder="招待メッセージを入力してください（任意）"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={4}
-            className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-orange-400 placeholder:text-gray-400 resize-none"
+          <textarea
+            placeholder="例: ○○さんの誕生日に贈る声の寄せ書きを作っています。ぜひ一言メッセージをお願いします！"
+            value={organizerComment}
+            onChange={(e) => setOrganizerComment(e.target.value)}
+            rows={3}
+            className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-400 resize-none text-sm"
           />
         </div>
 
-        <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-          <p>💡 招待された人は締切日までに音声メッセージを録音できます。集まった音声は自動的に寄せ書きとしてまとめられます。</p>
+        {/* 企画者名 */}
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">
+            企画者名<span className="text-red-500"> ※</span>
+          </label>
+          <input
+            type="text"
+            placeholder="例: 山田（幹事）"
+            value={organizerName}
+            onChange={(e) => setOrganizerName(e.target.value)}
+            className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] placeholder:text-gray-400 text-sm"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">完成後、宛先の方に表示される企画者名です</p>
+        </div>
+
+        {/* 企画者ポラロイド（任意） */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+          <p className="text-xs font-bold text-gray-500">あなたのポラロイド（任意）</p>
+          <p className="text-[11px] text-gray-400">企画者として先頭に表示されます。あとからでも追加できます。</p>
+
+          <div>
+            <label className="text-[11px] text-gray-500 mb-1 block">ポラロイドタイトル</label>
+            <input
+              type="text"
+              placeholder="例: 「いつもありがとう」"
+              value={organizerAudioTitle}
+              onChange={(e) => setOrganizerAudioTitle(e.target.value)}
+              maxLength={20}
+              className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg focus:outline-none focus:border-[#2A5CAA] text-sm placeholder:text-gray-300"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
+
+        <div className="text-xs text-gray-500 bg-amber-50 border border-amber-100 p-4 rounded-xl">
+          <p>💡 作成後、企画者ポラロイド（画像・音声）の追加や共有リンクの発行ができます。</p>
         </div>
       </div>
     </div>

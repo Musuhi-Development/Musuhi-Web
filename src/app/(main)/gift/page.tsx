@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Send, Users, Mail, Calendar } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, Send, Users, Mail, Calendar, Heart } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,9 +10,12 @@ import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 import { Postmark } from "@/components/shared/Postmark";
 
-const filters: Array<{ id: VoiceGiftFilter; label: string; icon: any }> = [
+type GiftTabFilter = VoiceGiftFilter | "collaborative";
+
+const filters: Array<{ id: GiftTabFilter; label: string; icon: any }> = [
   { id: "received", label: "届いた", icon: Mail },
   { id: "sent", label: "贈った", icon: Send },
+  { id: "collaborative", label: "みんなで贈る", icon: Heart },
   { id: "draft", label: "下書き", icon: Users },
   { id: "scheduled", label: "未来送信", icon: Calendar },
 ];
@@ -30,9 +33,51 @@ const emotionToAnimal: { [key: string]: string } = {
 };
 
 export default function GiftPage() {
-  const [activeFilter, setActiveFilter] = useState<VoiceGiftFilter>("received");
+  const [activeFilter, setActiveFilter] = useState<GiftTabFilter>("received");
   const { user } = useUser();
-  const { voiceGifts, loading, error, refresh } = useVoiceGifts(activeFilter);
+
+  // みんなで贈るタブ用の寄せ音声リスト
+  const [yosegakiList, setYosegakiList] = useState<any[]>([]);
+  const [yosegakiLoading, setYosegakiLoading] = useState(false);
+  const [yosegakiError, setYosegakiError] = useState<string | null>(null);
+
+  // 下書きタブ用: 自分が作成した寄せ音声
+  const [draftYosegakiList, setDraftYosegakiList] = useState<any[]>([]);
+
+  const fetchYosegakiList = useCallback(async () => {
+    setYosegakiLoading(true);
+    setYosegakiError(null);
+    try {
+      const res = await fetch("/api/yosegaki?type=collaborative");
+      if (!res.ok) throw new Error("取得失敗");
+      const data = await res.json();
+      setYosegakiList(data.yosegakiList || []);
+    } catch (e: any) {
+      setYosegakiError(e.message);
+    } finally {
+      setYosegakiLoading(false);
+    }
+  }, []);
+
+  const fetchDraftYosegakiList = useCallback(async () => {
+    try {
+      const res = await fetch("/api/yosegaki?type=created");
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = (data.yosegakiList || []).filter(
+        (y: any) => y.status !== "delivered"
+      );
+      setDraftYosegakiList(list);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (activeFilter === "collaborative") fetchYosegakiList();
+    if (activeFilter === "draft") fetchDraftYosegakiList();
+  }, [activeFilter, fetchYosegakiList, fetchDraftYosegakiList]);
+
+  const voiceGiftFilter = activeFilter === "collaborative" ? "received" : activeFilter;
+  const { voiceGifts, loading, error, refresh } = useVoiceGifts(voiceGiftFilter as VoiceGiftFilter);
   const router = useRouter();
 
   function pad(n: number) {
@@ -177,6 +222,107 @@ export default function GiftPage() {
           </span>
         ))}
       </div>
+    );
+  }
+
+  // 寄せ音声ステータスバッジ
+  function yosegakiStatusLabel(yosegaki: any): string {
+    const { status, deadline, deliverAt } = yosegaki;
+    if (status === "draft") return "募集前";
+    if (status === "collecting") {
+      if (!deadline) return "募集中";
+      const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+      if (days < 0) return "募集終了";
+      return `募集中 締切まで${days}日`;
+    }
+    if (status === "completed" || status === "delivered") {
+      if (!deliverAt) return "募集終了";
+      const days = Math.ceil((new Date(deliverAt).getTime() - Date.now()) / 86400000);
+      if (days < 0) return "贈り済み";
+      return `お届けまで${days}日`;
+    }
+    return status;
+  }
+
+  // 下書きタブ内の寄せ音声カード
+  function renderDraftYosegakiCard(yosegaki: any) {
+    return (
+      <Link key={`y-${yosegaki.id}`} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
+        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
+                {yosegaki.organizerImageUrl ? (
+                  <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">🎙️</span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-col items-center gap-1">
+                <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded-full whitespace-nowrap ${
+                  yosegaki.status === "collecting"
+                    ? "bg-amber-100 text-amber-700"
+                    : yosegaki.status === "draft"
+                    ? "bg-gray-100 text-gray-500"
+                    : "bg-blue-100 text-blue-700"
+                }`}>
+                  {yosegakiStatusLabel(yosegaki)}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
+              <p className="text-xs text-gray-700 truncate">{yosegaki.title}</p>
+              <p className="text-[10px] text-gray-400">{yosegaki.contributions?.length || 0}件の音声</p>
+            </div>
+          </div>
+          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(yosegaki.createdAt)}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+
+  // みんなで贈るタブのカード（寄せ音声）
+  function renderYosegakiCard(yosegaki: any) {
+    const contributed = yosegaki.contributions?.some((c: any) => c.contributorId === user?.id);
+    const isCreator = yosegaki.creatorId === user?.id;
+    return (
+      <Link key={yosegaki.id} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
+        <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-4 border border-gray-100">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
+              <p className="text-xs text-gray-600 truncate mt-0.5">{yosegaki.title}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">企画: {yosegaki.organizerName}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                yosegaki.status === "collecting"
+                  ? "bg-amber-100 text-amber-700"
+                  : yosegaki.status === "draft"
+                  ? "bg-gray-100 text-gray-500"
+                  : "bg-green-100 text-green-700"
+              }`}>
+                {yosegakiStatusLabel(yosegaki)}
+              </span>
+              <span className={`text-[9px] px-2 py-0.5 rounded-full ${
+                contributed || isCreator
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-orange-100 text-orange-600"
+              }`}>
+                {isCreator ? "企画者" : contributed ? "参加済み" : "未参加"}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Heart size={11} className="text-rose-400" />
+            <p className="text-[10px] text-gray-400">{yosegaki.contributions?.length || 0}件の音声</p>
+          </div>
+        </div>
+      </Link>
     );
   }
 
@@ -328,7 +474,8 @@ export default function GiftPage() {
           </Link>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+        {/* タブ: 横スクロールなし2行対応 */}
+        <div className="flex flex-wrap gap-1.5 pb-1">
           {filters.map((filter) => {
             const Icon = filter.icon;
             return (
@@ -336,20 +483,48 @@ export default function GiftPage() {
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
                 className={clsx(
-                  "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors font-medium flex items-center gap-2",
+                  "px-2.5 py-1 text-[11px] rounded-full whitespace-nowrap transition-colors font-medium flex items-center gap-1",
                   activeFilter === filter.id
                     ? "bg-[#2A5CAA] text-white shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 )}
               >
-                <Icon size={14} />
+                <Icon size={11} />
                 {filter.label}
               </button>
             );
           })}
         </div>
 
-        {loading ? (
+        {/* みんなで贈るタブ */}
+        {activeFilter === "collaborative" ? (
+          yosegakiLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 border-4 border-[#2A5CAA] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : yosegakiError ? (
+            <div className="text-center py-10 bg-white rounded-3xl shadow-md p-6">
+              <p className="text-red-500 mb-4">{yosegakiError}</p>
+              <button onClick={fetchYosegakiList} className="px-6 py-2 bg-[#2A5CAA] text-white rounded-full">
+                再試行
+              </button>
+            </div>
+          ) : yosegakiList.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-3xl shadow-md">
+              <Heart size={48} className="mx-auto mb-3 opacity-40 text-gray-400" />
+              <p className="text-gray-500 text-sm">参加中の寄せ音声はありません</p>
+              <Link href="/gift/yosegaki/new" className="mt-3 block text-xs text-[#2A5CAA]">
+                声の寄せ書きを作る
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {yosegakiList.map((yosegaki: any) =>
+                renderYosegakiCard(yosegaki)
+              )}
+            </div>
+          )
+        ) : loading ? (
           <div className="flex justify-center py-10">
             <div className="w-8 h-8 border-4 border-[#2A5CAA] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -363,13 +538,15 @@ export default function GiftPage() {
               再試行
             </button>
           </div>
-        ) : voiceGifts.length === 0 ? (
+        ) : voiceGifts.length === 0 && (activeFilter !== "draft" || draftYosegakiList.length === 0) ? (
           <div className="text-center py-12 bg-white rounded-3xl shadow-md">
             <Mail size={48} className="mx-auto mb-3 opacity-40 text-gray-400" />
             <p className="text-gray-500">ボイスギフトはまだありません</p>
           </div>
         ) : (
           <div className="space-y-3">
+            {/* 下書きタブ: 寄せ音声カードを先頭に表示 */}
+            {activeFilter === "draft" && draftYosegakiList.map((y) => renderDraftYosegakiCard(y))}
             {voiceGifts.map((gift) =>
               activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
             )}
