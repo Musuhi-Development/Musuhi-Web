@@ -303,6 +303,82 @@ function GiftPageInner() {
     );
   }
 
+  // 贈ったタブ内の配信済み寄せ音声カード
+  function renderDeliveredYosegakiCard(yosegaki: any) {
+    const contributions = yosegaki.contributions || [];
+    const totalCount = contributions.length + 1; // +1 for organizer
+    const visibleContribs = contributions.slice(0, 3);
+    const snippet = yosegaki.description
+      ? yosegaki.description.slice(0, 55) + (yosegaki.description.length > 55 ? "…" : "")
+      : null;
+    const deliveredAt = yosegaki.deliverAt || yosegaki.updatedAt || yosegaki.createdAt;
+
+    return (
+      <Link key={`dy-${yosegaki.id}`} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
+        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-7">
+          <div className="flex items-start gap-3">
+            {/* サムネイル + バッジ */}
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
+                {yosegaki.organizerImageUrl ? (
+                  <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">🎙️</span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-col items-center gap-0.5">
+                <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
+                <span className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium whitespace-nowrap">
+                  お届け済み
+                </span>
+              </div>
+            </div>
+
+            {/* テキスト情報 */}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
+              {snippet && (
+                <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{snippet}</p>
+              )}
+              {/* 参加者アイコン列 */}
+              <div className="flex items-center gap-1">
+                {/* 企画者 */}
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
+                  {yosegaki.creator?.avatarUrl ? (
+                    <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (yosegaki.organizerName?.[0] || "企").toUpperCase()
+                  )}
+                </div>
+                {visibleContribs.map((c: any, i: number) => {
+                  const name = c.participantName || c.contributor?.displayName || c.contributor?.name || "参";
+                  return (
+                    <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
+                      {c.contributor?.avatarUrl ? (
+                        <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        name[0].toUpperCase()
+                      )}
+                    </div>
+                  );
+                })}
+                {contributions.length > 3 && (
+                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
+                    +{contributions.length - 3}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
+              </div>
+            </div>
+          </div>
+          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(deliveredAt)}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+
   // みんなで贈るタブのカード（寄せ音声）
   function renderYosegakiCard(yosegaki: any) {
     const contributed = yosegaki.contributions?.some((c: any) => c.contributorId === user?.id);
@@ -566,7 +642,7 @@ function GiftPageInner() {
             {/* 下書きタブ: 寄せ音声カードを先頭に表示 */}
             {activeFilter === "draft" && draftYosegakiList.map((y) => renderDraftYosegakiCard(y))}
             {/* 贈ったタブ: 配信済み寄せ音声を先頭に表示 */}
-            {activeFilter === "sent" && deliveredYosegakiList.map((y) => renderDraftYosegakiCard(y))}
+            {activeFilter === "sent" && deliveredYosegakiList.map((y) => renderDeliveredYosegakiCard(y))}
             {voiceGifts.map((gift) =>
               activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
             )}
