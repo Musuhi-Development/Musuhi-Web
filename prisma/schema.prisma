@@ -178,9 +178,10 @@ model Yosegaki {
   creatorId           String
   organizerName       String    @default("")
   organizerComment    String?
-  organizerImageUrl   String?
-  organizerAudioUrl   String?
-  organizerAudioTitle String?
+  organizerImageUrl     String?
+  organizerAudioUrl     String?
+  organizerAudioTitle   String?
+  organizerAudioComment String?
   deadline            DateTime?
   deliverAt           DateTime?
   shareToken          String    @unique @default(cuid())

@@ -71,6 +71,7 @@ export async function PATCH(request: Request, { params }: Params) {
       organizerImageUrl,
       organizerAudioUrl,
       organizerAudioTitle,
+      organizerAudioComment,
       deadline,
       isPublic,
     } = body;
@@ -88,6 +89,7 @@ export async function PATCH(request: Request, { params }: Params) {
         ...(organizerImageUrl !== undefined && { organizerImageUrl }),
         ...(organizerAudioUrl !== undefined && { organizerAudioUrl }),
         ...(organizerAudioTitle !== undefined && { organizerAudioTitle }),
+        ...(organizerAudioComment !== undefined && { organizerAudioComment }),
         ...(isPublic !== undefined && { isPublic }),
       },
       include: yosegakiInclude,

@@ -612,13 +612,11 @@ function OrganizerPolaroid({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <img src="/icons/mizuhiki-bow.png" alt="" className="w-5 h-4 object-contain" aria-hidden />
-          <p className="text-sm font-bold text-gray-700">
-            {yosegaki.organizerName}さんのポラロイド
-          </p>
+          <p className="text-sm font-bold text-gray-700">{yosegaki.organizerName}さんのポラロイド</p>
         </div>
         {isCreator && (
           <button onClick={() => setEditing(!editing)} className="text-xs text-[#2A5CAA]">
@@ -628,7 +626,7 @@ function OrganizerPolaroid({
       </div>
 
       {editing ? (
-        <div className="space-y-3">
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <div>
             <label className="text-[11px] text-gray-500 mb-1 block">画像URL</label>
             <input
@@ -658,24 +656,54 @@ function OrganizerPolaroid({
           </button>
         </div>
       ) : (
-        <div className="flex gap-3 items-start">
-          <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-rose-100 rounded-lg flex-shrink-0 overflow-hidden">
+        <div
+          className="relative bg-[#F3EBDD] rounded-2xl p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)]"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+            backgroundSize: "5px 5px",
+            backgroundPosition: "0 0, 2.5px 2.5px",
+          }}
+        >
+          <div className="relative bg-white rounded-[3px] px-5 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
+            <div
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22),inset_0_0_10px_rgba(60,75,50,0.18)]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+                backgroundSize: "3px 3px, auto",
+              }}
+              aria-hidden="true"
+            />
             {yosegaki.organizerImageUrl ? (
-              <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
+              <img
+                src={yosegaki.organizerImageUrl}
+                alt=""
+                className="w-full rounded-sm object-cover max-h-64 ring-1 ring-black/[0.07]"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl">🎵</div>
+              <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
+                <span className="text-6xl">🎵</span>
+              </div>
             )}
-          </div>
-          <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-sm font-bold text-gray-700 truncate">
-              {yosegaki.organizerAudioTitle || "（タイトルなし）"}
+            <div className="pt-4 px-1 space-y-3 pb-3">
+              <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
+                {yosegaki.organizerAudioTitle || "（タイトルなし）"}
+              </p>
+              {yosegaki.organizerAudioComment && (
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {yosegaki.organizerAudioComment}
+                </p>
+              )}
+              {yosegaki.organizerAudioUrl && (
+                <div className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5">
+                  <WaveformPlayer src={yosegaki.organizerAudioUrl} duration={30} />
+                </div>
+              )}
+            </div>
+            <p className="absolute bottom-3 right-4 text-[10px] text-gray-400">
+              {yosegaki.organizerName}
             </p>
-            {yosegaki.organizerAudioUrl && (
-              <WaveformPlayer src={yosegaki.organizerAudioUrl} duration={30} />
-            )}
-            {yosegaki.organizerComment && (
-              <p className="text-xs text-gray-500 line-clamp-2">{yosegaki.organizerComment}</p>
-            )}
           </div>
         </div>
       )}

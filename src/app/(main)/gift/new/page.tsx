@@ -429,6 +429,7 @@ function NewGiftPageInner() {
             // 選択した録音を企画者ポラロイドとして反映
             organizerAudioUrl: selectedRecording?.audioUrl ?? null,
             organizerAudioTitle: selectedRecording?.title ?? null,
+            organizerAudioComment: selectedRecording?.description ?? null,
             organizerImageUrl:
               Array.isArray(selectedRecording?.images) && selectedRecording.images.length > 0
                 ? selectedRecording.images[0]
