@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Copy, Check, Share2, QrCode, ChevronLeft, Mic, Image, Plus, Pencil, Play, Pause } from "lucide-react";
+import { Calendar, Copy, Check, Share2, QrCode, ChevronLeft, Mic, Image, Plus, Pencil, Play, Pause, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
@@ -716,41 +716,94 @@ function ContribModal({ contrib, onClose }: { contrib: any; onClose: () => void 
   const audioUrl = contrib.audioUrl || contrib.recording?.audioUrl;
   const audioDuration = contrib.audioDuration || contrib.recording?.duration;
   const title = contrib.title || contrib.recording?.title || "（タイトルなし）";
-  const name = contrib.isOrganizer
-    ? contrib.participantName
-    : contrib.participantName || contrib.contributor?.displayName || contrib.contributor?.name || "参加者";
+  const name = contrib.participantName || contrib.contributor?.displayName || contrib.contributor?.name || "参加者";
+  const recordedAt = contrib.createdAt ? new Date(contrib.createdAt) : null;
+  const dateLabel = recordedAt
+    ? `${recordedAt.getFullYear()}/${pad(recordedAt.getMonth() + 1)}/${pad(recordedAt.getDate())}`
+    : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-5" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center px-4 pb-28 sm:pb-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl"
+        className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {imageUrl ? (
-          <img src={imageUrl} alt="" className="w-full aspect-square object-cover" />
-        ) : (
-          <div className="w-full aspect-square bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center text-6xl">🎵</div>
-        )}
-        <div className="p-5 space-y-3">
-          <p className="text-base font-bold text-gray-800">{title}</p>
-          {contrib.message && (
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">{contrib.message}</p>
-          )}
-          {audioUrl && (
-            <WaveformPlayer src={audioUrl} duration={audioDuration || 30} />
-          )}
-          <div className="flex items-center gap-1.5 pt-1">
-            {contrib.isOrganizer && (
-              <img src="/icons/mizuhiki-bow.png" alt="" className="w-4 h-3 object-contain" aria-hidden />
-            )}
-            <p className="text-xs text-gray-500">{name}</p>
-          </div>
+        <div
+          className="relative bg-[#F3EBDD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.25)]"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+            backgroundSize: "5px 5px",
+            backgroundPosition: "0 0, 2.5px 2.5px",
+          }}
+        >
+          {/* × 閉じるボタン */}
           <button
+            type="button"
             onClick={onClose}
-            className="w-full bg-gray-100 text-gray-700 py-2 rounded-full text-sm font-medium mt-2"
+            aria-label="閉じる"
+            className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 transition-colors"
           >
-            閉じる
+            <X size={18} />
           </button>
+
+          {/* ポラロイド本体 */}
+          <div className="relative bg-white rounded-[3px] px-5 sm:px-6 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.35)]">
+            {/* クラフト紙テープ */}
+            <div
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22),inset_0_0_10px_rgba(60,75,50,0.18)]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+                backgroundSize: "3px 3px, auto",
+              }}
+              aria-hidden="true"
+            />
+
+            {/* 写真 */}
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full rounded-sm object-cover max-h-64 sm:max-h-72 ring-1 ring-black/[0.07]"
+              />
+            ) : (
+              <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
+                <span className="text-6xl">🎵</span>
+              </div>
+            )}
+
+            <div className="pt-4 px-1 space-y-3 pb-3">
+              <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
+                {title}
+              </p>
+              {contrib.message && (
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {contrib.message}
+                </p>
+              )}
+              {audioUrl && (
+                <div className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5">
+                  <WaveformPlayer src={audioUrl} duration={audioDuration || 30} />
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 pt-1">
+                {contrib.isOrganizer && (
+                  <img src="/icons/mizuhiki-bow.png" alt="" className="w-4 h-3 object-contain" aria-hidden />
+                )}
+                <p className="text-xs text-gray-500">{name}</p>
+              </div>
+            </div>
+
+            {dateLabel && (
+              <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+                参加日：{dateLabel}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
