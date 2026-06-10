@@ -77,7 +77,7 @@ export default function ConnectionsPage() {
   if (error) {
     return (
       <div className="pb-24 min-h-screen bg-gray-50">
-        <PageHeader title="つながりリスト" showBackButton={true} />
+        <PageHeader title="つながり" showBackButton={true} />
         <div className="p-4 text-center text-red-500">エラー: {error.message}</div>
       </div>
     );
@@ -85,7 +85,7 @@ export default function ConnectionsPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-gray-50">
-      <PageHeader title="つながりリスト" showBackButton={true} />
+      <PageHeader title="つながり" showBackButton={true} />
       
       <div className="p-4">
         <UserSearch />
@@ -226,7 +226,7 @@ export default function ConnectionsPage() {
 
                   {conn.anniversaries.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-gray-700">記念日</p>
+                      <p className="text-xs font-semibold text-gray-700">大切な日</p>
                       <div className="space-y-1">
                         {conn.anniversaries.map((anniversary: any, index: number) => {
                           const label = typeof anniversary === "string" ? anniversary : anniversary?.label;

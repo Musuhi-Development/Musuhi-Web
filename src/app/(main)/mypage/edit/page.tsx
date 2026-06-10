@@ -296,10 +296,10 @@ export default function EditProfilePage() {
           />
         </div>
 
-        {/* 記念日 */}
+        {/* 大切な日 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            記念日
+            大切な日（記念日や人生の節目、思い出の日など）
           </label>
           <textarea
             value={anniversariesText}

@@ -21,6 +21,8 @@ const emotionToAnimal: { [key: string]: string } = {
 
 const emotionTags = ["全て", "嬉しい", "感謝", "楽しい", "幸せ", "ワクワク", "応援", "疲れた", "悲しい", "イライラ"];
 
+
+
 export default function HomePage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -166,6 +168,20 @@ export default function HomePage() {
     return recordings.filter((recording) => Array.isArray(recording.emotions) && recording.emotions.includes(selectedTag));
   }, [recordings, selectedTag]);
 
+  const todayDominantEmotion = useMemo(() => {
+    const todayEmotions = recordings
+      .filter((r: any) => new Date(r.createdAt).toDateString() === new Date().toDateString())
+      .flatMap((r: any) => r.emotions || []);
+    if (todayEmotions.length === 0) return null;
+    return todayEmotions.reduce((a: string, b: string, _i: number, arr: string[]) =>
+      arr.filter((v: string) => v === a).length >= arr.filter((v: string) => v === b).length ? a : b
+    );
+  }, [recordings]);
+
+  const uniqueRecordingDays = useMemo(() => {
+    return new Set(recordings.map((r: any) => new Date(r.createdAt).toDateString())).size;
+  }, [recordings]);
+
   function getVisibilityLabel(visibility: string) {
     if (visibility === "private") return "非公開";
     if (visibility === "friends") return "限定公開";
@@ -206,11 +222,65 @@ export default function HomePage() {
 
       {/* Main Content */}
       <div className="px-6 py-6 space-y-6">
+
+        {/* Analysis Card */}
+        {!loading && (
+          <div className="rounded-3xl overflow-hidden shadow-md">
+            {/* 上段: 今日の振り返り */}
+            <div className="bg-gradient-to-br from-amber-50 to-rose-50 px-5 pt-4 pb-4">
+              <p className="text-xs font-bold text-amber-700 mb-3 tracking-wide">今日の振り返り</p>
+              {todayDominantEmotion ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 flex-shrink-0">
+                    {emotionToAnimal[todayDominantEmotion] ? (
+                      <img
+                        src={emotionToAnimal[todayDominantEmotion]}
+                        alt={todayDominantEmotion}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-4xl">🎵</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800 mb-0.5">{todayDominantEmotion}</p>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      今日は{todayDominantEmotion}の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  今日の記録がまだありません。<br />今日の気持ちを声で残してみましょう。
+                </p>
+              )}
+            </div>
+            {/* 下段: あなたの歩み */}
+            <div className="bg-white px-5 py-4">
+              <p className="text-xs font-bold text-[#2A5CAA] mb-3 tracking-wide">あなたの歩み</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center bg-blue-50 rounded-2xl py-3">
+                  <p className="text-2xl font-bold text-gray-800">{recordings.length}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">ジャーナル総数</p>
+                </div>
+                <div className="text-center bg-blue-50 rounded-2xl py-3">
+                  <p className="text-2xl font-bold text-gray-800">{uniqueRecordingDays}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">記録した日数</p>
+                </div>
+                <div className="text-center bg-blue-50 rounded-2xl py-3">
+                  <p className="text-2xl font-bold text-gray-800">{user?._count?.sentGifts ?? 0}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">贈ったギフト</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recordings Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-gray-800">
-              {selectedTag === "全て" ? "全て" : selectedTag}
+              {selectedTag !== "全て" ? selectedTag : ""}
             </h3>
             <button 
               onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
