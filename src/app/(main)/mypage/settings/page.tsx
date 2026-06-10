@@ -12,7 +12,7 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-gray-50">
-      <PageHeader title="アカウント設定" showBackButton={true} />
+      <PageHeader title="設定" showBackButton={true} />
 
       <div className="p-4 space-y-4">
         {/* 基本設定 */}

@@ -4,18 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Users, ChevronRight, Edit3, Loader2 } from "lucide-react";
 
-const emotionToAnimal: { [key: string]: string } = {
-  "嬉しい": "/animal/dog.png",
-  "感謝": "/animal/rabbit.png",
-  "楽しい": "/animal/horse.png",
-  "幸せ": "/animal/cat.png",
-  "ワクワク": "/animal/lion.png",
-  "応援": "/animal/tiger.png",
-  "疲れた": "/animal/monkey.png",
-  "悲しい": "/animal/turtle.png",
-  "イライラ": "/animal/bear.png",
-};
-
 type Anniversary = {
   label?: string;
   date?: string;
@@ -53,12 +41,8 @@ export default function MyPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recordings, setRecordings] = useState<any[]>([]);
-  const [analysisLoading, setAnalysisLoading] = useState(true);
-
   useEffect(() => {
     fetchUserProfile();
-    fetchRecordings();
   }, []);
 
   async function fetchUserProfile() {
@@ -82,21 +66,6 @@ export default function MyPage() {
       setError(err instanceof Error ? err.message : "エラーが発生しましました");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function fetchRecordings() {
-    setAnalysisLoading(true);
-    try {
-      const response = await fetch("/api/recordings");
-      if (response.ok) {
-        const data = await response.json();
-        setRecordings(data.recordings || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch recordings:", err);
-    } finally {
-      setAnalysisLoading(false);
     }
   }
 
@@ -139,19 +108,6 @@ export default function MyPage() {
   const displayName = user.displayName || user.name || 'User';
   const displayInitial = displayName.charAt(0).toUpperCase();
   const totalConnections = user._count.connectionsInitiated + user._count.connectionsReceived;
-
-  const todayRecordings = recordings.filter((recording) => {
-    const today = new Date();
-    const recordingDate = new Date(recording.createdAt);
-    return recordingDate.toDateString() === today.toDateString();
-  });
-
-  const allEmotions = recordings.flatMap((recording) => recording.emotions || []);
-  const dominantEmotion = allEmotions.length > 0
-    ? allEmotions.reduce((a, b, i, arr) =>
-        arr.filter((v: string) => v === a).length >= arr.filter((v: string) => v === b).length ? a : b
-      )
-    : "嬉しい";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -211,65 +167,29 @@ export default function MyPage() {
             </p>
           )}
 
-          {user.birthday && (
-            <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
-              🎂 {formatDate(user.birthday)}
-            </p>
-          )}
-
-          {user.anniversaries && user.anniversaries.length > 0 && (
-            <div className="text-sm text-gray-600 mt-1 space-y-0.5">
-              {user.anniversaries.map((a, i) => {
-                if (!a?.label) return null;
-                return (
-                  <p key={`${a.label}-${i}`} className="flex items-center gap-1 justify-center">
-                    ✨ {a.label}{a.date ? `: ${formatDate(a.date)}` : ""}
-                  </p>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Today's Analysis */}
-        <div className="bg-white rounded-3xl p-6 shadow-md mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">今日の分析</h3>
-            <span className="text-xs text-gray-400">My Page</span>
-          </div>
-          {analysisLoading ? (
-            <div className="text-sm text-gray-500">読み込み中...</div>
-          ) : recordings.length === 0 ? (
-            <div className="text-sm text-gray-500">まだ録音がありません。</div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <div className="text-3xl mb-2">😊</div>
-                  <p className="text-xs text-gray-600 mb-1">今日の気分</p>
-                  <p className="text-sm font-bold text-gray-800">良好</p>
+          {(user.birthday || (user.anniversaries && user.anniversaries.length > 0)) && (
+            <div className="flex gap-2 mt-3 w-full max-w-xs">
+              {user.birthday && (
+                <div className="flex-none w-24 bg-white rounded-2xl shadow-sm border border-blue-100 px-2 py-2.5">
+                  <p className="text-[10px] font-bold text-[#1e50a2] mb-1.5">🎂 誕生日</p>
+                  <p className="text-[11px] text-gray-700 leading-tight">{formatDate(user.birthday)}</p>
                 </div>
-                <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <div className="text-3xl mb-2">
-                    {emotionToAnimal[dominantEmotion] ? (
-                      <img src={emotionToAnimal[dominantEmotion]} alt={dominantEmotion} className="w-12 h-12 mx-auto object-contain" />
-                    ) : "🎵"}
+              )}
+              {user.anniversaries && user.anniversaries.length > 0 && (
+                <div className="flex-1 bg-white rounded-2xl shadow-sm border border-blue-100 px-3 py-2.5">
+                  <p className="text-[10px] font-bold text-[#1e50a2] mb-1.5">🌸 大切な日</p>
+                  <div className="space-y-0.5">
+                    {user.anniversaries.map((a, i) => {
+                      if (!a?.label) return null;
+                      return (
+                        <p key={`${a.label}-${i}`} className="text-xs text-gray-600 whitespace-nowrap">
+                          {a.label}{a.date ? `: ${formatDate(a.date)}` : ""}
+                        </p>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-gray-600 mb-1">感情動物</p>
-                  <p className="text-sm font-bold text-gray-800">{dominantEmotion}</p>
                 </div>
-                <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">今日</p>
-                  <p className="text-3xl font-bold text-gray-800">{todayRecordings.length}</p>
-                  <p className="text-xs text-gray-600">件</p>
-                </div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-2xl">
-                <p className="text-xs text-gray-600 mb-2 font-medium">AIコメント</p>
-                <p className="text-sm leading-relaxed text-gray-700">
-                  今日は{dominantEmotion}の気持ちを感じる一日でしたね。周りの人との繋がりを大切にしている様子が伺えます。
-                </p>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -284,7 +204,7 @@ export default function MyPage() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 text-white flex items-center justify-center shadow-md">
                 <Users size={20} />
               </div>
-              <span className="font-semibold text-gray-800">つながりリスト ({totalConnections}人)</span>
+              <span className="font-semibold text-gray-800">つながり ({totalConnections}人)</span>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
@@ -297,7 +217,7 @@ export default function MyPage() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] text-white flex items-center justify-center shadow-md">
                 <Settings size={20} />
               </div>
-              <span className="font-semibold text-gray-800">アカウント設定</span>
+              <span className="font-semibold text-gray-800">設定</span>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
