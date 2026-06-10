@@ -278,11 +278,8 @@ export default function HomePage() {
 
         {/* Recordings Section */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-gray-800">
-              {selectedTag !== "全て" ? selectedTag : ""}
-            </h3>
-            <button 
+          <div className="flex justify-end mb-3">
+            <button
               onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
               className="text-[#2A5CAA] hover:text-[#1F4580] transition-colors"
             >
