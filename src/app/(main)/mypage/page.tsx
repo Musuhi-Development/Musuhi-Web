@@ -168,21 +168,21 @@ export default function MyPage() {
           )}
 
           {(user.birthday || (user.anniversaries && user.anniversaries.length > 0)) && (
-            <div className="flex gap-3 mt-3 w-full max-w-xs">
+            <div className="flex gap-2 mt-3 w-full max-w-xs">
               {user.birthday && (
-                <div className="flex-1 bg-white rounded-2xl shadow-sm border border-pink-100 px-3 py-2.5 text-center">
+                <div className="flex-none w-24 bg-white rounded-2xl shadow-sm border border-pink-100 px-2 py-2.5 text-center">
                   <p className="text-[10px] font-bold text-pink-500 mb-1.5">🎂 誕生日</p>
-                  <p className="text-xs text-gray-700">{formatDate(user.birthday)}</p>
+                  <p className="text-[11px] text-gray-700 leading-tight">{formatDate(user.birthday)}</p>
                 </div>
               )}
               {user.anniversaries && user.anniversaries.length > 0 && (
-                <div className="flex-1 bg-white rounded-2xl shadow-sm border border-rose-100 px-3 py-2.5 text-center">
+                <div className="flex-1 bg-white rounded-2xl shadow-sm border border-rose-100 px-3 py-2.5">
                   <p className="text-[10px] font-bold text-rose-500 mb-1.5">🌸 大切な日</p>
                   <div className="space-y-0.5">
                     {user.anniversaries.map((a, i) => {
                       if (!a?.label) return null;
                       return (
-                        <p key={`${a.label}-${i}`} className="text-xs text-gray-600">
+                        <p key={`${a.label}-${i}`} className="text-xs text-gray-600 whitespace-nowrap">
                           {a.label}{a.date ? `: ${formatDate(a.date)}` : ""}
                         </p>
                       );
