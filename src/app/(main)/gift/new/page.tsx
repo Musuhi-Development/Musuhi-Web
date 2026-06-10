@@ -893,7 +893,7 @@ function NewGiftPageInner() {
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
             {giftStyle === "collab"
-              ? "企画者ポラロイドに使う音声を選ぶ（任意）"
+              ? "企画者ポラロイドに使う音声を選ぶ"
               : <>音声を選択（1つ）<span className="text-red-500"> ※</span></>}
           </label>
           {giftStyle === "collab" && (
@@ -1098,7 +1098,7 @@ function NewGiftPageInner() {
           </label>
           <input
             type="text"
-            placeholder="例: 山田太郎"
+            placeholder="例：山田太郎、３年２組 生徒一同"
             value={senderName}
             onChange={(e) => setSenderName(e.target.value)}
             disabled={sending}
