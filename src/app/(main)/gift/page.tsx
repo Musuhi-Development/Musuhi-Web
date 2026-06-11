@@ -473,34 +473,58 @@ function GiftPageInner() {
     );
   }
 
-  // 「届いた」タブ: 封筒風カード（四角い枠・横線で上下分割）
+  // 四隅の装飾ダイヤモンド（内枠コーナーオーナメント）
+  function CornerOrnament({ className }: { className?: string }) {
+    return (
+      <svg className={className} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+        <path d="M7 0 L9.2 4.8 L14 7 L9.2 9.2 L7 14 L4.8 9.2 L0 7 L4.8 4.8 Z" />
+      </svg>
+    );
+  }
+
+  // 「届いた」タブ: 封筒風カード（外枠＋クラシカル内枠・横線分割）
   function renderReceivedCard(gift: any) {
     return (
       <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
         <div className="relative rounded-lg border-2 border-[#c9b99a] bg-gradient-to-b from-[#FEFBF6] to-[#FAF5EC] shadow-md hover:shadow-lg transition-all overflow-hidden">
           {/* 消印アイコン（右上・絶対配置） */}
           <img
-            src="/icons/stamp.png"
+            src="/icons/stamp1.png"
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute top-2 right-2 w-14 h-14 object-contain opacity-75 mix-blend-multiply"
+            className="pointer-events-none absolute top-1 right-1 w-20 h-20 object-contain opacity-80 mix-blend-multiply"
           />
 
-          {/* 上部エリア: 水引シンボル + タイトル */}
-          <div className="px-5 pt-4 pb-4 flex flex-col items-center text-center">
-            <MizuhikiBow className="w-20 h-7 mb-2 opacity-90" />
-            <h4 className="text-base font-bold text-gray-800 px-12 w-full text-center truncate">
-              {getGiftDisplayTitle(gift)}
-            </h4>
-            {renderCollabMeta(gift)}
-          </div>
+          {/* 内側クラシカル装飾枠 */}
+          <div className="relative m-2.5 border border-[#b8956a]/60 rounded-sm">
+            {/* 四隅のオーナメント */}
+            <CornerOrnament className="absolute -top-[6px] -left-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -top-[6px] -right-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -bottom-[6px] -left-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -bottom-[6px] -right-[6px] w-3 h-3 text-[#a07848]" />
 
-          {/* 中央横線 */}
-          <hr className="border-t border-[#c9b99a] mx-5" />
+            {/* 上部エリア: 水引シンボル + タイトル */}
+            <div className="px-4 pt-4 pb-4 flex flex-col items-center text-center">
+              <MizuhikiBow className="w-20 h-7 mb-2 opacity-90" />
+              <h4 className="text-base font-bold text-gray-800 px-10 w-full text-center truncate">
+                {getGiftDisplayTitle(gift)}
+              </h4>
+              {renderCollabMeta(gift)}
+            </div>
 
-          {/* 下部エリア: 差出人（○○より） */}
-          <div className="px-5 py-3 flex justify-center">
-            <p className="text-sm text-[#7a6a55] tracking-wide">{getSenderName(gift)}より</p>
+            {/* 中央横線（中央にダイヤモンド装飾） */}
+            <div className="flex items-center mx-4">
+              <div className="flex-1 border-t border-[#c9b99a]" />
+              <svg className="w-2.5 h-2.5 mx-1.5 text-[#a07848] flex-shrink-0" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+                <path d="M7 0 L9.2 4.8 L14 7 L9.2 9.2 L7 14 L4.8 9.2 L0 7 L4.8 4.8 Z" />
+              </svg>
+              <div className="flex-1 border-t border-[#c9b99a]" />
+            </div>
+
+            {/* 下部エリア: 差出人（○○より） */}
+            <div className="px-4 py-3 flex justify-center">
+              <p className="text-sm text-[#7a6a55] tracking-wide">{getSenderName(gift)}より</p>
+            </div>
           </div>
         </div>
       </Link>
