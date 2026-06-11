@@ -483,13 +483,13 @@ function GiftPageInner() {
             src="/icons/stamp.png"
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute top-2 right-2 w-14 h-14 object-contain opacity-75"
+            className="pointer-events-none absolute top-2 right-2 w-14 h-14 object-contain opacity-75 mix-blend-multiply"
           />
 
           {/* 上部エリア: 水引シンボル + タイトル */}
           <div className="px-5 pt-4 pb-4 flex flex-col items-center text-center">
             <MizuhikiBow className="w-20 h-7 mb-2 opacity-90" />
-            <h4 className="text-base font-bold text-gray-800 w-full pr-12 text-center truncate">
+            <h4 className="text-base font-bold text-gray-800 px-12 w-full text-center truncate">
               {getGiftDisplayTitle(gift)}
             </h4>
             {renderCollabMeta(gift)}
