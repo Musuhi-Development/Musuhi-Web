@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const zenKakuGothicNew = Zen_Kaku_Gothic_New({
+  weight: ["400", "500", "700", "900"],
+  subsets: ["latin"],
+  variable: "--font-zen-kaku",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Musuhi",
@@ -16,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={inter.className}>{children}</body>
+      <body className={`${zenKakuGothicNew.variable} ${zenKakuGothicNew.className}`}>{children}</body>
     </html>
   );
 }
