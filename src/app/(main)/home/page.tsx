@@ -201,7 +201,7 @@ export default function HomePage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#1e50a2]">Voice Album</h1>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Musuhi</h1>
           </div>
           <button
             onClick={() => router.push('/mypage')}

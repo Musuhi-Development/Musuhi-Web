@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
-import { Postmark } from "@/components/shared/Postmark";
 
 type GiftTabFilter = VoiceGiftFilter | "collaborative";
 
@@ -474,35 +473,58 @@ function GiftPageInner() {
     );
   }
 
-  // 「届いた」タブ: 開封体験重視の便箋風カード
+  // 四隅の装飾ダイヤモンド（内枠コーナーオーナメント）
+  function CornerOrnament({ className }: { className?: string }) {
+    return (
+      <svg className={className} viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+        <path d="M7 0 L9.2 4.8 L14 7 L9.2 9.2 L7 14 L4.8 9.2 L0 7 L4.8 4.8 Z" />
+      </svg>
+    );
+  }
+
+  // 「届いた」タブ: 封筒風カード（外枠＋クラシカル内枠・横線分割）
   function renderReceivedCard(gift: any) {
     return (
       <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
-        <div
-          className="relative rounded-2xl border border-[#e7ddd0] bg-[#FAF7F2] shadow-sm hover:shadow-md transition-all p-4"
-          style={{
-            backgroundImage:
-              "radial-gradient(rgba(120,95,55,0.05) 0.5px, transparent 0.5px), radial-gradient(rgba(255,255,255,0.6) 0.5px, transparent 0.5px)",
-            backgroundSize: "5px 5px",
-            backgroundPosition: "0 0, 2.5px 2.5px",
-          }}
-        >
-          {/* 郵便消印風の装飾アクセント（右上） */}
-          <Postmark className="pointer-events-none absolute top-2 right-2 w-12 h-12 rotate-[-8deg] opacity-50" />
+        <div className="relative rounded-lg border-2 border-[#c9b99a] bg-gradient-to-b from-[#FEFBF6] to-[#FAF5EC] shadow-md hover:shadow-lg transition-all overflow-hidden">
+          {/* 消印アイコン（右上・絶対配置） */}
+          <img
+            src="/icons/stamp1.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1 right-1 w-20 h-20 object-contain opacity-80 mix-blend-multiply"
+          />
 
-          <div className="pr-12">
-            <h4 className="text-base font-bold text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
-            {renderCollabMeta(gift)}
-          </div>
+          {/* 内側クラシカル装飾枠 */}
+          <div className="relative m-2.5 border border-[#b8956a]/60 rounded-sm">
+            {/* 四隅のオーナメント */}
+            <CornerOrnament className="absolute -top-[6px] -left-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -top-[6px] -right-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -bottom-[6px] -left-[6px] w-3 h-3 text-[#a07848]" />
+            <CornerOrnament className="absolute -bottom-[6px] -right-[6px] w-3 h-3 text-[#a07848]" />
 
-          {/* 送り主名（罫線の上・左寄り／消印直下を避ける）*/}
-          <div className="mt-3 mb-1">
-            <p className="text-xs text-gray-500">{getSenderName(gift)}より</p>
-          </div>
+            {/* 上部エリア: 水引シンボル + タイトル */}
+            <div className="px-4 pt-4 pb-4 flex flex-col items-center text-center">
+              <MizuhikiBow className="w-20 h-7 mb-2 opacity-90" />
+              <h4 className="text-base font-bold text-gray-800 px-10 w-full text-center truncate">
+                {getGiftDisplayTitle(gift)}
+              </h4>
+              {renderCollabMeta(gift)}
+            </div>
 
-          {/* 横罫線 ＋ 水引（右下） */}
-          <div className="border-t border-[#e7ddd0] pt-2 flex justify-end">
-            <MizuhikiBow className="w-16 h-5 opacity-80" />
+            {/* 中央横線（中央にダイヤモンド装飾） */}
+            <div className="flex items-center mx-4">
+              <div className="flex-1 border-t border-[#c9b99a]" />
+              <svg className="w-2.5 h-2.5 mx-1.5 text-[#a07848] flex-shrink-0" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+                <path d="M7 0 L9.2 4.8 L14 7 L9.2 9.2 L7 14 L4.8 9.2 L0 7 L4.8 4.8 Z" />
+              </svg>
+              <div className="flex-1 border-t border-[#c9b99a]" />
+            </div>
+
+            {/* 下部エリア: 差出人（○○より） */}
+            <div className="px-4 py-3 flex justify-center">
+              <p className="text-sm text-[#7a6a55] tracking-wide">{getSenderName(gift)}より</p>
+            </div>
           </div>
         </div>
       </Link>
@@ -592,7 +614,7 @@ function GiftPageInner() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Voice Gift</h1>
+            <h1 className="text-xl font-bold text-[#2A5CAA]">Musuhi</h1>
           </div>
           <button
             onClick={() => router.push("/mypage")}
