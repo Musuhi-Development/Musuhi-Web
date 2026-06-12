@@ -186,9 +186,10 @@ export default function VoiceRecorder({
           // 録音開始ボタン
           <button
             onClick={startRecording}
-            className="mic-button flex items-center justify-center"
+            className="mic-button flex flex-col items-center justify-center gap-2"
           >
-            <img src="/icons/mic1.png" alt="" className="w-16 h-16 object-contain" />
+            <img src="/icons/mic1.png" alt="" className="w-24 h-24 object-contain" />
+            <span className="text-sm font-medium text-[#2A5CAA] tracking-wide">声を残す</span>
           </button>
         ) : isRecording ? (
           // 録音中: 一時停止 & 停止
