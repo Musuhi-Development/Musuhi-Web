@@ -201,7 +201,7 @@ export default function HomePage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Musuhi</h1>
+            <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-7 w-auto object-contain" />
           </div>
           <button
             onClick={() => router.push('/mypage')}

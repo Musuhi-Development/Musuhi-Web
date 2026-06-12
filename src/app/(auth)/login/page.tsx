@@ -81,11 +81,8 @@ function LoginPageInner() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] rounded-2xl mb-4">
-            <span className="text-white font-bold text-3xl">M</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">Musuhi</h1>
-          <p className="text-gray-600 mt-2">声で想いを届ける</p>
+          <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-14 w-auto object-contain mx-auto mb-3" />
+          <p className="text-gray-600">声で想いを届ける</p>
         </div>
 
         {/* Login Form */}

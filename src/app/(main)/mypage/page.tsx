@@ -115,7 +115,7 @@ export default function MyPage() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Musuhi</h1>
+            <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-7 w-auto object-contain" />
           </div>
           <button
             onClick={() => router.push('/mypage/settings')}
@@ -168,15 +168,15 @@ export default function MyPage() {
           )}
 
           {(user.birthday || (user.anniversaries && user.anniversaries.length > 0)) && (
-            <div className="flex gap-2 mt-3 w-full max-w-xs">
+            <div className="flex flex-col gap-2 mt-3 w-full max-w-xs">
               {user.birthday && (
-                <div className="flex-none w-24 bg-white rounded-2xl shadow-sm border border-blue-100 px-2 py-2.5">
+                <div className="w-full bg-white rounded-2xl shadow-sm border border-blue-100 px-3 py-2.5">
                   <p className="text-[10px] font-bold text-[#1e50a2] mb-1.5">🎂 誕生日</p>
                   <p className="text-[11px] text-gray-700 leading-tight">{formatDate(user.birthday)}</p>
                 </div>
               )}
               {user.anniversaries && user.anniversaries.length > 0 && (
-                <div className="flex-1 bg-white rounded-2xl shadow-sm border border-blue-100 px-3 py-2.5">
+                <div className="w-full bg-white rounded-2xl shadow-sm border border-blue-100 px-3 py-2.5">
                   <p className="text-[10px] font-bold text-[#1e50a2] mb-1.5">🌸 大切な日</p>
                   <div className="space-y-0.5">
                     {user.anniversaries.map((a, i) => {

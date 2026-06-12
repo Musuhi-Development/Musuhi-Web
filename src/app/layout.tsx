@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Zen_Kaku_Gothic_New } from "next/font/google";
+import { Inter, Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 const zenKakuGothicNew = Zen_Kaku_Gothic_New({
   weight: ["400", "500", "700", "900"],
@@ -21,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${zenKakuGothicNew.variable} ${zenKakuGothicNew.className}`}>{children}</body>
+      <body className={`${inter.className} ${zenKakuGothicNew.variable}`}>{children}</body>
     </html>
   );
 }
