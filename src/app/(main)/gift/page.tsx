@@ -608,7 +608,7 @@ function GiftPageInner() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-7 w-auto object-contain" />
+            <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-9 w-auto object-contain" />
           </div>
           <button
             onClick={() => router.push("/mypage")}

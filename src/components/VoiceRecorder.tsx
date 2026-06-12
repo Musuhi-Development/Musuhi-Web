@@ -188,7 +188,7 @@ export default function VoiceRecorder({
             onClick={startRecording}
             className="mic-button flex items-center justify-center"
           >
-            <img src="/icons/mic1.png" alt="" className="w-14 h-14 object-contain" />
+            <img src="/icons/mic1.png" alt="" className="w-16 h-16 object-contain" />
           </button>
         ) : isRecording ? (
           // 録音中: 一時停止 & 停止
