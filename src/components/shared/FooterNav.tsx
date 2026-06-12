@@ -68,8 +68,8 @@ export default function FooterNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white pb-safe shadow-lg z-40 border-t border-gray-100">
-        <div className="grid grid-cols-5 items-center px-2 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white pb-safe shadow-lg z-40 border-t border-gray-100 overflow-visible">
+        <div className="grid grid-cols-5 items-center px-2 h-[68px]">
           {leftItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname.startsWith(item.href);
@@ -99,7 +99,7 @@ export default function FooterNav() {
             );
           })}
 
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex items-center justify-center h-full overflow-visible">
             {showPrompt && (
               <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-60 rounded-xl border border-blue-100 bg-white shadow-lg px-3 py-2.5 z-50">
                 <button
@@ -117,7 +117,7 @@ export default function FooterNav() {
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mic-button mx-auto flex items-center justify-center"
+              className="mic-button absolute bottom-1 flex items-center justify-center"
               aria-label="録音"
             >
               <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
