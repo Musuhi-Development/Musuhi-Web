@@ -486,7 +486,7 @@ function GiftPageInner() {
   function renderReceivedCard(gift: any) {
     return (
       <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
-        <div className="relative rounded-lg border-2 border-[#c9b99a] bg-gradient-to-b from-[#FEFBF6] to-[#FAF5EC] shadow-md hover:shadow-lg transition-all overflow-hidden">
+        <div className="zen-kaku relative rounded-lg border-2 border-[#c9b99a] bg-gradient-to-b from-[#FEFBF6] to-[#FAF5EC] shadow-md hover:shadow-lg transition-all overflow-hidden">
           {/* 消印アイコン（右上・絶対配置） */}
           <img
             src="/icons/stamp1.png"
@@ -512,14 +512,8 @@ function GiftPageInner() {
               {renderCollabMeta(gift)}
             </div>
 
-            {/* 中央横線（中央にダイヤモンド装飾） */}
-            <div className="flex items-center mx-4">
-              <div className="flex-1 border-t border-[#c9b99a]" />
-              <svg className="w-2.5 h-2.5 mx-1.5 text-[#a07848] flex-shrink-0" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-                <path d="M7 0 L9.2 4.8 L14 7 L9.2 9.2 L7 14 L4.8 9.2 L0 7 L4.8 4.8 Z" />
-              </svg>
-              <div className="flex-1 border-t border-[#c9b99a]" />
-            </div>
+            {/* 中央横線 */}
+            <div className="mx-4 border-t border-[#c9b99a]" />
 
             {/* 下部エリア: 差出人（○○より） */}
             <div className="px-4 py-3 flex justify-center">
@@ -614,7 +608,7 @@ function GiftPageInner() {
       <div className="bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[#2A5CAA]">Musuhi</h1>
+            <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-[72px] w-auto object-contain" />
           </div>
           <button
             onClick={() => router.push("/mypage")}
