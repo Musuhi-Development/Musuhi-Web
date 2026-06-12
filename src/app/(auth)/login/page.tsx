@@ -81,7 +81,7 @@ function LoginPageInner() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-14 w-auto object-contain mx-auto mb-3" />
+          <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-[168px] w-auto object-contain mx-auto mb-3" />
           <p className="text-gray-600">声で想いを届ける</p>
         </div>
 
