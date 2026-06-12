@@ -120,7 +120,7 @@ export default function FooterNav() {
               className="mic-button mx-auto flex items-center justify-center"
               aria-label="録音"
             >
-              <img src="/icons/mic1.png" alt="" className="w-14 h-14 object-contain" />
+              <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
             </button>
           </div>
 
