@@ -8,7 +8,20 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.zen-kaku {
   font-family: var(--font-zen-kaku), "Zen Kaku Gothic New", sans-serif;
+}
+
+.mic-button {
+  transition: all 0.2s ease;
+}
+
+.mic-button:hover {
+  filter: brightness(0.82);
+  transform: scale(1.1) translateY(-2px);
 }
 
 /* Scrollbar styling */

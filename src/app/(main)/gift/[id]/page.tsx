@@ -230,7 +230,7 @@ export default function GiftDetailPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50 pb-24">
+		<div className="zen-kaku min-h-screen bg-gray-50 pb-24">
 			<div className="bg-white px-6 py-4 shadow-sm">
 				<div className="flex items-center justify-between">
 					<span className="w-8" />
