@@ -106,10 +106,7 @@ export default function FooterNav() {
               className="mic-button flex flex-col items-center gap-1"
               aria-label="録音"
             >
-              {/* PNG底部の透明余白をクリップしてテキストを視覚的に直下へ寄せる */}
-              <div className="w-28 overflow-hidden" style={{ height: "88px" }}>
-                <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain object-top" />
-              </div>
+              <img src="/icons/mic1.png" alt="" className="w-16 h-16 object-contain" />
               <span className="font-medium text-[10px] text-gray-400">気持ちを残す</span>
             </button>
           </div>
