@@ -99,7 +99,7 @@ export default function FooterNav() {
             );
           })}
 
-          <div className="relative flex items-center justify-center h-full overflow-visible">
+          <div className="relative flex flex-col items-center justify-center h-full overflow-visible">
             {showPrompt && (
               <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-60 rounded-xl border border-blue-100 bg-white shadow-lg px-3 py-2.5 z-50">
                 <button
@@ -117,10 +117,11 @@ export default function FooterNav() {
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mic-button absolute bottom-1 flex items-center justify-center"
+              className="mic-button flex flex-col items-center justify-center gap-1"
               aria-label="録音"
             >
               <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
+              <span className="font-medium text-[10px] text-gray-400">気持ちを残す</span>
             </button>
           </div>
 

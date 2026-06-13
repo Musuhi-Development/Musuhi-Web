@@ -189,7 +189,7 @@ export default function VoiceRecorder({
             className="mic-button flex flex-col items-center justify-center gap-2"
           >
             <img src="/icons/mic1.png" alt="" className="w-24 h-24 object-contain" />
-            <span className="text-sm font-medium text-[#2A5CAA] tracking-wide">声を残す</span>
+            <span className="text-sm font-medium text-[#2A5CAA] tracking-wide">気持ちを残す</span>
           </button>
         ) : isRecording ? (
           // 録音中: 一時停止 & 停止
