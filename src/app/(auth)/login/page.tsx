@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
-import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
+import { LogIn, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 function LoginPageInner() {
   const router = useRouter();
@@ -14,6 +14,7 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -81,14 +82,15 @@ function LoginPageInner() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-[168px] w-auto object-contain mx-auto mb-3" />
-          <p className="text-gray-600">声で想いを届ける</p>
+          <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-[168px] w-auto object-contain mx-auto mb-1" />
+          <p className="text-gray-600 leading-snug">
+            声からはじまる<br />自分と人とのつながり
+          </p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <LogIn size={28} className="text-[#2A5CAA]" />
+          <h2 className="text-xl font-bold text-gray-800 mb-6">
             ログイン
           </h2>
 
@@ -124,13 +126,26 @@ function LoginPageInner() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
+                  className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <div className="flex justify-end mt-1">
+                <Link href="/forgot-password" className="text-xs text-[#2A5CAA] hover:text-[#1F4580]">
+                  パスワードをお忘れの方・再設定
+                </Link>
               </div>
             </div>
 
@@ -158,7 +173,7 @@ function LoginPageInner() {
               アカウントをお持ちでない方は
               <Link
                 href="/signup"
-                className="text-[#2A5CAA] font-medium hover:text-[#1F4580] ml-1"
+                className="text-[#2A5CAA] font-bold underline hover:text-[#1F4580] ml-1"
               >
                 新規登録
               </Link>
