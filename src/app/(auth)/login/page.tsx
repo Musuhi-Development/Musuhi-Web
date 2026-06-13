@@ -90,8 +90,7 @@ function LoginPageInner() {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <LogIn size={28} className="text-[#2A5CAA]" />
+          <h2 className="text-xl font-bold text-gray-800 mb-6">
             ログイン
           </h2>
 
@@ -145,7 +144,7 @@ function LoginPageInner() {
               </div>
               <div className="flex justify-end mt-1">
                 <Link href="/forgot-password" className="text-xs text-[#2A5CAA] hover:text-[#1F4580]">
-                  パスワードをお忘れの方
+                  パスワードをお忘れの方・再設定
                 </Link>
               </div>
             </div>

@@ -99,9 +99,9 @@ export default function FooterNav() {
             );
           })}
 
-          <div className="relative flex flex-col items-center justify-center h-full overflow-visible">
+          <div className="relative flex items-end justify-center h-full pb-1 overflow-visible">
             {showPrompt && (
-              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-60 rounded-xl border border-blue-100 bg-white shadow-lg px-3 py-2.5 z-50">
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-60 rounded-xl border border-blue-100 bg-[#EBF2FF] shadow-lg px-3 py-2.5 z-50">
                 <button
                   type="button"
                   onClick={dismissPrompt}
@@ -110,14 +110,14 @@ export default function FooterNav() {
                 >
                   <X size={13} />
                 </button>
-                <p className="text-[12px] text-gray-800 pr-4 leading-relaxed">{question}</p>
-                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white" />
+                <p className="text-[12px] text-gray-800 text-center leading-relaxed">{question}</p>
+                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-[#EBF2FF]" />
               </div>
             )}
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mic-button flex flex-col items-center justify-center gap-1"
+              className="mic-button flex flex-col items-center gap-1"
               aria-label="録音"
             >
               <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
