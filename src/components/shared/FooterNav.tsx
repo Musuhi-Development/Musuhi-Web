@@ -103,17 +103,17 @@ export default function FooterNav() {
 
             {/*
               justify-end pb-1.5 でボタンをフッター底部に固定。
-              ボタン(icon 112px + gap + text 12px = 約126px)は
-              68px フッターより大きいため上方向にオーバーフロー。
-              テキスト部分は底部 6px 付近に収まり常に表示される。
+              span に -mt-10(-40px) を付け、PNG 下部の透明余白を相殺してテキストを直下に寄せる。
+              flex の外側サイズ計算 (112 + (-40+12) = 84px) により
+              テキスト底辺が隣アイテム（ギフト等）と横一直線に揃う。
             */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mic-button flex flex-col items-center gap-1"
+              className="mic-button flex flex-col items-center"
               aria-label="録音"
             >
               <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
-              <span className="font-medium text-[10px] text-gray-400">気持ちを残す</span>
+              <span className="-mt-10 font-medium text-[10px] text-gray-400">気持ちを残す</span>
             </button>
           </div>
 
