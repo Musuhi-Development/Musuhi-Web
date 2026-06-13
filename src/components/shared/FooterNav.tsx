@@ -113,7 +113,7 @@ export default function FooterNav() {
               aria-label="録音"
             >
               <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
-              <span className="-mt-10 font-medium text-[10px] text-gray-400">気持ちを残す</span>
+              <span className="-mt-4 font-medium text-[10px] text-gray-400">気持ちを残す</span>
             </button>
           </div>
 
