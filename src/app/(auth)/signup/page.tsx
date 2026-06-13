@@ -146,7 +146,9 @@ function SignupPageInner() {
         {/* Logo */}
         <div className="text-center mb-8">
           <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-[168px] w-auto object-contain mx-auto mb-1" />
-          <p className="text-gray-600">気持ちを残す</p>
+          <p className="text-gray-600 leading-snug">
+            声からはじまる<br />自分と人とのつながり
+          </p>
         </div>
 
         {/* Signup Form */}
