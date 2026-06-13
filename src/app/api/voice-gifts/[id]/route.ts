@@ -89,7 +89,7 @@ export async function PUT(request: Request, { params }: Params) {
     const user = await requireAuth();
     const body = await request.json();
 
-    const { title, message, status, sendAt, sendNow } = body;
+    const { title, message, status, sendAt, sendNow, recordingId } = body;
 
     const existing = await prisma.voiceGift.findUnique({
       where: { id },
@@ -136,6 +136,24 @@ export async function PUT(request: Request, { params }: Params) {
       }
     } else if (status) {
       updates.status = status;
+    }
+
+    // ジャーナル（ポラロイド）差し替え
+    if (recordingId) {
+      const existingRec = await prisma.voiceGiftRecording.findFirst({
+        where: { voiceGiftId: id },
+        orderBy: { createdAt: "asc" },
+      });
+      if (existingRec) {
+        await prisma.voiceGiftRecording.update({
+          where: { id: existingRec.id },
+          data: { recordingId },
+        });
+      } else {
+        await prisma.voiceGiftRecording.create({
+          data: { voiceGiftId: id, recordingId, contributorId: user.id },
+        });
+      }
     }
 
     const voiceGift = await prisma.voiceGift.update({

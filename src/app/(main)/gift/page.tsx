@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, Suspense } from "react";
-import { Plus, Send, Users, Mail, Calendar, Heart } from "lucide-react";
+import { Plus, Send, Users, Mail, Calendar, Heart, MoreVertical, Pencil, Trash2, X, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -48,6 +48,17 @@ function GiftPageInner() {
   // 贈ったタブ用: 自分が配信済みの寄せ音声
   const [deliveredYosegakiList, setDeliveredYosegakiList] = useState<any[]>([]);
 
+  // 3点メニュー
+  const [menuGiftId, setMenuGiftId] = useState<string | null>(null);
+
+  // 編集モーダル
+  type EditState = { gift: any; title: string; message: string; sendAt: string; recordingId: string };
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [editRecordings, setEditRecordings] = useState<any[]>([]);
+  const [editRecordingsLoaded, setEditRecordingsLoaded] = useState(false);
+  const [showRecordingPicker, setShowRecordingPicker] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+
   const fetchYosegakiList = useCallback(async () => {
     setYosegakiLoading(true);
     setYosegakiError(null);
@@ -93,9 +104,108 @@ function GiftPageInner() {
     if (activeFilter === "sent") fetchDeliveredYosegakiList();
   }, [activeFilter, fetchYosegakiList, fetchDraftYosegakiList, fetchDeliveredYosegakiList]);
 
+  // メニューを外側クリックで閉じる
+  useEffect(() => {
+    if (!menuGiftId) return;
+    const close = () => setMenuGiftId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [menuGiftId]);
+
   const voiceGiftFilter = activeFilter === "collaborative" ? "received" : activeFilter;
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(voiceGiftFilter as VoiceGiftFilter);
   const router = useRouter();
+
+  async function handleDelete(giftId: string) {
+    if (!confirm("このボイスギフトを削除しますか？")) return;
+    try {
+      const res = await fetch(`/api/voice-gifts/${giftId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("削除に失敗しました");
+      refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "削除に失敗しました");
+    }
+  }
+
+  async function handleSendNow(giftId: string) {
+    if (!confirm("このボイスギフトを今すぐ贈りますか？")) return;
+    setMenuGiftId(null);
+    try {
+      const res = await fetch(`/api/voice-gifts/${giftId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendNow: true }),
+      });
+      if (!res.ok) throw new Error("送信に失敗しました");
+      refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "送信に失敗しました");
+    }
+  }
+
+  async function handleCancelSchedule(giftId: string) {
+    if (!confirm("予約を取り消してもよいですか？下書きに戻ります。")) return;
+    setMenuGiftId(null);
+    try {
+      const res = await fetch(`/api/voice-gifts/${giftId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "draft" }),
+      });
+      if (!res.ok) throw new Error("取り消しに失敗しました");
+      refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "取り消しに失敗しました");
+    }
+  }
+
+  function handleEditOpen(gift: any) {
+    const firstRecording = gift.recordings?.[0];
+    setEditState({
+      gift,
+      title: gift.title || "",
+      message: gift.message || "",
+      sendAt: gift.sendAt ? new Date(gift.sendAt).toISOString().slice(0, 16) : "",
+      recordingId: firstRecording?.recordingId || "",
+    });
+    setMenuGiftId(null);
+    setShowRecordingPicker(false);
+    if (!editRecordingsLoaded) {
+      setEditRecordingsLoaded(true);
+      fetch("/api/recordings")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => setEditRecordings(data?.recordings || []))
+        .catch(() => {});
+    }
+  }
+
+  async function handleEditSave() {
+    if (!editState) return;
+    if (!editState.title.trim()) { alert("宛名を入力してください"); return; }
+    setEditSaving(true);
+    try {
+      const body: any = { title: editState.title.trim(), message: editState.message };
+      const originalRecordingId = editState.gift.recordings?.[0]?.recordingId;
+      if (editState.recordingId && editState.recordingId !== originalRecordingId) {
+        body.recordingId = editState.recordingId;
+      }
+      if (editState.gift.status === "scheduled" && editState.sendAt) {
+        body.sendAt = editState.sendAt;
+      }
+      const res = await fetch(`/api/voice-gifts/${editState.gift.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("更新に失敗しました");
+      setEditState(null);
+      refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "更新に失敗しました");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   function pad(n: number) {
     return String(n).padStart(2, "0");
@@ -527,78 +637,149 @@ function GiftPageInner() {
 
   // 「贈った / 下書き / 未来送信」タブの標準カード
   function renderStandardCard(gift: any) {
+    const isActionable = activeFilter === "draft" || activeFilter === "scheduled";
     const isCollab = isCollabGift(gift);
     const participantUsers = isCollab ? getParticipantUsers(gift) : [];
     const recipientName = getRecipientName(gift);
 
-    return (
-      <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
-        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-8">
-          <div className="flex items-start gap-4">
-            {/* サムネ + 下書き寄せ音声バッジ */}
-            <div className="flex-shrink-0">
-              {renderThumb(gift)}
-              {activeFilter === "draft" && isCollab && (
-                <div className="mt-1 flex justify-center">
-                  <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
-                </div>
-              )}
-            </div>
+    const inner = (
+      <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-8">
+        {/* 3点メニュー（下書き・未来送信のみ） */}
+        {isActionable && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuGiftId((prev) => (prev === gift.id ? null : gift.id)); }}
+              className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="メニューを開く"
+            >
+              <MoreVertical size={16} />
+            </button>
+            {menuGiftId === gift.id && (
+              <div
+                className="absolute top-9 right-2 z-20 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[152px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleEditOpen(gift)}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                >
+                  <Pencil size={14} className="text-gray-400 flex-shrink-0" />
+                  編集
+                </button>
+                {activeFilter === "draft" && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuGiftId(null); handleDelete(gift.id); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 text-left"
+                  >
+                    <Trash2 size={14} className="flex-shrink-0" />
+                    削除
+                  </button>
+                )}
+                {activeFilter === "scheduled" && (
+                  <>
+                    <div className="my-1 border-t border-gray-100" />
+                    <button
+                      type="button"
+                      onClick={() => handleSendNow(gift.id)}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#2A5CAA] hover:bg-blue-50 text-left"
+                    >
+                      <Send size={14} className="flex-shrink-0" />
+                      今すぐ贈る
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelSchedule(gift.id)}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-50 text-left"
+                    >
+                      <X size={14} className="flex-shrink-0" />
+                      予約を取り消す
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
 
-            <div className="flex-1 min-w-0 space-y-1">
-              {/* 宛名（太文字で瑠璃色） */}
-              {recipientName && (
-                <p className="text-sm font-bold text-[#2A5CAA] truncate">{recipientName}へ</p>
-              )}
-
-              {/* タイトル（=録音タイトル） */}
-              <h4 className="text-sm text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
-
-              {/* メッセージ冒頭 */}
-              {gift.message && <p className="text-xs text-gray-600 truncate">{gift.message}</p>}
-
-              {/* 下書き: 参加者数 + アイコン（寄せ音声のみ） */}
-              {activeFilter === "draft" && isCollab && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-gray-400">{participantUsers.length}名参加</span>
-                  {participantUsers.slice(0, 4).map((participant: any) => {
-                    const displayName = participant.displayName || participant.name || "U";
-                    return (
-                      <div
-                        key={participant.id}
-                        title={displayName}
-                        className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden"
-                      >
-                        {participant.avatarUrl ? (
-                          <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          displayName[0].toUpperCase()
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* 未来送信: お贈り予定日 */}
-              {activeFilter === "scheduled" && gift.sendAt && (
-                <p className="text-[11px] text-amber-600">{formatScheduled(gift.sendAt)}</p>
-              )}
-            </div>
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            {renderThumb(gift)}
+            {activeFilter === "draft" && isCollab && (
+              <div className="mt-1 flex justify-center">
+                <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
+              </div>
+            )}
           </div>
 
-          {/* 右下: 送信日時（贈った）/ 作成日時（下書き） */}
-          {activeFilter === "sent" && (
-            <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-              {formatDateTime(gift.sendAt || gift.createdAt)}
-            </p>
-          )}
-          {activeFilter === "draft" && (
-            <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-              {formatDateTime(gift.createdAt)}
-            </p>
-          )}
+          <div className={clsx("flex-1 min-w-0 space-y-1", isActionable && "pr-6")}>
+            {recipientName && (
+              <p className="text-sm font-bold text-[#2A5CAA] truncate">{recipientName}へ</p>
+            )}
+            <h4 className="text-sm text-gray-800 truncate">{getGiftDisplayTitle(gift)}</h4>
+            {gift.message && <p className="text-xs text-gray-600 truncate">{gift.message}</p>}
+
+            {activeFilter === "draft" && isCollab && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-400">{participantUsers.length}名参加</span>
+                {participantUsers.slice(0, 4).map((participant: any) => {
+                  const displayName = participant.displayName || participant.name || "U";
+                  return (
+                    <div
+                      key={participant.id}
+                      title={displayName}
+                      className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden"
+                    >
+                      {participant.avatarUrl ? (
+                        <img src={participant.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        displayName[0].toUpperCase()
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeFilter === "scheduled" && gift.sendAt && (
+              <p className="text-[11px] text-amber-600">{formatScheduled(gift.sendAt)}</p>
+            )}
+          </div>
         </div>
+
+        {activeFilter === "sent" && (
+          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(gift.sendAt || gift.createdAt)}
+          </p>
+        )}
+        {activeFilter === "draft" && (
+          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(gift.createdAt)}
+          </p>
+        )}
+      </div>
+    );
+
+    if (isActionable) {
+      return (
+        <div
+          key={gift.id}
+          className="cursor-pointer"
+          onClick={() => {
+            if (menuGiftId === gift.id) { setMenuGiftId(null); return; }
+            router.push(`/gift/${gift.id}`);
+          }}
+        >
+          {inner}
+        </div>
+      );
+    }
+
+    return (
+      <Link key={gift.id} href={`/gift/${gift.id}`} className="block">
+        {inner}
       </Link>
     );
   }
@@ -719,6 +900,126 @@ function GiftPageInner() {
           </div>
         )}
       </div>
+
+      {/* 編集モーダル */}
+      {editState && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setEditState(null)} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
+            <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h3 className="font-bold text-gray-800">ボイスギフトを編集</h3>
+                <button type="button" onClick={() => setEditState(null)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                {/* 宛名 */}
+                <div>
+                  <div className="flex items-baseline justify-between mb-1">
+                    <label className="text-xs font-bold text-gray-500">宛名</label>
+                    <span className="text-[10px] text-gray-400">{editState.title.length}/20</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editState.title}
+                    onChange={(e) => setEditState((prev) => prev ? { ...prev, title: e.target.value.slice(0, 20) } : null)}
+                    maxLength={20}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500"
+                  />
+                </div>
+
+                {/* 便箋メッセージ */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">便箋メッセージ</label>
+                  <textarea
+                    value={editState.message}
+                    onChange={(e) => setEditState((prev) => prev ? { ...prev, message: e.target.value } : null)}
+                    rows={4}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500 resize-none"
+                  />
+                </div>
+
+                {/* お届け日時（未来送信のみ） */}
+                {editState.gift.status === "scheduled" && (
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">お届け日時</label>
+                    <input
+                      type="datetime-local"
+                      value={editState.sendAt}
+                      onChange={(e) => setEditState((prev) => prev ? { ...prev, sendAt: e.target.value } : null)}
+                      className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-[#2A5CAA]"
+                    />
+                  </div>
+                )}
+
+                {/* 使用するジャーナル（ポラロイド差し替え） */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-2 block">使用するジャーナル</label>
+                  {(() => {
+                    const currentRec = editRecordings.find((r) => r.id === editState.recordingId)
+                      ?? editState.gift.recordings?.[0]?.recording;
+                    if (!currentRec) return <p className="text-xs text-gray-400 mb-2">録音なし</p>;
+                    const imgUrl = Array.isArray(currentRec.images) ? currentRec.images[0] : null;
+                    return (
+                      <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-2">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-teal-100 to-blue-100">
+                          {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-base">🎵</div>}
+                        </div>
+                        <p className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">{currentRec.title}</p>
+                      </div>
+                    );
+                  })()}
+                  <button type="button" onClick={() => setShowRecordingPicker((v) => !v)} className="text-xs text-[#2A5CAA] hover:underline">
+                    {showRecordingPicker ? "閉じる" : "差し替える"}
+                  </button>
+                  {showRecordingPicker && (
+                    <div className="mt-2 space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {editRecordings.length === 0
+                        ? <p className="text-xs text-gray-400 py-2">録音を読み込み中...</p>
+                        : editRecordings.map((rec) => {
+                          const imgUrl = Array.isArray(rec.images) ? rec.images[0] : null;
+                          return (
+                            <button
+                              key={rec.id}
+                              type="button"
+                              onClick={() => { setEditState((prev) => prev ? { ...prev, recordingId: rec.id } : null); setShowRecordingPicker(false); }}
+                              className={clsx("w-full flex items-center gap-3 p-2 rounded-xl border text-left", editState.recordingId === rec.id ? "border-[#2A5CAA] bg-blue-50" : "border-gray-100 hover:border-gray-300")}
+                            >
+                              <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-teal-100 to-blue-100">
+                                {imgUrl ? <img src={imgUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-base">🎵</div>}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-800 truncate">{rec.title}</p>
+                                <p className="text-[10px] text-gray-400">{formatDate(rec.createdAt)}</p>
+                              </div>
+                              {editState.recordingId === rec.id && <Check size={16} className="text-[#2A5CAA] flex-shrink-0" />}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-400 mt-2">
+                    ※ 音声データ・タイトル・録音日・テキストメモ等のポラロイド内容は変更できません
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={handleEditSave}
+                  disabled={editSaving || !editState.title.trim()}
+                  className="w-full py-3 rounded-xl bg-[#2A5CAA] text-white font-bold text-sm hover:bg-[#1F4580] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {editSaving ? "保存中..." : "保存する"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -95,6 +95,14 @@ function NewGiftPageInner() {
   const [selectedParticipants, setSelectedParticipants] = useState<UserResult[]>([]);
   const [issueShareLink, setIssueShareLink] = useState(false);
 
+  // 自分宛てに贈る
+  const [sendToSelf, setSendToSelf] = useState(false);
+  const [currentUserData, setCurrentUserData] = useState<UserResult | null>(null);
+
+  // アプリ未登録の友だちに贈る
+  const [unregisteredMode, setUnregisteredMode] = useState(false);
+  const [unregisteredEmail, setUnregisteredEmail] = useState("");
+
   // 複数人で作成（寄せ音声）専用フィールド
   const [collabDeadline, setCollabDeadline] = useState("");
   const [collabDeliverAt, setCollabDeliverAt] = useState("");
@@ -103,6 +111,20 @@ function NewGiftPageInner() {
 
   useEffect(() => {
     fetchRecordings();
+    // 現在のログインユーザー情報を取得（自分宛て機能用）
+    fetch("/api/users/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.user) {
+          setCurrentUserData({
+            id: data.user.id,
+            name: data.user.name,
+            displayName: data.user.displayName,
+            avatarUrl: data.user.avatarUrl,
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -120,6 +142,11 @@ function NewGiftPageInner() {
   }, [giftStyle]);
 
   useEffect(() => {
+    if (unregisteredMode) {
+      setRecipientResults([]);
+      setRecipientLoading(false);
+      return;
+    }
     if (!debouncedQuery) {
       setRecipientResults([]);
       setInviteEmail("");
@@ -147,7 +174,7 @@ function NewGiftPageInner() {
     return () => {
       isMounted = false;
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, unregisteredMode]);
 
   const queryIsEmail = useMemo(() => {
     const normalized = recipientQuery.trim().toLowerCase();
@@ -274,6 +301,38 @@ function NewGiftPageInner() {
 
   const handleRemoveRecipientUser = (userId: string) => {
     setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
+  const handleSendToSelfToggle = (checked: boolean) => {
+    setSendToSelf(checked);
+    if (checked && currentUserData) {
+      if (!selectedUsers.some((u) => u.id === currentUserData.id)) {
+        setSelectedUsers((prev) => [...prev, currentUserData]);
+      }
+      if (!title.trim()) setTitle("未来の自分へ");
+    } else if (currentUserData) {
+      setSelectedUsers((prev) => prev.filter((u) => u.id !== currentUserData.id));
+    }
+  };
+
+  const handleUnregisteredModeToggle = (checked: boolean) => {
+    setUnregisteredMode(checked);
+    setRecipientQuery("");
+    setRecipientResults([]);
+    setUnregisteredEmail("");
+    setInviteEmail("");
+  };
+
+  const handleAddUnregisteredEmail = () => {
+    const normalized = unregisteredEmail.trim().toLowerCase();
+    if (!normalized) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      alert("正しいメールアドレスを入力してください");
+      return;
+    }
+    if (recipientEmails.includes(normalized)) return;
+    setRecipientEmails((prev) => [...prev, normalized]);
+    setUnregisteredEmail("");
   };
 
   const handleAddEmail = () => {
@@ -599,23 +658,76 @@ function NewGiftPageInner() {
             宛先 <span className="text-red-500">※</span>
           </label>
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <Users size={18} className="text-gray-400" />
-              <input
-                type="text"
-                value={recipientQuery}
-                onChange={(e) => setRecipientQuery(e.target.value)}
-                placeholder="ユーザー名 / ID / メールで検索"
-                className="flex-1 bg-transparent text-sm focus:outline-none"
-                disabled={sending}
-              />
-            </div>
-
-            {recipientLoading && (
-              <div className="text-xs text-gray-400">検索中...</div>
+            {/* 通常モード: ユーザー検索 / 未登録モード: メール直接入力 */}
+            {!unregisteredMode ? (
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-gray-400" />
+                <input
+                  type="text"
+                  value={recipientQuery}
+                  onChange={(e) => setRecipientQuery(e.target.value)}
+                  placeholder="ユーザー名 / ID / メールで検索"
+                  className="flex-1 bg-transparent text-sm focus:outline-none"
+                  disabled={sending}
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2">
+                  <Mail size={18} className="text-gray-400" />
+                  <input
+                    type="email"
+                    value={unregisteredEmail}
+                    onChange={(e) => setUnregisteredEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddUnregisteredEmail()}
+                    placeholder="贈り先のメールアドレスを入力"
+                    className="flex-1 bg-transparent text-sm focus:outline-none"
+                    disabled={sending}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddUnregisteredEmail}
+                    className="text-xs px-2 py-1 rounded-full bg-[#2A5CAA] text-white flex-shrink-0"
+                    disabled={sending}
+                  >
+                    追加
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
+                  ※アプリ未登録の相手には、メッセージ送信後に受け取り用の専用URL（Webページ）が発行されます。
+                </p>
+              </div>
             )}
 
-            {uniqueRecipientResults.length > 0 && (
+            {/* 自分宛て / 未登録モード チェックボックス */}
+            <div className="flex flex-col gap-1.5 pt-1 border-t border-gray-200">
+              <label className={clsx("flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none", unregisteredMode && "opacity-40")}>
+                <input
+                  type="checkbox"
+                  checked={sendToSelf}
+                  onChange={(e) => handleSendToSelfToggle(e.target.checked)}
+                  className="rounded border-gray-300"
+                  disabled={sending || unregisteredMode}
+                />
+                自分宛てに贈る
+              </label>
+              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={unregisteredMode}
+                  onChange={(e) => handleUnregisteredModeToggle(e.target.checked)}
+                  className="rounded border-gray-300"
+                  disabled={sending}
+                />
+                アプリ未登録の友だちに贈る
+              </label>
+            </div>
+
+            {/* 通常モード: 検索結果 */}
+            {!unregisteredMode && recipientLoading && (
+              <div className="text-xs text-gray-400">検索中...</div>
+            )}
+            {!unregisteredMode && uniqueRecipientResults.length > 0 && (
               <div className="space-y-2">
                 {uniqueRecipientResults.map((result) => (
                   <button
@@ -652,7 +764,7 @@ function NewGiftPageInner() {
                 ))}
               </div>
             )}
-            {!recipientLoading && recipientQuery && uniqueRecipientResults.length === 0 && (
+            {!unregisteredMode && !recipientLoading && recipientQuery && uniqueRecipientResults.length === 0 && (
               <div className="bg-white border border-dashed border-gray-200 rounded-lg p-3">
                 <p className="text-xs text-gray-500">該当するユーザーが見つかりませんでした。</p>
                 <div className="flex items-center gap-2 mt-2">
