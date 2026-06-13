@@ -103,11 +103,14 @@ export default function FooterNav() {
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mic-button flex flex-col items-center gap-1"
+              className="mic-button flex flex-col items-center gap-0"
               aria-label="録音"
             >
-              <img src="/icons/mic1.png" alt="" className="w-16 h-16 object-contain" />
-              <span className="font-medium text-[10px] text-gray-400">気持ちを残す</span>
+              {/* PNG下部の透明余白(~30px)をクリップし、テキストをマイク実体の直下に配置 */}
+              <div className="w-28 overflow-hidden" style={{ height: "84px" }}>
+                <img src="/icons/mic1.png" alt="" className="w-28 h-28 object-contain" />
+              </div>
+              <span className="font-medium text-[10px] text-gray-400" style={{ marginTop: 0 }}>気持ちを残す</span>
             </button>
           </div>
 
