@@ -12,6 +12,7 @@ export default function ContributePage() {
   const [yosegaki, setYosegaki] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [deadlinePassed, setDeadlinePassed] = useState(false);
 
   // フォーム
   const [participantName, setParticipantName] = useState("");
@@ -38,9 +39,23 @@ export default function ContributePage() {
         if (!r.ok) { setNotFound(true); return null; }
         return r.json();
       })
-      .then((d) => { if (d) setYosegaki(d.yosegaki); })
+      .then((d) => {
+        if (!d) return;
+        setYosegaki(d.yosegaki);
+        if (d.yosegaki?.deadline && new Date() > new Date(d.yosegaki.deadline)) {
+          setDeadlinePassed(true);
+        }
+      })
       .finally(() => setLoading(false));
   }, [shareToken]);
+
+  const isFormComplete =
+    participantName.trim() !== "" &&
+    imageUrl !== "" &&
+    !imageUploading &&
+    title.trim() !== "" &&
+    message.trim() !== "" &&
+    audioUrl !== "";
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -70,27 +85,34 @@ export default function ContributePage() {
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
+      const mr = new MediaRecorder(stream);
 
-      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks, { type: "audio/webm" });
         const formData = new FormData();
         formData.append("file", blob, "recording.webm");
         try {
-          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          const res = await fetch("/api/upload/public-audio", { method: "POST", body: formData });
           if (res.ok) {
             const data = await res.json();
             setAudioUrl(data.url || "");
+          } else {
+            const d = await res.json();
+            setError(d.error || "音声のアップロードに失敗しました");
           }
         } catch (e) {
           console.error(e);
+          setError("音声のアップロードに失敗しました");
         }
       };
 
-      mr.start();
+      mr.start(100);
       setMediaRecorder(mr);
       setIsRecording(true);
       setRecordingSeconds(0);
@@ -101,6 +123,7 @@ export default function ContributePage() {
             mr.stop();
             clearInterval(timer);
             setIsRecording(false);
+            setAudioDuration(30);
           }
           return s + 1;
         });
@@ -122,8 +145,11 @@ export default function ContributePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isFormComplete) return;
     if (!participantName.trim()) { setError("参加者名を入力してください"); return; }
     if (!imageUrl) { setError("写真を選択してください"); return; }
+    if (!title.trim()) { setError("タイトルを入力してください"); return; }
+    if (!message.trim()) { setError("コメントを入力してください"); return; }
     if (!audioUrl) { setError("音声を録音してください"); return; }
     setSubmitting(true);
     setError("");
@@ -136,12 +162,16 @@ export default function ContributePage() {
           imageUrl: imageUrl || null,
           audioUrl,
           audioDuration: audioDuration || recordingSeconds,
-          title: title.trim() || null,
-          message: message.trim() || null,
+          title: title.trim(),
+          message: message.trim(),
         }),
       });
       if (!res.ok) {
         const d = await res.json();
+        if (d.error === "募集期限が過ぎています") {
+          setDeadlinePassed(true);
+          return;
+        }
         throw new Error(d.error || "投稿に失敗しました");
       }
       router.push(`/yosegaki/${shareToken}/done?name=${encodeURIComponent(yosegaki.recipientName)}`);
@@ -167,11 +197,44 @@ export default function ContributePage() {
       </div>
     );
   }
-  if (yosegaki.status !== "collecting") {
+
+  // 締切超過または受付停止の場合
+  if (deadlinePassed || yosegaki.status !== "collecting") {
+    const isEnded = deadlinePassed;
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-5 text-center">
-        <p className="text-gray-500 mb-2">現在参加を受け付けていません</p>
-        <Link href={`/yosegaki/${shareToken}`} className="text-[#2A5CAA] text-sm">表紙に戻る</Link>
+      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-5 text-center gap-8">
+        <div className="space-y-3">
+          <div className="text-5xl mb-4">🎙️</div>
+          {isEnded ? (
+            <>
+              <h1 className="text-lg font-bold text-gray-800 leading-tight">
+                この声の寄せ書きは、募集の受付を終了いたしました
+              </h1>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                たくさんの素敵なメッセージをありがとうございました。
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-lg font-bold text-gray-800 leading-tight">
+                現在参加を受け付けていません
+              </h1>
+              <Link href={`/yosegaki/${shareToken}`} className="text-[#2A5CAA] text-sm">表紙に戻る</Link>
+            </>
+          )}
+        </div>
+        <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-sm space-y-4">
+          <p className="text-sm text-gray-700 font-medium">
+            あなた自身の想いも声で残してみませんか？
+          </p>
+          <Link
+            href="/signup"
+            className="block w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-center py-4 rounded-full shadow-md text-sm"
+          >
+            Musuhiをはじめる
+          </Link>
+        </div>
+        <p className="text-[10px] text-gray-400">Powered by Musuhi</p>
       </div>
     );
   }
@@ -206,6 +269,9 @@ export default function ContributePage() {
           <label className="text-xs font-bold text-gray-500 mb-1 block">
             写真 <span className="text-red-500">※</span>
           </label>
+          <p className="text-[11px] text-gray-400 mb-2">
+            ※お気に入りの思い出の写真や、イラスト、アバター画像などでもOKです！
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -247,15 +313,16 @@ export default function ContributePage() {
         {/* タイトル */}
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
-            タイトル（20文字以内）
+            一言メッセージ・タイトル（20文字以内）<span className="text-red-500"> ※</span>
           </label>
           <input
             type="text"
-            placeholder="例: いつもありがとう"
+            placeholder="例：いつもありがとう、卒業おめでとう、お疲れ様でした！"
             maxLength={20}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] text-sm"
+            required
           />
           <p className="text-[10px] text-gray-400 text-right mt-0.5">{title.length}/20</p>
         </div>
@@ -263,7 +330,7 @@ export default function ContributePage() {
         {/* コメント */}
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1 block">
-            コメント（140文字以内）
+            コメント（140文字以内）<span className="text-red-500"> ※</span>
           </label>
           <textarea
             placeholder="メッセージを入力してください"
@@ -272,6 +339,7 @@ export default function ContributePage() {
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
             className="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA] text-sm resize-none"
+            required
           />
           <p className="text-[10px] text-gray-400 text-right">{message.length}/140</p>
         </div>
@@ -283,13 +351,18 @@ export default function ContributePage() {
           </label>
           <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center gap-3">
             {!isRecording && !audioUrl && (
-              <button
-                type="button"
-                onClick={startRecording}
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shadow-md"
-              >
-                <Mic className="text-white" size={28} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 flex items-center justify-center shadow-md"
+                >
+                  <Mic className="text-white" size={28} />
+                </button>
+                <p className="text-[11px] text-gray-400 text-center">
+                  ボタンを押すと録音が始まります（何度でも録り直し可能です）
+                </p>
+              </>
             )}
             {isRecording && (
               <>
@@ -329,8 +402,12 @@ export default function ContributePage() {
 
         <button
           type="submit"
-          disabled={submitting || !participantName.trim() || !imageUrl || imageUploading || !audioUrl}
-          className="w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold py-4 rounded-full shadow-lg text-sm disabled:opacity-50"
+          disabled={!isFormComplete || submitting}
+          className={`w-full font-bold py-4 rounded-full shadow-lg text-sm transition-colors ${
+            isFormComplete && !submitting
+              ? "bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          }`}
         >
           {submitting ? "送信中…" : "声を贈る 🎁"}
         </button>
