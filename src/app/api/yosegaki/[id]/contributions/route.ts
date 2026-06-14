@@ -26,6 +26,9 @@ export async function POST(request: Request, { params }: Params) {
     if (yosegaki.status !== "collecting") {
       return NextResponse.json({ error: "Yosegaki is not accepting contributions" }, { status: 400 });
     }
+    if (yosegaki.deadline && new Date() > yosegaki.deadline) {
+      return NextResponse.json({ error: "募集期限が過ぎています" }, { status: 400 });
+    }
 
     if (recordingId && user) {
       const recording = await prisma.recording.findUnique({ where: { id: recordingId } });

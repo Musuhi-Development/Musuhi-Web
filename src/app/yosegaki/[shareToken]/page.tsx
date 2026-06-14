@@ -27,11 +27,43 @@ export default async function YosegakiLandingPage({ params }: Props) {
     notFound();
   }
 
-  const isAccepting = yosegaki.status === "collecting";
+  const now = new Date();
+  const isDeadlinePassed = !!(yosegaki.deadline && now > yosegaki.deadline);
+  const isAccepting = yosegaki.status === "collecting" && !isDeadlinePassed;
   const organizerName = yosegaki.organizerName || yosegaki.creator.displayName || yosegaki.creator.name || "企画者";
+  const senderName = yosegaki.senderName || organizerName;
+
+  // 受付終了画面
+  if (isDeadlinePassed) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-5 text-center gap-8">
+        <div className="space-y-3">
+          <div className="text-5xl mb-4">🎙️</div>
+          <h1 className="text-lg font-bold text-gray-800 leading-tight">
+            この声の寄せ書きは、募集の受付を終了いたしました
+          </h1>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            たくさんの素敵なメッセージをありがとうございました。
+          </p>
+        </div>
+        <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-sm space-y-4">
+          <p className="text-sm text-gray-700 font-medium">
+            あなた自身の想いも声で残してみませんか？
+          </p>
+          <Link
+            href="/signup"
+            className="block w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-center py-4 rounded-full shadow-md text-sm"
+          >
+            Musuhiをはじめる
+          </Link>
+        </div>
+        <p className="text-[10px] text-gray-400">Powered by Musuhi</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] pb-24 flex flex-col">
+    <div className="min-h-screen bg-[#FAF7F2] pb-32 flex flex-col">
       {/* ヘッダー */}
       <div className="bg-gradient-to-b from-[#2A5CAA] to-[#4A7BC8] px-5 pt-10 pb-8 text-white text-center">
         <p className="text-xs opacity-80 mb-1">声の寄せ書き</p>
@@ -48,17 +80,21 @@ export default async function YosegakiLandingPage({ params }: Props) {
             <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
               {yosegaki.organizerComment}
             </p>
+            <p className="text-right text-[11px] text-gray-400 mt-3">{organizerName}</p>
           </div>
         )}
 
         {/* 募集期限 */}
         {yosegaki.deadline && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-            <div className="text-amber-500 text-xl">⏰</div>
-            <div>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+            <div className="text-amber-500 text-xl mt-0.5">⏰</div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-amber-700">募集期限</p>
               <p className="text-sm text-amber-800">{fmt(yosegaki.deadline)}</p>
             </div>
+            <p className="text-[10px] text-gray-400 leading-relaxed text-right shrink-0 max-w-[140px] mt-0.5">
+              ※締切を過ぎると参加できなくなります。録音は30秒程度で完了します
+            </p>
           </div>
         )}
 
@@ -73,7 +109,7 @@ export default async function YosegakiLandingPage({ params }: Props) {
           >
             <p className="text-lg font-bold text-gray-800 mb-4">{yosegaki.recipientName}へ</p>
             <p className="text-sm text-gray-700 leading-[2rem] whitespace-pre-wrap">{yosegaki.description}</p>
-            <p className="absolute bottom-3 right-4 text-xs text-gray-400">{organizerName}より</p>
+            <p className="absolute bottom-3 right-4 text-xs text-gray-400">{senderName}より</p>
           </div>
         )}
 
@@ -156,8 +192,8 @@ export default async function YosegakiLandingPage({ params }: Props) {
           </div>
         )}
 
-        {/* ステータス別メッセージ */}
-        {!isAccepting && (
+        {/* 受付停止メッセージ（status が collecting 以外の場合） */}
+        {!isAccepting && !isDeadlinePassed && (
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
             <p className="text-sm text-gray-500">この声の寄せ書きは現在参加を受け付けていません。</p>
           </div>
@@ -169,9 +205,10 @@ export default async function YosegakiLandingPage({ params }: Props) {
         {isAccepting && (
           <Link
             href={`/yosegaki/${shareToken}/contribute`}
-            className="block w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-center py-4 rounded-full shadow-lg text-sm"
+            className="flex items-center justify-center gap-2 mx-4 bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-center py-4 rounded-2xl shadow-lg text-sm mb-2"
           >
-            あなたも参加する 🎙️
+            <span>🎙️</span>
+            <span>この&quot;声の寄せ書き&quot;に参加する</span>
           </Link>
         )}
         <div className="text-center">
