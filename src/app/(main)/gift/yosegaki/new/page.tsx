@@ -59,6 +59,12 @@ export default function NewYosegakiPage() {
         throw new Error(data.error || "作成に失敗しました");
       }
       const data = await res.json();
+      // ドラフト画面をスキップして即座にcollecting状態へ移行
+      await fetch(`/api/yosegaki/${data.yosegaki.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "collecting" }),
+      });
       router.push(`/gift/yosegaki/${data.yosegaki.id}`);
     } catch (e: any) {
       setError(e.message);
@@ -140,7 +146,16 @@ export default function NewYosegakiPage() {
             <input
               type="datetime-local"
               value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value) { setDeadline(""); return; }
+                const d = new Date(value);
+                if (Number.isNaN(d.getTime())) { setDeadline(value); return; }
+                d.setMinutes(0, 0, 0);
+                const pad = (n: number) => String(n).padStart(2, "0");
+                setDeadline(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
+              }}
+              step={3600}
               className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
             />
             <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -157,7 +172,16 @@ export default function NewYosegakiPage() {
             <input
               type="datetime-local"
               value={deliverAt}
-              onChange={(e) => setDeliverAt(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value) { setDeliverAt(""); return; }
+                const d = new Date(value);
+                if (Number.isNaN(d.getTime())) { setDeliverAt(value); return; }
+                d.setMinutes(0, 0, 0);
+                const pad = (n: number) => String(n).padStart(2, "0");
+                setDeliverAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
+              }}
+              step={3600}
               className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
             />
             <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
