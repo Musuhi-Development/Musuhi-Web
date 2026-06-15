@@ -477,8 +477,8 @@ function NewGiftPageInner() {
             organizerName: collabOrganizerName.trim(),
             organizerComment: collabOrganizerComment.trim(),
             senderName: senderName.trim() || null,
-            deadline: collabDeadline,
-            deliverAt: collabDeliverAt,
+            deadline: new Date(collabDeadline).toISOString(),
+            deliverAt: new Date(collabDeliverAt).toISOString(),
             // 選択した録音を企画者ポラロイドとして反映
             organizerAudioUrl: selectedRecording?.audioUrl ?? null,
             organizerAudioTitle: selectedRecording?.title ?? null,
@@ -1264,9 +1264,6 @@ function NewGiftPageInner() {
               >
                 {sending ? "処理中..." : "🔗 募集を開始する"}
               </button>
-              <p className="text-xs text-gray-500">
-                募集開始後は、専用リンクをLINEやメールで共有してメンバーの音声メッセージを集めます。設定したお届け日時になると、集まったメッセージが自動で相手に届きます
-              </p>
             </div>
           )}
           {giftStyle === "solo" && sendMode === "scheduled" && (

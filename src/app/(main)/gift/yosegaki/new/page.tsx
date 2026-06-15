@@ -50,8 +50,8 @@ export default function NewYosegakiPage() {
           organizerComment: organizerComment.trim(),
           organizerImageUrl: organizerImageUrl || null,
           organizerAudioTitle: organizerAudioTitle || null,
-          deadline,
-          deliverAt,
+          deadline: new Date(deadline).toISOString(),
+          deliverAt: new Date(deliverAt).toISOString(),
         }),
       });
       if (!res.ok) {

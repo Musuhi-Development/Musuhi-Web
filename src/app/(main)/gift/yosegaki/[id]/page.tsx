@@ -144,7 +144,8 @@ export default function YosegakiDetailPage() {
       const data = await res.json();
       setYosegaki(data.yosegaki);
       if (data.yosegaki.deliverAt) {
-        setDeliverAt(new Date(data.yosegaki.deliverAt).toISOString().slice(0, 16));
+        const d = new Date(data.yosegaki.deliverAt);
+        setDeliverAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
       }
     } catch (e: any) {
       setError(e.message);
@@ -192,7 +193,7 @@ export default function YosegakiDetailPage() {
       await fetch(`/api/yosegaki/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deliverAt }),
+        body: JSON.stringify({ deliverAt: new Date(deliverAt).toISOString() }),
       });
       await fetchYosegaki();
     } finally {
