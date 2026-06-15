@@ -4,13 +4,15 @@ import { giftDeliveryHtml, giftDeliveryText } from "@/lib/email-templates";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+// Vercel Pro: 最大300秒、Hobby: 最大60秒
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
     const secret = process.env.VOICE_GIFT_CRON_SECRET;
-    const token = searchParams.get("secret");
+    const token = request.headers.get("x-cron-secret");
 
-    if (secret && token !== secret) {
+    if (!secret || token !== secret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
