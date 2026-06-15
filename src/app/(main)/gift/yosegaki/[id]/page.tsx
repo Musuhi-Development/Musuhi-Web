@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Copy, Check, Share2, QrCode, ChevronLeft, Mic, Image, Plus, Pencil, Play, Pause, X } from "lucide-react";
+import { Calendar, Copy, Check, Share2, QrCode, Mic, Image, Plus, Pencil, Play, Pause, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
@@ -117,9 +117,11 @@ export default function YosegakiDetailPage() {
   const [deliverAt, setDeliverAt] = useState("");
   const [updating, setUpdating] = useState(false);
   const [sendingNow, setSendingNow] = useState(false);
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   // モーダル
   const [modal, setModal] = useState<any | null>(null);
@@ -142,7 +144,8 @@ export default function YosegakiDetailPage() {
       const data = await res.json();
       setYosegaki(data.yosegaki);
       if (data.yosegaki.deliverAt) {
-        setDeliverAt(new Date(data.yosegaki.deliverAt).toISOString().slice(0, 16));
+        const d = new Date(data.yosegaki.deliverAt);
+        setDeliverAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
       }
     } catch (e: any) {
       setError(e.message);
@@ -190,7 +193,7 @@ export default function YosegakiDetailPage() {
       await fetch(`/api/yosegaki/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deliverAt }),
+        body: JSON.stringify({ deliverAt: new Date(deliverAt).toISOString() }),
       });
       await fetchYosegaki();
     } finally {
@@ -271,8 +274,8 @@ export default function YosegakiDetailPage() {
     <div className="min-h-screen bg-[#FAF7F2] pb-20">
       {/* ヘッダー */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ChevronLeft size={22} />
+        <button onClick={() => router.push("/home")} className="text-gray-500">
+          <X size={22} />
         </button>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-800 truncate">{yosegaki.recipientName}への声の寄せ書き</p>
@@ -340,29 +343,28 @@ export default function YosegakiDetailPage() {
               <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
                 <Share2 size={15} /> 共有URL
               </h3>
-              <div className="flex items-center gap-2">
-                <input
-                  readOnly
-                  value={shareUrl}
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 truncate"
-                />
-                <button
-                  onClick={() => handleCopy(shareUrl, setCopied)}
-                  className="px-3 py-2 bg-[#2A5CAA] text-white rounded-lg text-xs flex items-center gap-1 whitespace-nowrap"
-                >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
-                  {copied ? "コピー済" : "コピー"}
-                </button>
-              </div>
+              <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 break-all select-all">
+                {shareUrl}
+              </p>
 
               <div className="flex flex-col items-center gap-3">
                 <QrCodeView url={shareUrl} />
-                <button
-                  onClick={() => handleCopy(shareText, setCopiedShare)}
-                  className="text-xs text-[#2A5CAA] underline"
-                >
-                  {copiedShare ? "コピーしました！" : "招待テキストをコピー"}
-                </button>
+                <div className="w-full space-y-2">
+                  <button
+                    onClick={() => handleCopy(shareUrl, setCopiedUrl)}
+                    className="w-full border border-[#2A5CAA] text-[#2A5CAA] bg-white py-2.5 rounded-full text-sm font-semibold flex items-center justify-center gap-2"
+                  >
+                    {copiedUrl ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedUrl ? "コピーしました！" : "URLのみコピー"}
+                  </button>
+                  <button
+                    onClick={() => handleCopy(shareText, setCopiedShare)}
+                    className="w-full bg-[#2A5CAA] text-white py-2.5 rounded-full text-sm font-semibold flex items-center justify-center gap-2"
+                  >
+                    {copiedShare ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedShare ? "コピーしました！" : "招待メッセージをコピー"}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -370,7 +372,9 @@ export default function YosegakiDetailPage() {
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-gray-700">集まった声 ({allContribs.length}件)</h3>
               {allContribs.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">まだ参加者がいません</p>
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 text-sm text-amber-800 leading-relaxed">
+                  さあ、みんなの『声』を集めましょう！上の <strong>共有URL</strong> や <strong>招待メッセージ</strong> をコピーして、一緒にメッセージを贈りたいメンバーにシェアしてください。参加者が録音を完了すると、この場所にリアルタイムでメッセージが追加されていきます
+                </div>
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {allContribs.map((c: any, i: number) => (
@@ -412,13 +416,22 @@ export default function YosegakiDetailPage() {
                   onUpdate={handleUpdateDeliverAt}
                   updating={updating}
                 />
-                <button
-                  onClick={handleSendNow}
-                  disabled={sendingNow}
-                  className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white font-bold py-3 rounded-full shadow-md disabled:opacity-50"
-                >
-                  {sendingNow ? "贈り中…" : "🎁 今すぐ贈る"}
-                </button>
+                {allContribs.length === 0 ? (
+                  <button
+                    disabled
+                    className="w-full bg-gray-200 text-gray-400 font-bold py-3 rounded-full cursor-not-allowed"
+                  >
+                    🎁 今すぐ贈る
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowSendConfirm(true)}
+                    disabled={sendingNow}
+                    className="w-full border border-[#2A5CAA] text-[#2A5CAA] bg-white font-bold py-3 rounded-full disabled:opacity-50"
+                  >
+                    {sendingNow ? "贈り中…" : "🎁 今すぐ贈る"}
+                  </button>
+                )}
               </>
             )}
           </>
@@ -520,6 +533,33 @@ export default function YosegakiDetailPage() {
         </div>
       )}
 
+      {/* 今すぐ贈る確認ダイアログ */}
+      {showSendConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+            <p className="text-base font-bold text-gray-800">本当に今すぐ送信しますか？</p>
+            <p className="text-sm text-gray-600">
+              設定されたお届け日時を待たずに、現時点で集まっているメッセージ（計{allContribs.length}件）を相手に届けます
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSendConfirm(false)}
+                className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-full text-sm font-semibold"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => { setShowSendConfirm(false); handleSendNow(); }}
+                disabled={sendingNow}
+                className="flex-1 bg-[#2A5CAA] text-white py-2.5 rounded-full text-sm font-semibold disabled:opacity-50"
+              >
+                {sendingNow ? "送信中…" : "送信する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 詳細モーダル */}
       {modal && (
         <ContribModal contrib={modal} onClose={() => setModal(null)} />
@@ -528,10 +568,19 @@ export default function YosegakiDetailPage() {
   );
 }
 
+function collectingLabel(deadline?: string | null): string {
+  if (!deadline) return "🟢 募集中";
+  const diff = new Date(deadline).getTime() - Date.now();
+  const days = Math.ceil(diff / 86400000);
+  if (days < 0) return "🟢 募集中（締切済み）";
+  if (days === 0) return "🟢 募集中（本日締切）";
+  return `🟢 募集中（残り${days}日）`;
+}
+
 function StatusBadge({ status, deadline }: { status: string; deadline?: string | null }) {
   const map: Record<string, { label: string; className: string }> = {
     draft: { label: "募集前", className: "bg-gray-100 text-gray-500" },
-    collecting: { label: deadlineDaysLeft(deadline) || "募集中", className: "bg-amber-100 text-amber-700" },
+    collecting: { label: collectingLabel(deadline), className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
     completed: { label: "募集終了", className: "bg-blue-100 text-blue-700" },
     delivered: { label: "贈り済み", className: "bg-green-100 text-green-700" },
   };
@@ -574,7 +623,16 @@ function DeliverAtSection({
         <input
           type="datetime-local"
           value={deliverAt}
-          onChange={(e) => setDeliverAt(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value) { setDeliverAt(""); return; }
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) { setDeliverAt(value); return; }
+            d.setMinutes(0, 0, 0);
+            const p = (n: number) => String(n).padStart(2, "0");
+            setDeliverAt(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`);
+          }}
+          step={3600}
           className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
         />
         <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
