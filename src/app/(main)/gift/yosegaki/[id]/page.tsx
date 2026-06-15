@@ -274,7 +274,7 @@ export default function YosegakiDetailPage() {
     <div className="min-h-screen bg-[#FAF7F2] pb-20">
       {/* ヘッダー */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.push("/gift")} className="text-gray-500">
+        <button onClick={() => router.push("/home")} className="text-gray-500">
           <X size={22} />
         </button>
         <div className="flex-1 min-w-0">
