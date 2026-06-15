@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, Link2, ArrowLeft } from "lucide-react";
+import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, ArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { clsx } from "clsx";
 
@@ -93,7 +93,6 @@ function NewGiftPageInner() {
   const [friendLoading, setFriendLoading] = useState(false);
   const [friendKeyword, setFriendKeyword] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState<UserResult[]>([]);
-  const [issueShareLink, setIssueShareLink] = useState(false);
 
   // 自分宛てに贈る
   const [sendToSelf, setSendToSelf] = useState(false);
@@ -478,8 +477,8 @@ function NewGiftPageInner() {
             organizerName: collabOrganizerName.trim(),
             organizerComment: collabOrganizerComment.trim(),
             senderName: senderName.trim() || null,
-            deadline: collabDeadline,
-            deliverAt: collabDeliverAt,
+            deadline: new Date(collabDeadline).toISOString(),
+            deliverAt: new Date(collabDeliverAt).toISOString(),
             // 選択した録音を企画者ポラロイドとして反映
             organizerAudioUrl: selectedRecording?.audioUrl ?? null,
             organizerAudioTitle: selectedRecording?.title ?? null,
@@ -492,6 +491,12 @@ function NewGiftPageInner() {
         });
         if (!res.ok) throw new Error("寄せ音声の作成に失敗しました");
         const data = await res.json();
+        // ドラフト画面をスキップして即座にcollecting状態へ移行
+        await fetch(`/api/yosegaki/${data.yosegaki.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "collecting" }),
+        });
         router.push(`/gift/yosegaki/${data.yosegaki.id}`);
         return;
       }
@@ -603,7 +608,7 @@ function NewGiftPageInner() {
   }, [recordings, selectedTag, recordingKeyword, dateFrom, dateTo]);
 
   const primaryActionLabel = useMemo(() => {
-    if (giftStyle === "collab") return "募集開始";
+    if (giftStyle === "collab") return "🔗 募集を開始する";
     if (sendMode === "draft") return "下書き保存";
     if (sendMode === "now") return "送信";
     return "予約送信";
@@ -821,7 +826,6 @@ function NewGiftPageInner() {
               type="button"
               onClick={() => {
                 setGiftStyle("solo");
-                setIssueShareLink(false);
                 setSelectedParticipants([]);
                 // soloは音声1つのみ。複数選択済みなら先頭だけ残す
                 setSelectedRecordingIds((prev) => prev.slice(0, 1));
@@ -872,9 +876,7 @@ function NewGiftPageInner() {
 
               {friendLoading ? (
                 <p className="text-xs text-gray-500">友達リストを取得中...</p>
-              ) : filteredFriendCandidates.length === 0 ? (
-                <p className="text-xs text-gray-500">追加可能な友達が見つかりません。</p>
-              ) : (
+              ) : filteredFriendCandidates.length === 0 ? null : (
                 <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                   {filteredFriendCandidates.map((friend) => (
                     <button
@@ -919,19 +921,10 @@ function NewGiftPageInner() {
                 </div>
               )}
 
-              <label className="flex items-start gap-2 text-xs text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={issueShareLink}
-                  onChange={(e) => setIssueShareLink(e.target.checked)}
-                  className="mt-0.5"
-                  disabled={sending}
-                />
-                <span className="flex-1">
-                  募集開始時に共有リンクを発行してコピーする
-                </span>
-                <Link2 size={14} className="text-gray-400" />
-              </label>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-1">
+                <p className="text-xs font-bold text-blue-800">🔗 参加者への共有方法</p>
+                <p className="text-xs text-blue-700">右上/画面下にある「募集を開始」ボタンを押すと、LINEやメールで共有できる専用のメッセージ受付URL（共有リンク）が発行されます</p>
+              </div>
             </div>
           )}
         </div>
@@ -949,7 +942,15 @@ function NewGiftPageInner() {
               <input
                 type="datetime-local"
                 value={collabDeadline}
-                onChange={(e) => setCollabDeadline(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) { setCollabDeadline(""); return; }
+                  const d = new Date(value);
+                  if (Number.isNaN(d.getTime())) { setCollabDeadline(value); return; }
+                  d.setMinutes(0, 0, 0);
+                  setCollabDeadline(formatDateTimeLocal(d));
+                }}
+                step={3600}
                 disabled={sending}
                 className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
               />
@@ -963,7 +964,15 @@ function NewGiftPageInner() {
               <input
                 type="datetime-local"
                 value={collabDeliverAt}
-                onChange={(e) => setCollabDeliverAt(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) { setCollabDeliverAt(""); return; }
+                  const d = new Date(value);
+                  if (Number.isNaN(d.getTime())) { setCollabDeliverAt(value); return; }
+                  d.setMinutes(0, 0, 0);
+                  setCollabDeliverAt(formatDateTimeLocal(d));
+                }}
+                step={3600}
                 disabled={sending}
                 className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
               />
@@ -1253,11 +1262,8 @@ function NewGiftPageInner() {
                 className="w-full py-3 rounded-xl text-sm font-semibold border bg-[#2A5CAA] text-white border-[#2A5CAA]"
                 disabled={sending}
               >
-                {sending ? "処理中..." : "募集開始"}
+                {sending ? "処理中..." : "🔗 募集を開始する"}
               </button>
-              <p className="text-xs text-gray-500">
-                募集開始するとドラフトが作成されます。メンバーが音声を追加した後、ドラフト画面から送信してください。
-              </p>
             </div>
           )}
           {giftStyle === "solo" && sendMode === "scheduled" && (
@@ -1317,7 +1323,7 @@ function NewGiftPageInner() {
         <div className="bg-blue-50 p-4 rounded-xl text-xs text-blue-700 flex items-center gap-2">
           <Send size={14} />
           {giftStyle === "collab"
-            ? "募集開始後はドラフト画面で共同メンバーの音声を集め、送信ボタンで最終送信します。"
+            ? "募集開始後は、専用リンクをLINEやメールで共有してメンバーの音声メッセージを集めます。設定したお届け日時になると、集まったメッセージが自動で相手に届きます"
             : "送信先を追加したあと、録音を選択してボイスギフトを保存してください。"}
         </div>
       </div>
