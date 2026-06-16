@@ -1,0 +1,39 @@
+name: 予約ボイスギフトの処理
+
+on:
+  schedule:
+    # 10分ごとに実行（1時間単位の予約に対して十分な精度）
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    # 手動実行も可能にする（動作確認・緊急処理用）
+
+# 同時実行を防ぎ、同一ギフトの二重処理を回避する
+concurrency:
+  group: process-voice-gifts
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+
+    steps:
+      - name: 予約済みボイスギフトを処理
+        run: |
+          RESPONSE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X GET \
+            -H "Accept: application/json" \
+            -H "x-cron-secret: ${{ secrets.VOICE_GIFT_CRON_SECRET }}" \
+            "${{ vars.APP_URL }}/api/voice-gifts/process")
+
+          echo "HTTP status: $RESPONSE"
+          echo "Response body: $(cat /tmp/response.json)"
+
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "❌ エンドポイントがエラーを返しました (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+          PROCESSED=$(jq -r '.processed // 0' /tmp/response.json)
+          echo "✅ 処理件数: $PROCESSED 件"
