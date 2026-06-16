@@ -13,11 +13,12 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const secret = process.env.INTERNAL_API_SECRET;
-  if (secret) {
-    const authHeader = request.headers.get("x-internal-secret");
-    if (authHeader !== secret) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!secret) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const authHeader = request.headers.get("x-internal-secret");
+  if (authHeader !== secret) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let body: unknown;

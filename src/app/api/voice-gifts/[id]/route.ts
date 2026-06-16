@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { giftDeliveryHtml, giftDeliveryText } from "@/lib/email-templates";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 type Params = {
   params: Promise<{
@@ -193,6 +196,53 @@ export async function PUT(request: Request, { params }: Params) {
         where: { voiceGiftId: id, status: "pending" },
         data: { status: "delivered", deliveredAt: new Date() },
       });
+
+      const emailRecipients = existing.recipients
+        .map((r: any) => r.recipientEmail)
+        .filter(Boolean) as string[];
+
+      if (emailRecipients.length > 0) {
+        const senderName =
+          voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
+        const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
+        const opts = {
+          senderName,
+          giftTitle: voiceGift.title,
+          giftMessage: voiceGift.message,
+          giftUrl,
+        };
+        const internalSecret = process.env.INTERNAL_API_SECRET;
+        const emailHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...(internalSecret ? { "x-internal-secret": internalSecret } : {}),
+        };
+        Promise.allSettled(
+          emailRecipients.map(async (to) => {
+            const res = await fetch(`${APP_URL}/api/email/send`, {
+              method: "POST",
+              headers: emailHeaders,
+              body: JSON.stringify({
+                to,
+                subject: `【Musuhi】${senderName} さんから声のギフトが届きました`,
+                html: giftDeliveryHtml(opts),
+                text: giftDeliveryText(opts),
+              }),
+            });
+            if (!res.ok) {
+              throw new Error(`email/send returned ${res.status} for ${to}`);
+            }
+          })
+        ).then((results) => {
+          results.forEach((r, i) => {
+            if (r.status === "rejected") {
+              console.error(
+                `[voice-gifts PUT] gift delivery email failed to ${emailRecipients[i]}:`,
+                r.reason
+              );
+            }
+          });
+        });
+      }
     }
 
     return NextResponse.json({ voiceGift });
