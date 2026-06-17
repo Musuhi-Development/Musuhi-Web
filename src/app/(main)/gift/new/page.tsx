@@ -489,6 +489,7 @@ function NewGiftPageInner() {
               Array.isArray(selectedRecording?.images) && selectedRecording.images.length > 0
                 ? selectedRecording.images[0]
                 : null,
+            participantIds: selectedParticipants.map((p) => p.id),
           }),
         });
         if (!res.ok) throw new Error("寄せ音声の作成に失敗しました");

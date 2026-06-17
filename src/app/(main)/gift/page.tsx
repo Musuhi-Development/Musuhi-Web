@@ -491,93 +491,94 @@ function GiftPageInner() {
   // みんなで贈るタブのカード（寄せ音声）
   function renderYosegakiCard(yosegaki: any) {
     const contributions = yosegaki.contributions || [];
-    const totalCount = contributions.length + 1;
-    const visibleContribs = contributions.slice(0, 3);
-    const snippet = yosegaki.description
-      ? yosegaki.description.slice(0, 55) + (yosegaki.description.length > 55 ? "…" : "")
-      : null;
-    const contributed = contributions.some((c: any) => c.contributorId === user?.id);
+    // audioUrlありの投稿のみを参加者アイコン列に表示（招待のみは除外）
+    const recordedContribs = contributions.filter((c: any) => c.audioUrl);
+    const totalCount = recordedContribs.length + 1; // +1 for organizer
+    const visibleContribs = recordedContribs.slice(0, 3);
     const isCreator = yosegaki.creatorId === user?.id;
-    const dateValue = yosegaki.deliverAt || yosegaki.updatedAt || yosegaki.createdAt;
+    // audioUrlありで参加済み、なしで招待中（未参加）を判定
+    const myContrib = contributions.find((c: any) => c.contributorId === user?.id);
+    const hasRecorded = !!myContrib?.audioUrl;
+    const isInvited = !!myContrib && !myContrib.audioUrl;
+
+    // 締切日数
+    const deadlineDays = yosegaki.deadline
+      ? Math.ceil((new Date(yosegaki.deadline).getTime() - Date.now()) / 86400000)
+      : null;
 
     return (
       <Link key={yosegaki.id} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
-        <div className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 pb-7">
+        <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 space-y-2">
           <div className="flex items-start gap-3">
-            {/* サムネイル + バッジ */}
+            {/* サムネイル */}
             <div className="flex-shrink-0">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
                 {yosegaki.organizerImageUrl ? (
                   <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-2xl">🎙️</span>
                 )}
               </div>
-              <div className="mt-1 flex flex-col items-center gap-0.5">
-                <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">寄せ音声</span>
-                <span className={`text-[8px] px-1 py-0.5 rounded-full whitespace-nowrap font-medium ${
-                  yosegaki.status === "collecting"
-                    ? "bg-amber-100 text-amber-700"
-                    : yosegaki.status === "draft"
-                    ? "bg-gray-100 text-gray-500"
-                    : "bg-green-100 text-green-700"
-                }`}>
-                  {yosegakiStatusLabel(yosegaki)}
-                </span>
-              </div>
             </div>
 
             {/* テキスト情報 */}
-            <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex-1 min-w-0 space-y-1">
+              {/* 宛名 + 参加状況バッジ */}
               <div className="flex items-start justify-between gap-1">
                 <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
-                {/* 企画者バッジ（保持） */}
-                <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full ${
+                <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
                   isCreator
                     ? "bg-blue-100 text-blue-700"
-                    : contributed
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "bg-orange-100 text-orange-600"
+                    : hasRecorded
+                    ? "bg-green-100 text-green-700"
+                    : isInvited
+                    ? "bg-orange-100 text-orange-600"
+                    : "bg-gray-100 text-gray-500"
                 }`}>
-                  {isCreator ? "企画者" : contributed ? "参加済み" : "未参加"}
+                  {isCreator ? "企画者" : hasRecorded ? "参加済み" : "未参加"}
                 </span>
               </div>
-              {snippet && (
-                <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{snippet}</p>
+              {/* タイトル（宛名と異なる場合のみ） */}
+              {yosegaki.title && yosegaki.title !== yosegaki.recipientName && (
+                <p className="text-xs text-gray-700 truncate">{yosegaki.title}</p>
               )}
-              {/* 参加者アイコン列 */}
-              <div className="flex items-center gap-1">
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
-                  {yosegaki.creator?.avatarUrl ? (
-                    <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    (yosegaki.organizerName?.[0] || "企").toUpperCase()
-                  )}
-                </div>
-                {visibleContribs.map((c: any, i: number) => {
-                  const name = c.participantName || c.contributor?.displayName || "参";
-                  return (
-                    <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
-                      {c.contributor?.avatarUrl ? (
-                        <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        name[0].toUpperCase()
-                      )}
-                    </div>
-                  );
-                })}
-                {contributions.length > 3 && (
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
-                    +{contributions.length - 3}
-                  </div>
-                )}
-                <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
-              </div>
+              {/* 募集ステータス（締切まで◯日） */}
+              {deadlineDays !== null && (
+                <p className={`text-xs font-medium ${deadlineDays <= 1 ? "text-red-500" : deadlineDays <= 3 ? "text-orange-500" : "text-amber-600"}`}>
+                  締切まで{deadlineDays}日
+                </p>
+              )}
             </div>
           </div>
-          <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-            {formatDateTime(dateValue)}
-          </p>
+
+          {/* 参加者アイコン列 */}
+          <div className="flex items-center gap-1 pt-0.5">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
+              {yosegaki.creator?.avatarUrl ? (
+                <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (yosegaki.organizerName?.[0] || "企").toUpperCase()
+              )}
+            </div>
+            {visibleContribs.map((c: any, i: number) => {
+              const name = c.participantName || c.contributor?.displayName || "参";
+              return (
+                <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
+                  {c.contributor?.avatarUrl ? (
+                    <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    name[0].toUpperCase()
+                  )}
+                </div>
+              );
+            })}
+            {recordedContribs.length > 3 && (
+              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
+                +{recordedContribs.length - 3}
+              </div>
+            )}
+            <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
+          </div>
         </div>
       </Link>
     );
