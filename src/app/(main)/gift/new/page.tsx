@@ -627,20 +627,23 @@ function NewGiftPageInner() {
           </button>
           <span className="text-xl font-bold text-[#2A5CAA]">ボイスギフト作成</span>
         </div>
-        <button
-          onClick={handleSend}
-          className="text-[#2A5CAA] font-bold disabled:text-gray-300 flex items-center gap-1"
-          disabled={sending}
-        >
-          {sending ? (
-            <>
-              <Loader2 size={14} className="animate-spin" />
-              送信中...
-            </>
-          ) : (
-            primaryActionLabel
-          )}
-        </button>
+        {/* collab モードは本体下部の送信ボタンを使うためヘッダーボタンは非表示 */}
+        {giftStyle !== "collab" && (
+          <button
+            onClick={handleSend}
+            className="text-[#2A5CAA] font-bold disabled:text-gray-300 flex items-center gap-1"
+            disabled={sending}
+          >
+            {sending ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                送信中...
+              </>
+            ) : (
+              primaryActionLabel
+            )}
+          </button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">

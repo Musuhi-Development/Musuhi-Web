@@ -40,9 +40,31 @@ export async function POST(request: Request, { params }: Params) {
       }
     }
 
-    const resolvedName = user
-      ? (user.displayName || user.name || participantName || "名前なし")
-      : (participantName || "名前なし");
+    // participantName を明示的に指定した場合は優先（ユーザー名の上書きを許可）
+    const resolvedName = participantName?.trim() || (user ? (user.displayName || user.name) : null) || "名前なし";
+
+    // ログイン済みユーザーが既に contribution を持つ場合は upsert（placeholder の上書き含む）
+    if (user) {
+      const existing = await prisma.yosegakiContribution.findFirst({
+        where: { yosegakiId: id, contributorId: user.id },
+      });
+      if (existing) {
+        const updated = await prisma.yosegakiContribution.update({
+          where: { id: existing.id },
+          data: {
+            recordingId: recordingId || null,
+            participantName: resolvedName,
+            imageUrl: imageUrl || null,
+            audioUrl: audioUrl || null,
+            audioDuration: audioDuration || null,
+            title: title || null,
+            message: message || null,
+          },
+          include: contributionInclude,
+        });
+        return NextResponse.json({ contribution: updated });
+      }
+    }
 
     const contribution = await prisma.yosegakiContribution.create({
       data: {
