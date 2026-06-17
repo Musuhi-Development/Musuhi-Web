@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Calendar, Copy, Check, Share2, QrCode, Mic, Image, Plus, Pencil, Play, Pause, X, ArrowLeft } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -138,6 +138,8 @@ export default function YosegakiDetailPage() {
   const [participantAlbumSelected, setParticipantAlbumSelected] = useState<string | null>(null);
   const [participantAlbumSubmitting, setParticipantAlbumSubmitting] = useState(false);
   const [participantDone, setParticipantDone] = useState(false);
+  const [albumPreviewId, setAlbumPreviewId] = useState<string | null>(null);
+  const albumAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => { if (id) { fetchYosegaki(); } }, [id]);
   useEffect(() => {
@@ -284,6 +286,29 @@ export default function YosegakiDetailPage() {
   const myContrib = allContribs.find((c: any) => c.contributorId === user?.id);
   const myContribHasAudio = !!(myContrib?.audioUrl);
 
+  function closeParticipantAlbum() {
+    if (albumAudioRef.current) { albumAudioRef.current.pause(); albumAudioRef.current = null; }
+    setAlbumPreviewId(null);
+    setShowParticipantAlbum(false);
+    setParticipantAlbumSelected(null);
+  }
+
+  function toggleAlbumPreview(r: any, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (albumPreviewId === r.id) {
+      albumAudioRef.current?.pause();
+      albumAudioRef.current = null;
+      setAlbumPreviewId(null);
+    } else {
+      if (albumAudioRef.current) { albumAudioRef.current.pause(); }
+      const audio = new Audio(r.audioUrl);
+      audio.onended = () => setAlbumPreviewId(null);
+      audio.play().catch(() => {});
+      albumAudioRef.current = audio;
+      setAlbumPreviewId(r.id);
+    }
+  }
+
   // 参加者がボイスアルバムから投稿
   async function handleParticipantAlbumSubmit() {
     if (!participantAlbumSelected || participantAlbumSubmitting) return;
@@ -315,8 +340,7 @@ export default function YosegakiDetailPage() {
         headers: { "Content-Type": "application/json" },
         body,
       });
-      setShowParticipantAlbum(false);
-      setParticipantAlbumSelected(null);
+      closeParticipantAlbum();
       setParticipantDone(true);
       await fetchYosegaki();
     } finally {
@@ -656,13 +680,22 @@ export default function YosegakiDetailPage() {
       {/* 参加者：ボイスアルバム選択モーダル */}
       {showParticipantAlbum && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end">
-          <div className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div className="bg-[#FAF7F2] w-full rounded-t-3xl max-h-[85vh] flex flex-col">
+            {/* ヘッダー */}
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-white rounded-t-3xl">
               <h3 className="font-bold text-gray-800">ボイスアルバムから選ぶ</h3>
-              <button onClick={() => { setShowParticipantAlbum(false); setParticipantAlbumSelected(null); }} className="text-gray-500 text-sm">閉じる</button>
+              <button
+                type="button"
+                onClick={closeParticipantAlbum}
+                aria-label="閉じる"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+              >
+                <X size={16} />
+              </button>
             </div>
+
             {/* 表示名入力 */}
-            <div className="px-5 pt-4 pb-3 border-b">
+            <div className="px-5 pt-4 pb-3 border-b bg-white">
               <label className="text-[11px] font-bold text-gray-500 mb-1 block">ボイスギフトに表示される名前</label>
               <input
                 type="text"
@@ -672,13 +705,16 @@ export default function YosegakiDetailPage() {
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2A5CAA]"
               />
             </div>
+
+            {/* グリッド（縦スクロール） */}
             <div className="flex-1 overflow-y-auto p-4">
               {recordings.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-6">録音がありません</p>
+                <p className="text-sm text-gray-400 text-center py-8">録音がありません</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {recordings.map((r: any) => {
                     const selected = participantAlbumSelected === r.id;
+                    const playing = albumPreviewId === r.id;
                     const imageUrl = Array.isArray(r.images) ? r.images[0] : null;
                     return (
                       <div
@@ -687,40 +723,58 @@ export default function YosegakiDetailPage() {
                         tabIndex={0}
                         onClick={() => setParticipantAlbumSelected(selected ? null : r.id)}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setParticipantAlbumSelected(selected ? null : r.id); } }}
-                        className={`bg-white rounded-2xl shadow-md p-3 cursor-pointer border-2 transition-all focus:outline-none ${
-                          selected ? "border-[#2A5CAA] bg-blue-50" : "border-transparent"
+                        className={`bg-white rounded-sm shadow-md p-1.5 pb-5 cursor-pointer border-2 transition-all focus:outline-none ${
+                          selected ? "border-[#2A5CAA]" : "border-transparent"
                         }`}
+                        style={{ boxShadow: "2px 3px 8px rgba(0,0,0,0.15)" }}
                       >
-                        <div className="relative w-full aspect-square mb-2">
+                        {/* サムネイル + 再生ボタン */}
+                        <div className="relative w-full aspect-square mb-1.5">
                           {imageUrl ? (
-                            <img src={imageUrl} alt={r.title} className="w-full h-full rounded-xl object-cover" />
+                            <img src={imageUrl} alt={r.title} className="w-full h-full object-cover rounded-sm" />
                           ) : (
-                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
-                              <span className="text-4xl">🎵</span>
+                            <div className="w-full h-full rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-3xl">🎵</span>
                             </div>
                           )}
+                          {/* 再生/停止オーバーレイ */}
+                          <button
+                            type="button"
+                            onClick={(e) => toggleAlbumPreview(r, e)}
+                            aria-label={playing ? "停止" : "再生"}
+                            className="absolute inset-0 flex items-center justify-center rounded-sm bg-black/25 hover:bg-black/35 transition-colors"
+                          >
+                            {playing ? (
+                              <Pause size={20} className="text-white drop-shadow" />
+                            ) : (
+                              <Play size={20} className="text-white drop-shadow" />
+                            )}
+                          </button>
                           {selected && (
-                            <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 bg-white/90 text-[#2A5CAA] font-bold rounded-full shadow-sm">
+                            <span className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 bg-white/90 text-[#2A5CAA] font-bold rounded-full shadow-sm">
                               選択中
                             </span>
                           )}
                         </div>
-                        <p className="text-sm font-semibold text-gray-800 truncate">{r.title}</p>
-                        <p className="text-xs text-gray-400">{Math.round(r.duration)}秒</p>
+                        <p className="text-[10px] text-gray-700 font-medium truncate leading-tight px-0.5">
+                          {r.title || "（タイトルなし）"}
+                        </p>
                       </div>
                     );
                   })}
                 </div>
               )}
             </div>
-            <div className="px-5 py-4 border-t">
+
+            {/* アクションボタン（中央配置・文字幅） */}
+            <div className="flex justify-center px-5 py-4 bg-white border-t">
               <button
                 type="button"
                 onClick={handleParticipantAlbumSubmit}
                 disabled={!participantAlbumSelected || participantAlbumSubmitting}
-                className="w-full bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold py-3 rounded-full disabled:opacity-40"
+                className="bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold px-8 py-3 rounded-full shadow-md disabled:opacity-40 text-sm"
               >
-                {participantAlbumSubmitting ? "送信中…" : "この声で参加する"}
+                {participantAlbumSubmitting ? "送信中…" : "この声を贈る"}
               </button>
             </div>
           </div>
