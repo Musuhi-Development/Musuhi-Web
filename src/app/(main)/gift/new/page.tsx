@@ -75,7 +75,9 @@ function NewGiftPageInner() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendMode, setSendMode] = useState<SendMode>("draft");
-  const [giftStyle, setGiftStyle] = useState<GiftCreationStyle>("solo");
+  const [giftStyle, setGiftStyle] = useState<GiftCreationStyle>(
+    searchParams.get("mode") === "collab" ? "collab" : "solo"
+  );
   const [sendAt, setSendAt] = useState("");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
