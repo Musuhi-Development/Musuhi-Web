@@ -29,13 +29,19 @@ export async function GET(request: NextRequest) {
     } else if (type === "contributed") {
       where.contributions = { some: { contributorId: user.id } };
     } else if (type === "collaborative") {
-      // みんなで贈るタブ: 自分が作成 or 招待/参加済み (contributorId一致) かつ締切前
+      // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting（期限前後問わず delivered まで表示）
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
       ];
       where.status = "collecting";
-      where.deadline = { gt: new Date() };
+    } else if (type === "delivered") {
+      // 贈ったタブ: 自分が作成 or 参加済み かつ delivered
+      where.OR = [
+        { creatorId: user.id },
+        { contributions: { some: { contributorId: user.id } } },
+      ];
+      where.status = "delivered";
     } else {
       where.OR = [
         { creatorId: user.id },

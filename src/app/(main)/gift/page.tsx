@@ -80,8 +80,9 @@ function GiftPageInner() {
       const res = await fetch("/api/yosegaki?type=created");
       if (!res.ok) return;
       const data = await res.json();
+      // 募集開始前（draft）のみ表示。collectingは「みんなで贈る」タブへ
       const list = (data.yosegakiList || []).filter(
-        (y: any) => y.status !== "delivered"
+        (y: any) => y.status === "draft"
       );
       setDraftYosegakiList(list);
     } catch {}
@@ -89,13 +90,10 @@ function GiftPageInner() {
 
   const fetchDeliveredYosegakiList = useCallback(async () => {
     try {
-      const res = await fetch("/api/yosegaki?type=created");
+      const res = await fetch("/api/yosegaki?type=delivered");
       if (!res.ok) return;
       const data = await res.json();
-      const list = (data.yosegakiList || []).filter(
-        (y: any) => y.status === "delivered"
-      );
-      setDeliveredYosegakiList(list);
+      setDeliveredYosegakiList(data.yosegakiList || []);
     } catch {}
   }, []);
 
@@ -360,7 +358,7 @@ function GiftPageInner() {
     if (status === "collecting") {
       if (!deadline) return "募集中";
       const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-      if (days < 0) return "募集終了";
+      if (days < 0) return "お届け待ち";
       return `募集中 締切まで${days}日`;
     }
     if (status === "completed" || status === "delivered") {
@@ -502,9 +500,13 @@ function GiftPageInner() {
     const hasRecorded = !!myContrib?.audioUrl;
     const isInvited = !!myContrib && !myContrib.audioUrl;
 
-    // 締切日数
+    // 締切/お届け情報
     const deadlineDays = yosegaki.deadline
       ? Math.ceil((new Date(yosegaki.deadline).getTime() - Date.now()) / 86400000)
+      : null;
+    const isDeadlinePassed = deadlineDays !== null && deadlineDays < 0;
+    const deliverDays = yosegaki.deliverAt
+      ? Math.ceil((new Date(yosegaki.deliverAt).getTime() - Date.now()) / 86400000)
       : null;
 
     return (
@@ -543,8 +545,12 @@ function GiftPageInner() {
               {yosegaki.title && yosegaki.title !== yosegaki.recipientName && (
                 <p className="text-xs text-gray-700 truncate">{yosegaki.title}</p>
               )}
-              {/* 募集ステータス（締切まで◯日） */}
-              {deadlineDays !== null && (
+              {/* 募集ステータス */}
+              {isDeadlinePassed ? (
+                <p className="text-xs font-medium text-blue-500">
+                  {deliverDays !== null && deliverDays >= 0 ? `お届けまで${deliverDays}日` : "お届け待ち"}
+                </p>
+              ) : deadlineDays !== null && (
                 <p className={`text-xs font-medium ${deadlineDays <= 1 ? "text-red-500" : deadlineDays <= 3 ? "text-orange-500" : "text-amber-600"}`}>
                   締切まで{deadlineDays}日
                 </p>
