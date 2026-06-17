@@ -858,7 +858,7 @@ function GiftPageInner() {
             <div className="text-center py-12 bg-white rounded-3xl shadow-md">
               <Heart size={48} className="mx-auto mb-3 opacity-40 text-gray-400" />
               <p className="text-gray-500 text-sm">参加中の寄せ音声はありません</p>
-              <Link href="/gift/yosegaki/new" className="mt-3 block text-xs text-[#2A5CAA]">
+              <Link href="/gift/new?mode=collab" className="mt-3 block text-xs text-[#2A5CAA]">
                 声の寄せ書きを作る
               </Link>
             </div>
