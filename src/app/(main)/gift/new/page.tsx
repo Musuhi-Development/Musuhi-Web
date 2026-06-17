@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Check, Play, Pause, Users, Mail, Calendar, Send, Plus, X, ArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { clsx } from "clsx";
+import DateTimePickerInput from "@/components/DateTimePickerInput";
 
 const emotionToAnimal: { [key: string]: string } = {
   "嬉しい": "/animal/dog.png",
@@ -925,8 +926,8 @@ function NewGiftPageInner() {
               )}
 
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-1">
-                <p className="text-xs font-bold text-blue-800">🔗 参加者への共有方法</p>
-                <p className="text-xs text-blue-700">右上/画面下にある「募集を開始」ボタンを押すと、LINEやメールで共有できる専用のメッセージ受付URL（共有リンク）が発行されます</p>
+                <p className="text-xs font-bold text-blue-800">🔗このアプリ（Musuhi）を入れていない方への共有方法</p>
+                <p className="text-xs text-blue-700">「募集を開始する」ボタンを押すと、専用のメッセージ受付URLが発行されます。アプリを入れていない方でも、LINEやメールでこのURLを開くだけで、スマホやPCのブラウザからすぐに音声を録音・参加できます</p>
               </div>
             </div>
           )}
@@ -942,20 +943,10 @@ function NewGiftPageInner() {
               <label className="text-xs font-bold text-gray-600 mb-1 block">
                 募集期限 <span className="text-red-500">※</span>
               </label>
-              <input
-                type="datetime-local"
+              <DateTimePickerInput
                 value={collabDeadline}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!value) { setCollabDeadline(""); return; }
-                  const d = new Date(value);
-                  if (Number.isNaN(d.getTime())) { setCollabDeadline(value); return; }
-                  d.setMinutes(0, 0, 0);
-                  setCollabDeadline(formatDateTimeLocal(d));
-                }}
-                step={3600}
+                onChange={setCollabDeadline}
                 disabled={sending}
-                className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
               />
             </div>
 
@@ -964,20 +955,10 @@ function NewGiftPageInner() {
               <label className="text-xs font-bold text-gray-600 mb-1 block">
                 お届け日時 <span className="text-red-500">※</span>
               </label>
-              <input
-                type="datetime-local"
+              <DateTimePickerInput
                 value={collabDeliverAt}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!value) { setCollabDeliverAt(""); return; }
-                  const d = new Date(value);
-                  if (Number.isNaN(d.getTime())) { setCollabDeliverAt(value); return; }
-                  d.setMinutes(0, 0, 0);
-                  setCollabDeliverAt(formatDateTimeLocal(d));
-                }}
-                step={3600}
+                onChange={setCollabDeliverAt}
                 disabled={sending}
-                className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
               />
             </div>
 
@@ -1274,34 +1255,13 @@ function NewGiftPageInner() {
               <label className="text-xs font-bold text-gray-500 mb-1 block">
                 送信日時（1週間以内）
               </label>
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  value={sendAt}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (!value) {
-                      setSendAt("");
-                      return;
-                    }
-
-                    const selected = new Date(value);
-                    if (Number.isNaN(selected.getTime())) {
-                      setSendAt(value);
-                      return;
-                    }
-
-                    selected.setMinutes(0, 0, 0);
-                    setSendAt(formatDateTimeLocal(selected));
-                  }}
-                  min={formatDateTimeLocal(minScheduleDate)}
-                  max={formatDateTimeLocal(maxScheduleDate)}
-                  step={3600}
-                  className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-[#2A5CAA]"
-                  disabled={sending}
-                />
-                <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              </div>
+              <DateTimePickerInput
+                value={sendAt}
+                onChange={setSendAt}
+                disabled={sending}
+                minDate={formatDateTimeLocal(minScheduleDate).slice(0, 10)}
+                maxDate={formatDateTimeLocal(maxScheduleDate).slice(0, 10)}
+              />
             </div>
           )}
           {giftStyle === "solo" && (

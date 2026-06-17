@@ -6,6 +6,7 @@ import { Calendar, Copy, Check, Share2, QrCode, Mic, Image, Plus, Pencil, Play, 
 import { useUser } from "@/hooks/useUser";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
+import DateTimePickerInput from "@/components/DateTimePickerInput";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function fmt(d: string | Date | null | undefined) {
@@ -626,24 +627,7 @@ function DeliverAtSection({
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 shadow-sm space-y-3">
       <h3 className="text-sm font-bold text-gray-700">お届け日時</h3>
-      <div className="relative">
-        <input
-          type="datetime-local"
-          value={deliverAt}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (!value) { setDeliverAt(""); return; }
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) { setDeliverAt(value); return; }
-            d.setMinutes(0, 0, 0);
-            const p = (n: number) => String(n).padStart(2, "0");
-            setDeliverAt(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`);
-          }}
-          step={3600}
-          className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
-        />
-        <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-      </div>
+      <DateTimePickerInput value={deliverAt} onChange={setDeliverAt} />
       <button
         onClick={onUpdate}
         disabled={updating}
