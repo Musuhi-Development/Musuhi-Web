@@ -672,39 +672,45 @@ export default function YosegakiDetailPage() {
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2A5CAA]"
               />
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4">
               {recordings.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-6">録音がありません</p>
               ) : (
-                recordings.map((r: any) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setParticipantAlbumSelected(r.id === participantAlbumSelected ? null : r.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
-                      participantAlbumSelected === r.id
-                        ? "bg-blue-50 border-2 border-[#2A5CAA]"
-                        : "bg-gray-50 border-2 border-transparent"
-                    }`}
-                  >
-                    <div className="w-12 h-12 bg-gradient-to-br from-teal-100 to-blue-100 rounded-xl flex-shrink-0 overflow-hidden">
-                      {Array.isArray(r.images) && r.images[0] ? (
-                        <img src={r.images[0]} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{r.title}</p>
-                      <p className="text-xs text-gray-500">{Math.round(r.duration)}秒</p>
-                    </div>
-                    {participantAlbumSelected === r.id && (
-                      <div className="w-5 h-5 rounded-full bg-[#2A5CAA] flex items-center justify-center flex-shrink-0">
-                        <Check size={12} className="text-white" />
+                <div className="grid grid-cols-2 gap-3">
+                  {recordings.map((r: any) => {
+                    const selected = participantAlbumSelected === r.id;
+                    const imageUrl = Array.isArray(r.images) ? r.images[0] : null;
+                    return (
+                      <div
+                        key={r.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setParticipantAlbumSelected(selected ? null : r.id)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setParticipantAlbumSelected(selected ? null : r.id); } }}
+                        className={`bg-white rounded-2xl shadow-md p-3 cursor-pointer border-2 transition-all focus:outline-none ${
+                          selected ? "border-[#2A5CAA] bg-blue-50" : "border-transparent"
+                        }`}
+                      >
+                        <div className="relative w-full aspect-square mb-2">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={r.title} className="w-full h-full rounded-xl object-cover" />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center">
+                              <span className="text-4xl">🎵</span>
+                            </div>
+                          )}
+                          {selected && (
+                            <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 bg-white/90 text-[#2A5CAA] font-bold rounded-full shadow-sm">
+                              選択中
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold text-gray-800 truncate">{r.title}</p>
+                        <p className="text-xs text-gray-400">{Math.round(r.duration)}秒</p>
                       </div>
-                    )}
-                  </button>
-                ))
+                    );
+                  })}
+                </div>
               )}
             </div>
             <div className="px-5 py-4 border-t">
