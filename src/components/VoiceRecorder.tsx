@@ -150,8 +150,8 @@ export default function VoiceRecorder({
   return (
     <div className={clsx("flex flex-col items-center", className)}>
       {/* ビジュアライザー */}
-      <div className="h-48 w-full bg-gray-50 flex items-center justify-center flex-col gap-4 border-b relative rounded-lg mb-4">
-        <div className="flex items-center justify-center gap-1 h-12">
+      <div className="h-28 sm:h-40 w-full bg-gray-50 flex items-center justify-center flex-col gap-2 sm:gap-4 border-b relative rounded-lg mb-2 sm:mb-4">
+        <div className="flex items-center justify-center gap-1 h-8 sm:h-12">
           {[...Array(10)].map((_, i) => (
             <div
               key={i}
@@ -161,13 +161,13 @@ export default function VoiceRecorder({
               style={{
                 height:
                   isRecording && !isPaused
-                    ? `${Math.random() * 30 + 10}px`
+                    ? `${Math.random() * 20 + 6}px`
                     : "4px",
               }}
             ></div>
           ))}
         </div>
-        <div className="text-3xl font-mono text-gray-700 tracking-wider">
+        <div className="text-2xl sm:text-3xl font-mono text-gray-700 tracking-wider">
           {formatTime(recordedSeconds)}
         </div>
         <div className="text-xs text-gray-400">
@@ -181,7 +181,7 @@ export default function VoiceRecorder({
       </div>
 
       {/* コントロールボタン */}
-      <div className="flex justify-center items-center gap-8 py-6">
+      <div className="flex justify-center items-center gap-8 py-3 sm:py-6">
         {!isRecording && !audioURL ? (
           // 録音開始ボタン
           <button
