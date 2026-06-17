@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import RegisterInvitee from "./RegisterInvitee";
 
 type Props = { params: Promise<{ shareToken: string }> };
 
@@ -64,6 +65,9 @@ export default async function YosegakiLandingPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] pb-32 flex flex-col">
+      {/* ログイン済みユーザーを参加者として自動登録（サイレント） */}
+      {isAccepting && <RegisterInvitee shareToken={shareToken} />}
+
       {/* ヘッダー */}
       <div className="bg-gradient-to-b from-[#2A5CAA] to-[#4A7BC8] px-5 pt-10 pb-8 text-white text-center">
         <p className="text-xs opacity-80 mb-1">声の寄せ書き</p>
