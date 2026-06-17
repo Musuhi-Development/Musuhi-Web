@@ -29,12 +29,13 @@ export async function GET(request: NextRequest) {
     } else if (type === "contributed") {
       where.contributions = { some: { contributorId: user.id } };
     } else if (type === "collaborative") {
-      // みんなで贈るタブ: 招待された or 参加済み or 募集期間中
+      // みんなで贈るタブ: 自分が作成 or 招待/参加済み (contributorId一致) かつ締切前
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
       ];
-      where.status = { in: ["collecting"] };
+      where.status = "collecting";
+      where.deadline = { gt: new Date() };
     } else {
       where.OR = [
         { creatorId: user.id },
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
       deadline,
       deliverAt,
       isPublic,
+      participantIds,
     } = body;
 
     if (!title || !recipientName || !organizerName || !deadline || !deliverAt) {
@@ -107,6 +109,20 @@ export async function POST(request: Request) {
       },
       include: yosegakiInclude,
     });
+
+    // 招待参加者の YosegakiContribution を未参加状態で作成
+    if (Array.isArray(participantIds) && participantIds.length > 0) {
+      const uniqueIds = [...new Set(participantIds as string[])].filter((id) => id !== user.id);
+      if (uniqueIds.length > 0) {
+        await prisma.yosegakiContribution.createMany({
+          data: uniqueIds.map((participantId) => ({
+            yosegakiId: yosegaki.id,
+            contributorId: participantId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     return NextResponse.json({ yosegaki }, { status: 201 });
   } catch (error: any) {
