@@ -22,6 +22,7 @@ jobs:
       - name: 予約済みボイスギフトを処理
         run: |
           RESPONSE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -L \
             -X GET \
             -H "Accept: application/json" \
             -H "x-cron-secret: ${{ secrets.VOICE_GIFT_CRON_SECRET }}" \
