@@ -29,12 +29,12 @@ export async function GET(request: NextRequest) {
     } else if (type === "contributed") {
       where.contributions = { some: { contributorId: user.id } };
     } else if (type === "collaborative") {
-      // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting（期限前後問わず delivered まで表示）
+      // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting or completed（delivered になるまで表示）
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
       ];
-      where.status = "collecting";
+      where.status = { in: ["collecting", "completed"] };
     } else if (type === "delivered") {
       // 贈ったタブ: 自分が作成 or 参加済み かつ delivered
       where.OR = [
