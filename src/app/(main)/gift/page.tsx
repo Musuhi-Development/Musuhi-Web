@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
+import DateTimePickerInput from "@/components/DateTimePickerInput";
 import { useVoiceGifts, VoiceGiftFilter } from "@/hooks/useVoiceGifts";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 
@@ -946,11 +947,9 @@ function GiftPageInner() {
                 {editState.gift.status === "scheduled" && (
                   <div>
                     <label className="text-xs font-bold text-gray-500 mb-1 block">お届け日時</label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePickerInput
                       value={editState.sendAt}
-                      onChange={(e) => setEditState((prev) => prev ? { ...prev, sendAt: e.target.value } : null)}
-                      className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-[#2A5CAA]"
+                      onChange={(v) => setEditState((prev) => prev ? { ...prev, sendAt: v } : null)}
                     />
                   </div>
                 )}
