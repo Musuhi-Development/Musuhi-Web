@@ -112,7 +112,8 @@ export async function POST(request: Request) {
 
     // 招待参加者の YosegakiContribution を未参加状態で作成
     if (Array.isArray(participantIds) && participantIds.length > 0) {
-      const uniqueIds = [...new Set(participantIds as string[])].filter((id) => id !== user.id);
+      const ids = participantIds as string[];
+      const uniqueIds = ids.filter((id: string, idx: number) => ids.indexOf(id) === idx && id !== user.id);
       if (uniqueIds.length > 0) {
         await prisma.yosegakiContribution.createMany({
           data: uniqueIds.map((participantId) => ({
