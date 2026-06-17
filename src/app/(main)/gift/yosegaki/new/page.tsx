@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, Users, Upload, Mic } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import DateTimePickerInput from "@/components/DateTimePickerInput";
 
 export default function NewYosegakiPage() {
   const router = useRouter();
@@ -142,24 +143,7 @@ export default function NewYosegakiPage() {
             <Clock size={12} />
             募集期限<span className="text-red-500"> ※</span>
           </label>
-          <div className="relative">
-            <input
-              type="datetime-local"
-              value={deadline}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (!value) { setDeadline(""); return; }
-                const d = new Date(value);
-                if (Number.isNaN(d.getTime())) { setDeadline(value); return; }
-                d.setMinutes(0, 0, 0);
-                const pad = (n: number) => String(n).padStart(2, "0");
-                setDeadline(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
-              }}
-              step={3600}
-              className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
-            />
-            <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          </div>
+          <DateTimePickerInput value={deadline} onChange={setDeadline} />
         </div>
 
         {/* お届け日 */}
@@ -168,24 +152,7 @@ export default function NewYosegakiPage() {
             <Calendar size={12} />
             お届け日時<span className="text-red-500"> ※</span>
           </label>
-          <div className="relative">
-            <input
-              type="datetime-local"
-              value={deliverAt}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (!value) { setDeliverAt(""); return; }
-                const d = new Date(value);
-                if (Number.isNaN(d.getTime())) { setDeliverAt(value); return; }
-                d.setMinutes(0, 0, 0);
-                const pad = (n: number) => String(n).padStart(2, "0");
-                setDeliverAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`);
-              }}
-              step={3600}
-              className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:border-[#2A5CAA]"
-            />
-            <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          </div>
+          <DateTimePickerInput value={deliverAt} onChange={setDeliverAt} />
         </div>
 
         {/* 参加者への依頼コメント */}

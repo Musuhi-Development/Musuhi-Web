@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 import { useUser } from "@/hooks/useUser";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
+import DateTimePickerInput from "@/components/DateTimePickerInput";
 
 type Recording = {
 	id: string;
@@ -433,15 +434,10 @@ export default function GiftDetailPage() {
 						<h3 className="text-sm font-bold text-gray-700">送信管理</h3>
 						<div>
 							<label className="text-xs font-bold text-gray-500 mb-1 block">送信日時</label>
-							<div className="relative">
-								<input
-									type="datetime-local"
-									value={sendAt}
-									onChange={(e) => setSendAt(e.target.value)}
-									className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-lg focus:outline-none focus:border-[#2A5CAA]"
-								/>
-								<Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-							</div>
+							<DateTimePickerInput
+								value={sendAt}
+								onChange={setSendAt}
+							/>
 						</div>
 						<div className="flex gap-3">
 							<button
