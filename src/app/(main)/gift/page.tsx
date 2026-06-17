@@ -358,7 +358,7 @@ function GiftPageInner() {
     if (status === "collecting") {
       if (!deadline) return "募集中";
       const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-      if (days < 0) return "お届け待ち";
+      if (days <= 0) return "お届け待ち";
       return `募集中 締切まで${days}日`;
     }
     if (status === "completed" || status === "delivered") {
@@ -504,7 +504,7 @@ function GiftPageInner() {
     const deadlineDays = yosegaki.deadline
       ? Math.ceil((new Date(yosegaki.deadline).getTime() - Date.now()) / 86400000)
       : null;
-    const isDeadlinePassed = deadlineDays !== null && deadlineDays < 0;
+    const isDeadlinePassed = deadlineDays !== null && deadlineDays <= 0;
     const deliverDays = yosegaki.deliverAt
       ? Math.ceil((new Date(yosegaki.deliverAt).getTime() - Date.now()) / 86400000)
       : null;
