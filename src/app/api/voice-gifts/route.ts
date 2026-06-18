@@ -81,9 +81,16 @@ export async function GET(request: NextRequest) {
       where.status = "scheduled";
     }
 
+    const orderBy =
+      filter === "received" ? { sendAt: "desc" as const } :
+      filter === "sent"     ? { sendAt: "desc" as const } :
+      filter === "draft"    ? { updatedAt: "desc" as const } :
+      filter === "scheduled"? { sendAt: "asc" as const } :
+      { createdAt: "desc" as const };
+
     const voiceGifts = await prisma.voiceGift.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       include: {
         owner: {
           select: { id: true, name: true, displayName: true, avatarUrl: true },
@@ -300,7 +307,7 @@ export async function POST(request: Request) {
 
     // ─── メール送信（非同期・失敗してもレスポンスはブロックしない）───
     const emailSenderName =
-      voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
+      voiceGift.senderName || voiceGift.owner.displayName || voiceGift.owner.name || "Musuhi ユーザー";
     const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
 
     // 1) ギフト受信通知 — メールアドレス宛の受信者
@@ -315,7 +322,7 @@ export async function POST(request: Request) {
         normalizedRecipientEmails.map((to) =>
           sendEmail({
             to,
-            subject: `【Musuhi】${emailSenderName} さんから声のギフトが届きました`,
+            subject: `【Musuhi】 ${emailSenderName}さんから、あなたへ。特別な「聞く手紙」が届いています`,
             html: giftDeliveryHtml(deliveryEmailOptions),
             text: giftDeliveryText(deliveryEmailOptions),
           })

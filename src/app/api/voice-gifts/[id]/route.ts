@@ -203,7 +203,7 @@ export async function PUT(request: Request, { params }: Params) {
 
       if (emailRecipients.length > 0) {
         const senderName =
-          voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
+          voiceGift.senderName || voiceGift.owner.displayName || voiceGift.owner.name || "Musuhi ユーザー";
         const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
         const opts = {
           senderName,
@@ -223,7 +223,7 @@ export async function PUT(request: Request, { params }: Params) {
               headers: emailHeaders,
               body: JSON.stringify({
                 to,
-                subject: `【Musuhi】${senderName} さんから声のギフトが届きました`,
+                subject: `【Musuhi】 ${senderName}さんから、あなたへ。特別な「聞く手紙」が届いています`,
                 html: giftDeliveryHtml(opts),
                 text: giftDeliveryText(opts),
               }),

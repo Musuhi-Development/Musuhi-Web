@@ -3,6 +3,8 @@
 //  カラーパレット: ネイビー #2A5CAA / ライトブルー #4A7BC8 / グレー各種
 // ─────────────────────────────────────────────────────────────
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.musuhi-voice.com";
+
 const BASE_STYLES = `
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
@@ -61,7 +63,6 @@ function htmlWrapper(content: string): string {
 export function giftDeliveryHtml({
   senderName,
   giftTitle,
-  giftMessage,
   giftUrl,
 }: {
   senderName: string;
@@ -69,39 +70,70 @@ export function giftDeliveryHtml({
   giftMessage?: string | null;
   giftUrl: string;
 }): string {
-  const initial = senderName.charAt(0) || "?";
-  const messageBlock = giftMessage
-    ? `<p class="gift-message">${escapeHtml(giftMessage)}</p>`
-    : "";
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Musuhi</title>
+</head>
+<body style="margin:0;padding:24px 16px;background:#F5F0E8;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;">
+  <div style="max-width:520px;margin:0 auto;">
 
-  return htmlWrapper(`
-    <div class="header">
-      <p class="logo">Musuhi</p>
-      <p class="tagline">声でつながる、心のギフト</p>
+    <!-- 導入文 -->
+    <p style="text-align:center;font-size:15px;color:#5a4a38;line-height:1.9;margin:0 0 20px;">
+      ${escapeHtml(senderName)}さんから、あなたへ。<br>
+      素敵なボイスギフトが届いています。
+    </p>
+
+    <!-- 封筒風カード（全体リンク） -->
+    <a href="${giftUrl}" style="display:block;text-decoration:none;" target="_blank">
+      <div style="position:relative;background:linear-gradient(160deg,#FEFBF6 0%,#FAF5EC 100%);border:2px solid #c9b99a;border-radius:12px;box-shadow:0 6px 24px rgba(120,95,55,0.18);overflow:hidden;">
+
+        <!-- 消印アイコン（右上） -->
+        <img src="${APP_URL}/icons/stamp1.png" width="72" height="72" alt="" style="position:absolute;top:4px;right:4px;opacity:0.8;mix-blend-mode:multiply;pointer-events:none;">
+
+        <!-- 内枠装飾 -->
+        <div style="margin:12px;border:1px solid rgba(184,149,106,0.5);border-radius:6px;padding:24px 20px 20px;">
+
+          <!-- 水引画像 -->
+          <div style="text-align:center;margin-bottom:12px;">
+            <img src="${APP_URL}/icons/mizuhiki-bow.png" width="80" height="28" alt="" style="object-fit:contain;">
+          </div>
+
+          <!-- 宛名 -->
+          <p style="text-align:center;font-size:18px;font-weight:700;color:#3a2e1e;margin:0 0 12px;letter-spacing:.03em;">
+            ${escapeHtml(giftTitle)}へ
+          </p>
+
+          <!-- 区切り線 -->
+          <hr style="border:none;border-top:1px solid #c9b99a;margin:0 16px 14px;">
+
+          <!-- 差出人 -->
+          <p style="text-align:center;font-size:13px;color:#7a6a55;margin:0;">
+            ${escapeHtml(senderName)}より
+          </p>
+
+        </div>
+
+        <!-- 開封CTAボタン -->
+        <div style="background:linear-gradient(135deg,#4A7BC8 0%,#2A5CAA 100%);padding:14px;text-align:center;">
+          <span style="font-size:14px;font-weight:700;color:#fff;letter-spacing:.05em;">ギフトを開く</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- フッター -->
+    <div style="margin-top:28px;text-align:center;">
+      <hr style="border:none;border-top:1px solid #d4c9b5;margin:0 0 20px;">
+      <p style="font-size:22px;font-weight:700;color:#2A5CAA;letter-spacing:.08em;margin:0 0 4px;">Musuhi</p>
+      <p style="font-size:11px;color:#9a8a76;margin:0 0 12px;">声からはじまる　自分と人とのつながり</p>
+      <p style="font-size:11px;color:#b0a090;margin:0;">© 2026 Musuhi. All rights reserved.</p>
     </div>
-    <div class="body">
-      <div class="sender-chip">
-        <span class="sender-avatar">${escapeHtml(initial)}</span>
-        <span class="sender-name">${escapeHtml(senderName)} さんから</span>
-      </div>
-      <p class="greeting">
-        あなたに声のギフトが届いています。<br>
-        ぜひ聴いてみてください。
-      </p>
-      <div class="gift-card">
-        <p class="gift-label">Voice Gift</p>
-        <p class="gift-title">${escapeHtml(giftTitle)}</p>
-        ${messageBlock}
-      </div>
-      <div class="cta-wrapper">
-        <a href="${giftUrl}" class="cta-btn">ギフトを開く</a>
-      </div>
-      <p class="note">
-        上のボタンから専用ページにアクセスして、<br>
-        ${escapeHtml(senderName)} さんからの音声メッセージをお楽しみください。
-      </p>
-    </div>
-  `);
+
+  </div>
+</body>
+</html>`;
 }
 
 export function giftDeliveryText({

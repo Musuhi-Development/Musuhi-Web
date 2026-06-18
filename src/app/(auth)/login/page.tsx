@@ -10,6 +10,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const giftToken = searchParams.get("giftToken");
+  const returnTitle = searchParams.get("returnTitle");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -39,6 +40,12 @@ function LoginPageInner() {
 
       if (typeof window !== "undefined") {
         localStorage.setItem("musuhi-login-session-id", String(Date.now()));
+      }
+
+      if (returnTitle) {
+        router.push(`/gift/new?title=${encodeURIComponent(returnTitle)}`);
+        router.refresh();
+        return;
       }
 
       if (giftToken) {
