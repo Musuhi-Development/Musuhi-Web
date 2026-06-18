@@ -764,7 +764,7 @@ function GiftPageInner() {
         )}
         {activeFilter === "draft" && (
           <p className="absolute bottom-2 right-4 text-[10px] text-gray-400 whitespace-nowrap">
-            {formatDateTime(gift.createdAt)}
+            {formatDateTime(gift.updatedAt || gift.createdAt)}
           </p>
         )}
       </div>

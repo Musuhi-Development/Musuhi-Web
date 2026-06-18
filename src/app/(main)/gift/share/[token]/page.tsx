@@ -1,20 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Gift, Loader2, UserPlus, LogIn, Lock } from "lucide-react";
+import { Loader2, Gift } from "lucide-react";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
+import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 
-type Contributor = {
-  id: string;
-  name: string | null;
-  avatarUrl: string | null;
+const emotionToAnimal: { [key: string]: string } = {
+  "嬉しい": "/animal/dog.png",
+  "感謝": "/animal/rabbit.png",
+  "楽しい": "/animal/horse.png",
+  "幸せ": "/animal/cat.png",
+  "ワクワク": "/animal/lion.png",
+  "応援": "/animal/tiger.png",
+  "疲れた": "/animal/monkey.png",
+  "悲しい": "/animal/turtle.png",
+  "イライラ": "/animal/bear.png",
 };
 
-type RecordingPreview = {
+type RecordingItem = {
   id: string;
   title: string;
   duration: number;
+  audioUrl: string;
+  description: string | null;
+  images: string[] | null;
+  emotions: string[] | null;
+  createdAt: string;
+  contributorId: string;
   contributorName: string | null;
   contributorAvatarUrl: string | null;
 };
@@ -23,36 +37,14 @@ type GiftShare = {
   id: string;
   title: string;
   message: string | null;
+  senderName: string | null;
   status: string;
   sendAt: string | null;
   owner: { id: string; name: string | null; displayName: string | null; avatarUrl: string | null };
   recordingCount: number;
-  recordings: RecordingPreview[];
-  contributors: Contributor[];
+  recordings: RecordingItem[];
+  contributors: { id: string; name: string | null; avatarUrl: string | null }[];
 };
-
-function AvatarChip({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
-  const initial = (name ?? "?").charAt(0);
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[10px] font-bold overflow-hidden flex-shrink-0">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name ?? ""} className="w-full h-full object-cover" />
-        ) : (
-          initial
-        )}
-      </div>
-      <span className="text-xs text-gray-600 font-medium">{name ?? "ユーザー"}</span>
-    </div>
-  );
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds) return "";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
 export default function GiftSharePage() {
   const params = useParams();
@@ -74,6 +66,34 @@ export default function GiftSharePage() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  const isCollab = useMemo(() => {
+    if (!gift) return false;
+    const ids = new Set((gift.recordings || []).map((r) => r.contributorId).filter(Boolean));
+    return ids.size > 1;
+  }, [gift]);
+
+  const repRec = gift?.recordings?.[0];
+  const repImage = useMemo(() => {
+    const images = repRec?.images;
+    return Array.isArray(images) && images.length > 0 ? images[0] : null;
+  }, [repRec]);
+  const repEmotions: string[] = useMemo(() => {
+    return Array.isArray(repRec?.emotions) ? (repRec!.emotions as string[]) : [];
+  }, [repRec]);
+  const repDescription = repRec?.description || "";
+
+  const displayTitle = useMemo(() => {
+    const t = repRec?.title;
+    return t && String(t).trim() ? t : "無題";
+  }, [repRec]);
+
+  const senderDisplayName = useMemo(() => {
+    if (!gift) return "";
+    return gift.senderName || gift.owner?.displayName || gift.owner?.name || "贈り主";
+  }, [gift]);
+
+  const returnTitle = encodeURIComponent(senderDisplayName);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5]">
@@ -85,7 +105,8 @@ export default function GiftSharePage() {
   if (error || !gift) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5] flex flex-col items-center justify-center px-6">
-        <p className="text-red-500 mb-4">{error || "ボイスギフトが見つかりません"}</p>
+        <Gift size={48} className="text-[#2A5CAA]/40 mb-4" />
+        <p className="text-gray-600 mb-4">{error || "ボイスギフトが見つかりません"}</p>
         <button onClick={() => router.push("/login")} className="text-[#2A5CAA] font-medium">
           ログインへ
         </button>
@@ -94,121 +115,151 @@ export default function GiftSharePage() {
   }
 
   const isSent = gift.status === "sent";
-  const ownerName = gift.owner?.displayName || gift.owner?.name || "オーナー";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5] flex flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md space-y-4">
+    <div className="zen-kaku min-h-screen bg-gray-50 pb-24">
+      {/* ヘッダー */}
+      <div className="bg-white px-6 py-4 shadow-sm flex items-center justify-center">
+        <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-12 w-auto object-contain" />
+      </div>
 
-        {/* ヘッダーカード */}
-        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-[#4A7BC8] to-[#2A5CAA] px-6 py-5 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-              <Gift size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white/80 text-xs font-medium">Musuhi Voice Gift</p>
-              <p className="text-white font-bold text-base leading-tight">{gift.title}</p>
-            </div>
-          </div>
+      <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+        {/* ポラロイドカード */}
+        <div
+          className="relative bg-[#F3EBDD] rounded-2xl p-5 shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
+            backgroundSize: "5px 5px",
+            backgroundPosition: "0 0, 2.5px 2.5px",
+          }}
+        >
+          <div className="relative bg-white rounded-[3px] px-5 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.25)]">
+            {/* クラフト紙テープ */}
+            <div
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22)]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px)",
+                backgroundSize: "3px 3px",
+              }}
+              aria-hidden="true"
+            />
 
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-xs font-bold overflow-hidden flex-shrink-0">
-                {gift.owner.avatarUrl ? (
-                  <img src={gift.owner.avatarUrl} alt={ownerName} className="w-full h-full object-cover" />
+            {/* 写真 */}
+            {repImage ? (
+              <img
+                src={repImage}
+                alt={displayTitle}
+                className="w-full rounded-sm object-cover max-h-64 ring-1 ring-black/[0.07]"
+              />
+            ) : (
+              <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
+                {repEmotions.length > 0 && emotionToAnimal[repEmotions[0]] ? (
+                  <img src={emotionToAnimal[repEmotions[0]]} alt="" className="w-full h-full object-contain" />
                 ) : (
-                  ownerName.charAt(0)
+                  <span className="text-6xl">🎵</span>
                 )}
               </div>
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold text-[#1F4580]">{ownerName}</span>
-                {isSent ? " さんから声のギフトが届いています" : " さんが声のギフト作りに招待しています"}
-              </p>
-            </div>
-
-            {gift.message && (
-              <p className="text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-3 leading-relaxed">
-                {gift.message}
-              </p>
             )}
+
+            <div className="pt-4 px-1 space-y-3 pb-3">
+              <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
+                {displayTitle}
+              </p>
+
+              {repDescription && (
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {repDescription}
+                </p>
+              )}
+
+              {/* 音声プレイヤー */}
+              {gift.recordings.length === 0 ? (
+                <p className="text-sm text-gray-500">まだ音声がありません</p>
+              ) : (
+                <div className="space-y-2">
+                  {gift.recordings.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl bg-transparent border border-[#1e50a2]/30 px-3 py-2.5"
+                    >
+                      {isCollab && (
+                        <p className="text-[11px] text-gray-500 mb-1">
+                          {item.contributorName || "ユーザー"}
+                        </p>
+                      )}
+                      {item.audioUrl ? (
+                        <WaveformPlayer src={item.audioUrl} duration={item.duration} />
+                      ) : (
+                        <p className="text-xs text-gray-400">{item.title}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {repEmotions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {repEmotions.map((emotion) => (
+                    <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
+                      #{emotion}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* 録音ティーザーカード */}
-        {gift.recordingCount > 0 && (
-          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-            <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src="/icons/mic.png" alt="" className="w-4 h-4 object-contain" />
-                <span className="text-sm font-bold text-gray-700">収録された音声</span>
-              </div>
-              <span className="text-xs bg-[#EBF2FF] text-[#2A5CAA] font-bold px-2.5 py-0.5 rounded-full">
-                {gift.recordingCount}件
-              </span>
-            </div>
-
-            <div className="px-4 pb-4 space-y-2">
-              {gift.recordings.map((rec, i) => (
-                <div
-                  key={rec.id}
-                  className="relative flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3 overflow-hidden"
-                >
-                  {/* ロックオーバーレイ */}
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-end pr-4 z-10">
-                    <Lock size={14} className="text-[#2A5CAA]/60" />
-                  </div>
-
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EBF2FF] to-[#BFDBFE] flex items-center justify-center flex-shrink-0">
-                    <img src="/icons/mic.png" alt="" className="w-3.5 h-3.5 object-contain" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{rec.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {rec.contributorName && (
-                        <span className="text-[11px] text-gray-500">{rec.contributorName}</span>
-                      )}
-                      {rec.duration > 0 && (
-                        <span className="text-[11px] text-gray-400">{formatDuration(rec.duration)}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <p className="text-center text-xs text-gray-400 pt-1">
-                アカウントを作成すると音声を聴くことができます
+        {/* 便箋エリア */}
+        {(gift.title || gift.message || gift.senderName) && (
+          <div
+            className="relative rounded-2xl bg-[#FAF7F2] shadow-sm px-6 py-7 pb-12"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
+            }}
+          >
+            <MizuhikiBow className="absolute top-3 right-4 w-24 h-7 opacity-80" />
+            {gift.title && (
+              <p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
+            )}
+            {gift.message && (
+              <p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
+                {gift.message}
               </p>
-            </div>
+            )}
+            {gift.senderName && (
+              <p className="absolute bottom-3 right-4 text-sm text-gray-500 font-medium">
+                {gift.senderName}より
+              </p>
+            )}
           </div>
         )}
 
-        {/* 送信者カード */}
-        {gift.contributors.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-lg px-5 py-4">
-            <p className="text-sm font-bold text-gray-700 mb-3">声を届けてくれた人</p>
-            <div className="flex flex-wrap gap-3">
-              {gift.contributors.map((c) => (
-                <AvatarChip key={c.id} name={c.name} avatarUrl={c.avatarUrl} />
-              ))}
-            </div>
-          </div>
+        {/* お返しボタン */}
+        {isSent && (
+          <Link
+            href={`/signup?returnTitle=${returnTitle}`}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#c0873f] to-[#a06828] text-white py-4 rounded-full font-bold text-sm shadow-lg"
+          >
+            {senderDisplayName}さんにお返しのボイスギフトを贈る
+          </Link>
         )}
 
-        {/* CTA */}
+        {/* ログイン・新規登録ボタン */}
         <div className="space-y-3 pt-1">
           <Link
             href={`/signup?giftToken=${token}`}
             className="w-full flex items-center justify-center gap-2 bg-[#2A5CAA] text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-[#2A5CAA]/30"
           >
-            <UserPlus size={18} />
-            {isSent ? "アカウントを作成してギフトを開く" : "アカウントを作成して参加"}
+            アカウントを作成してマイページで管理
           </Link>
           <Link
             href={`/login?giftToken=${token}`}
             className="w-full flex items-center justify-center gap-2 bg-white border border-[#2A5CAA] text-[#2A5CAA] py-3.5 rounded-full font-bold text-sm"
           >
-            <LogIn size={18} />
             すでにアカウントをお持ちの方
           </Link>
         </div>

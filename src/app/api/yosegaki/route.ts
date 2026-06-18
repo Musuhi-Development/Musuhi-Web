@@ -49,9 +49,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    const orderBy =
+      type === "collaborative" ? { deadline: "asc" as const } :
+      type === "delivered"     ? { updatedAt: "desc" as const } :
+      type === "created"       ? { updatedAt: "desc" as const } :
+      { createdAt: "desc" as const };
+
     const yosegakiList = await prisma.yosegaki.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       include: yosegakiInclude,
     });
 

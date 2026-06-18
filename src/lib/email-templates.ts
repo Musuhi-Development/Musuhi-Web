@@ -69,39 +69,76 @@ export function giftDeliveryHtml({
   giftMessage?: string | null;
   giftUrl: string;
 }): string {
-  const initial = senderName.charAt(0) || "?";
   const messageBlock = giftMessage
-    ? `<p class="gift-message">${escapeHtml(giftMessage)}</p>`
+    ? `<p style="font-size:14px;color:#5a4a38;line-height:2;margin:12px 0 0;white-space:pre-wrap;">${escapeHtml(giftMessage)}</p>`
     : "";
 
-  return htmlWrapper(`
-    <div class="header">
-      <p class="logo">Musuhi</p>
-      <p class="tagline">声でつながる、心のギフト</p>
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Musuhi</title>
+</head>
+<body style="margin:0;padding:24px 16px;background:#F5F0E8;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;">
+  <div style="max-width:520px;margin:0 auto;">
+
+    <!-- 導入文 -->
+    <p style="text-align:center;font-size:15px;color:#5a4a38;line-height:1.9;margin:0 0 20px;">
+      ${escapeHtml(senderName)}さんから、あなたへ。<br>
+      素敵なボイスギフトが届いています。
+    </p>
+
+    <!-- 封筒風カード（全体リンク） -->
+    <a href="${giftUrl}" style="display:block;text-decoration:none;" target="_blank">
+      <div style="background:linear-gradient(160deg,#FEFBF6 0%,#FAF5EC 100%);border:2px solid #c9b99a;border-radius:12px;box-shadow:0 6px 24px rgba(120,95,55,0.18);overflow:hidden;">
+
+        <!-- 内枠装飾 -->
+        <div style="margin:12px;border:1px solid rgba(184,149,106,0.5);border-radius:6px;padding:20px 20px 16px;">
+
+          <!-- 上部：水引モチーフ（SVG） -->
+          <div style="text-align:center;margin-bottom:10px;">
+            <svg width="80" height="28" viewBox="0 0 80 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M40 14 C28 4, 8 4, 4 14 C8 24, 28 24, 40 14Z" fill="#C8455A" opacity="0.85"/>
+              <path d="M40 14 C52 4, 72 4, 76 14 C72 24, 52 24, 40 14Z" fill="#2A5CAA" opacity="0.85"/>
+              <circle cx="40" cy="14" r="3.5" fill="#c9b99a"/>
+            </svg>
+          </div>
+
+          <!-- 宛名 -->
+          <p style="text-align:center;font-size:18px;font-weight:700;color:#3a2e1e;margin:0 0 10px;letter-spacing:.03em;">
+            ${escapeHtml(giftTitle)}へ
+          </p>
+
+          <!-- 区切り線 -->
+          <hr style="border:none;border-top:1px solid #c9b99a;margin:0 16px 14px;">
+
+          <!-- 差出人 -->
+          <p style="text-align:center;font-size:13px;color:#7a6a55;margin:0 0 ${giftMessage ? "12px" : "0"};">
+            ${escapeHtml(senderName)}より
+          </p>
+
+          ${messageBlock}
+        </div>
+
+        <!-- 開封CTA帯 -->
+        <div style="background:linear-gradient(135deg,#4A7BC8 0%,#2A5CAA 100%);padding:14px;text-align:center;">
+          <span style="font-size:14px;font-weight:700;color:#fff;letter-spacing:.05em;">タップしてギフトを開く ▶</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- フッター -->
+    <div style="margin-top:28px;text-align:center;">
+      <hr style="border:none;border-top:1px solid #d4c9b5;margin:0 0 20px;">
+      <p style="font-size:22px;font-weight:700;color:#2A5CAA;letter-spacing:.08em;margin:0 0 4px;">Musuhi</p>
+      <p style="font-size:11px;color:#9a8a76;margin:0 0 12px;">声でつながる、心のギフト</p>
+      <p style="font-size:11px;color:#b0a090;margin:0;">© 2026 Musuhi. All rights reserved.</p>
     </div>
-    <div class="body">
-      <div class="sender-chip">
-        <span class="sender-avatar">${escapeHtml(initial)}</span>
-        <span class="sender-name">${escapeHtml(senderName)} さんから</span>
-      </div>
-      <p class="greeting">
-        あなたに声のギフトが届いています。<br>
-        ぜひ聴いてみてください。
-      </p>
-      <div class="gift-card">
-        <p class="gift-label">Voice Gift</p>
-        <p class="gift-title">${escapeHtml(giftTitle)}</p>
-        ${messageBlock}
-      </div>
-      <div class="cta-wrapper">
-        <a href="${giftUrl}" class="cta-btn">ギフトを開く</a>
-      </div>
-      <p class="note">
-        上のボタンから専用ページにアクセスして、<br>
-        ${escapeHtml(senderName)} さんからの音声メッセージをお楽しみください。
-      </p>
-    </div>
-  `);
+
+  </div>
+</body>
+</html>`;
 }
 
 export function giftDeliveryText({

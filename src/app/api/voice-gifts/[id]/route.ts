@@ -223,7 +223,7 @@ export async function PUT(request: Request, { params }: Params) {
               headers: emailHeaders,
               body: JSON.stringify({
                 to,
-                subject: `【Musuhi】${senderName} さんから声のギフトが届きました`,
+                subject: `【Musuhi】 ${senderName}さんから、あなたへ。特別な「聞く手紙」が届いています`,
                 html: giftDeliveryHtml(opts),
                 text: giftDeliveryText(opts),
               }),
