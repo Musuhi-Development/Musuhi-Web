@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense, useMemo } from "react";
 import { Plus, Send, Users, Mail, Calendar, Heart, MoreVertical, Pencil, Trash2, X, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -114,6 +114,22 @@ function GiftPageInner() {
   const voiceGiftFilter = activeFilter === "collaborative" ? "received" : activeFilter;
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(voiceGiftFilter as VoiceGiftFilter);
   const router = useRouter();
+
+  // 贈ったタブ: ボイスギフト + 配信済み寄せ音声を sendAt/updatedAt 降順でマージ
+  const sentCombinedItems = useMemo(() => {
+    if (activeFilter !== "sent") return [];
+    const vgItems = voiceGifts.map((g: any) => ({
+      type: "vg" as const,
+      sortDate: g.sendAt ? new Date(g.sendAt).getTime() : new Date(g.createdAt).getTime(),
+      data: g,
+    }));
+    const yoItems = deliveredYosegakiList.map((y: any) => ({
+      type: "yg" as const,
+      sortDate: new Date(y.updatedAt || y.createdAt).getTime(),
+      data: y,
+    }));
+    return [...vgItems, ...yoItems].sort((a, b) => b.sortDate - a.sortDate);
+  }, [activeFilter, voiceGifts, deliveredYosegakiList]);
 
   async function handleDelete(giftId: string) {
     if (!confirm("このボイスギフトを削除しますか？")) return;
@@ -891,7 +907,9 @@ function GiftPageInner() {
               再試行
             </button>
           </div>
-        ) : voiceGifts.length === 0 && (activeFilter !== "draft" || draftYosegakiList.length === 0) ? (
+        ) : voiceGifts.length === 0 &&
+            (activeFilter !== "draft" || draftYosegakiList.length === 0) &&
+            (activeFilter !== "sent" || deliveredYosegakiList.length === 0) ? (
           <div className="text-center py-12 bg-white rounded-3xl shadow-md">
             <Mail size={48} className="mx-auto mb-3 opacity-40 text-gray-400" />
             <p className="text-gray-500">ボイスギフトはまだありません</p>
@@ -900,11 +918,16 @@ function GiftPageInner() {
           <div className="space-y-3">
             {/* 下書きタブ: 寄せ音声カードを先頭に表示 */}
             {activeFilter === "draft" && draftYosegakiList.map((y) => renderDraftYosegakiCard(y))}
-            {/* 贈ったタブ: 配信済み寄せ音声を先頭に表示 */}
-            {activeFilter === "sent" && deliveredYosegakiList.map((y) => renderDeliveredYosegakiCard(y))}
-            {voiceGifts.map((gift) =>
-              activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
-            )}
+            {/* 贈ったタブ: 寄せ音声 + ボイスギフトを日付降順でマージ表示 */}
+            {activeFilter === "sent"
+              ? sentCombinedItems.map((item) =>
+                  item.type === "yg"
+                    ? renderDeliveredYosegakiCard(item.data)
+                    : renderStandardCard(item.data)
+                )
+              : voiceGifts.map((gift) =>
+                  activeFilter === "received" ? renderReceivedCard(gift) : renderStandardCard(gift)
+                )}
           </div>
         )}
       </div>
