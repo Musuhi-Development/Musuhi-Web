@@ -262,22 +262,6 @@ export default function GiftSharePage() {
           </Link>
         )}
 
-        {/* アカウント管理ボタン */}
-        <div className="space-y-3 pt-1">
-          <Link
-            href={`/signup?giftToken=${token}`}
-            className="w-full flex items-center justify-center gap-2 bg-[#2A5CAA] text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-[#2A5CAA]/30 block text-center"
-          >
-            アカウントを作成してマイページで管理
-          </Link>
-          <Link
-            href={`/login?giftToken=${token}`}
-            className="w-full flex items-center justify-center gap-2 bg-white border border-[#2A5CAA] text-[#2A5CAA] py-3.5 rounded-full font-bold text-sm block text-center"
-          >
-            すでにアカウントをお持ちの方
-          </Link>
-        </div>
-
         <p className="text-center text-[11px] text-gray-400">Musuhi — 声からはじまる　自分と人とのつながり</p>
       </div>
     </div>
