@@ -307,7 +307,7 @@ export async function POST(request: Request) {
 
     // ─── メール送信（非同期・失敗してもレスポンスはブロックしない）───
     const emailSenderName =
-      voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
+      voiceGift.senderName || voiceGift.owner.displayName || voiceGift.owner.name || "Musuhi ユーザー";
     const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
 
     // 1) ギフト受信通知 — メールアドレス宛の受信者

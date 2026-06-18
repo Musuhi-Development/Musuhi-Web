@@ -203,7 +203,7 @@ export async function PUT(request: Request, { params }: Params) {
 
       if (emailRecipients.length > 0) {
         const senderName =
-          voiceGift.owner.displayName ?? voiceGift.owner.name ?? "Musuhi ユーザー";
+          voiceGift.senderName || voiceGift.owner.displayName || voiceGift.owner.name || "Musuhi ユーザー";
         const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
         const opts = {
           senderName,

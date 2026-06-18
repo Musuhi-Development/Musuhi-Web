@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Gift } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 import { MizuhikiBow } from "@/components/shared/MizuhikiBow";
 
@@ -25,8 +25,8 @@ type RecordingItem = {
   duration: number;
   audioUrl: string;
   description: string | null;
-  images: string[] | null;
-  emotions: string[] | null;
+  images: unknown;
+  emotions: unknown;
   createdAt: string;
   contributorId: string;
   contributorName: string | null;
@@ -45,6 +45,12 @@ type GiftShare = {
   recordings: RecordingItem[];
   contributors: { id: string; name: string | null; avatarUrl: string | null }[];
 };
+
+function formatDateTime(dateString: string) {
+  const date = new Date(dateString);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export default function GiftSharePage() {
   const params = useParams();
@@ -73,13 +79,17 @@ export default function GiftSharePage() {
   }, [gift]);
 
   const repRec = gift?.recordings?.[0];
+
   const repImage = useMemo(() => {
     const images = repRec?.images;
-    return Array.isArray(images) && images.length > 0 ? images[0] : null;
+    return Array.isArray(images) && images.length > 0 ? (images[0] as string) : null;
   }, [repRec]);
+
   const repEmotions: string[] = useMemo(() => {
-    return Array.isArray(repRec?.emotions) ? (repRec!.emotions as string[]) : [];
+    const e = repRec?.emotions;
+    return Array.isArray(e) ? (e as string[]) : [];
   }, [repRec]);
+
   const repDescription = repRec?.description || "";
 
   const displayTitle = useMemo(() => {
@@ -96,7 +106,7 @@ export default function GiftSharePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-[#2A5CAA]" />
       </div>
     );
@@ -104,9 +114,8 @@ export default function GiftSharePage() {
 
   if (error || !gift) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#EBF2FF] to-[#E3EAF5] flex flex-col items-center justify-center px-6">
-        <Gift size={48} className="text-[#2A5CAA]/40 mb-4" />
-        <p className="text-gray-600 mb-4">{error || "ボイスギフトが見つかりません"}</p>
+      <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
+        <p className="text-red-500 mb-4">{error || "ボイスギフトが見つかりません"}</p>
         <button onClick={() => router.push("/login")} className="text-[#2A5CAA] font-medium">
           ログインへ
         </button>
@@ -119,14 +128,18 @@ export default function GiftSharePage() {
   return (
     <div className="zen-kaku min-h-screen bg-gray-50 pb-24">
       {/* ヘッダー */}
-      <div className="bg-white px-6 py-4 shadow-sm flex items-center justify-center">
-        <img src="/icons/Musuhi1.png" alt="Musuhi" className="h-12 w-auto object-contain" />
+      <div className="bg-white px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="w-8" />
+          <h1 className="text-lg font-bold text-gray-800">ボイスギフト</h1>
+          <span className="w-8" />
+        </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
-        {/* ポラロイドカード */}
+      <div className="px-6 py-6 space-y-6">
+        {/* ポラロイドカード — authenticated 詳細ページと同一UI */}
         <div
-          className="relative bg-[#F3EBDD] rounded-2xl p-5 shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+          className="relative bg-[#F3EBDD] rounded-2xl p-5 sm:p-7 shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
           style={{
             backgroundImage:
               "radial-gradient(rgba(255,255,255,0.5) 0.5px, transparent 0.5px), radial-gradient(rgba(120,95,55,0.06) 0.5px, transparent 0.5px)",
@@ -134,14 +147,14 @@ export default function GiftSharePage() {
             backgroundPosition: "0 0, 2.5px 2.5px",
           }}
         >
-          <div className="relative bg-white rounded-[3px] px-5 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.25)]">
+          <div className="relative bg-white rounded-[3px] px-5 sm:px-6 pt-6 pb-6 shadow-[0_16px_34px_-8px_rgba(0,0,0,0.25)]">
             {/* クラフト紙テープ */}
             <div
-              className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22)]"
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-24 h-7 rotate-[-3deg] z-20 bg-[#9CB38D] shadow-[0_3px_6px_-1px_rgba(0,0,0,0.22),inset_0_0_10px_rgba(60,75,50,0.18)]"
               style={{
                 backgroundImage:
-                  "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px)",
-                backgroundSize: "3px 3px",
+                  "radial-gradient(rgba(255,255,255,0.10) 0.5px, transparent 0.6px), repeating-linear-gradient(112deg, rgba(60,75,50,0.05) 0px, rgba(60,75,50,0.05) 1px, transparent 1px, transparent 3px)",
+                backgroundSize: "3px 3px, auto",
               }}
               aria-hidden="true"
             />
@@ -151,7 +164,7 @@ export default function GiftSharePage() {
               <img
                 src={repImage}
                 alt={displayTitle}
-                className="w-full rounded-sm object-cover max-h-64 ring-1 ring-black/[0.07]"
+                className="w-full rounded-sm object-cover max-h-64 sm:max-h-72 ring-1 ring-black/[0.07]"
               />
             ) : (
               <div className="w-full h-52 rounded-sm bg-gradient-to-br from-teal-100 to-blue-100 flex items-center justify-center ring-1 ring-black/[0.07]">
@@ -164,7 +177,7 @@ export default function GiftSharePage() {
             )}
 
             <div className="pt-4 px-1 space-y-3 pb-3">
-              <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug">
+              <p className="text-lg font-bold text-gray-800 tracking-wide leading-snug pr-9">
                 {displayTitle}
               </p>
 
@@ -200,7 +213,7 @@ export default function GiftSharePage() {
               )}
 
               {repEmotions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pr-10">
                   {repEmotions.map((emotion) => (
                     <span key={emotion} className="text-xs px-2 py-1 bg-blue-50 text-[#2A5CAA] rounded-full">
                       #{emotion}
@@ -209,62 +222,63 @@ export default function GiftSharePage() {
                 </div>
               )}
             </div>
+
+            {/* 録音日時：ポラロイド右下 */}
+            {repRec?.createdAt && (
+              <p className="absolute bottom-3 right-4 text-[10px] text-gray-400 whitespace-nowrap">
+                録音日：{formatDateTime(repRec.createdAt)}
+              </p>
+            )}
           </div>
         </div>
 
         {/* 便箋エリア */}
-        {(gift.title || gift.message || gift.senderName) && (
-          <div
-            className="relative rounded-2xl bg-[#FAF7F2] shadow-sm px-6 py-7 pb-12"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
-            }}
-          >
-            <MizuhikiBow className="absolute top-3 right-4 w-24 h-7 opacity-80" />
-            {gift.title && (
-              <p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
-            )}
-            {gift.message && (
-              <p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
-                {gift.message}
-              </p>
-            )}
-            {gift.senderName && (
-              <p className="absolute bottom-3 right-4 text-sm text-gray-500 font-medium">
-                {gift.senderName}より
-              </p>
-            )}
-          </div>
-        )}
+        <div
+          className="relative rounded-2xl bg-[#FAF7F2] shadow-sm px-6 sm:px-8 py-7 pb-12"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(transparent, transparent 31px, rgba(120,95,55,0.10) 31px, rgba(120,95,55,0.10) 32px)",
+          }}
+        >
+          <MizuhikiBow className="absolute top-3 right-4 w-24 h-7 opacity-80" />
+          <p className="text-xl font-bold text-gray-800 mb-5">{gift.title}へ</p>
+          <p className="text-[15px] text-gray-700 leading-[2rem] whitespace-pre-wrap min-h-[4rem]">
+            {gift.message || ""}
+          </p>
+          {gift.senderName && (
+            <p className="absolute bottom-3 right-4 text-sm text-gray-500 font-medium">
+              {gift.senderName}より
+            </p>
+          )}
+        </div>
 
         {/* お返しボタン */}
         {isSent && (
           <Link
             href={`/signup?returnTitle=${returnTitle}`}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#c0873f] to-[#a06828] text-white py-4 rounded-full font-bold text-sm shadow-lg"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#c0873f] to-[#a06828] text-white py-4 rounded-full font-bold text-sm shadow-lg block text-center"
           >
             {senderDisplayName}さんにお返しのボイスギフトを贈る
           </Link>
         )}
 
-        {/* ログイン・新規登録ボタン */}
+        {/* アカウント管理ボタン */}
         <div className="space-y-3 pt-1">
           <Link
             href={`/signup?giftToken=${token}`}
-            className="w-full flex items-center justify-center gap-2 bg-[#2A5CAA] text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-[#2A5CAA]/30"
+            className="w-full flex items-center justify-center gap-2 bg-[#2A5CAA] text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-[#2A5CAA]/30 block text-center"
           >
             アカウントを作成してマイページで管理
           </Link>
           <Link
             href={`/login?giftToken=${token}`}
-            className="w-full flex items-center justify-center gap-2 bg-white border border-[#2A5CAA] text-[#2A5CAA] py-3.5 rounded-full font-bold text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-white border border-[#2A5CAA] text-[#2A5CAA] py-3.5 rounded-full font-bold text-sm block text-center"
           >
             すでにアカウントをお持ちの方
           </Link>
         </div>
 
-        <p className="text-center text-[11px] text-gray-400">Musuhi — 声でつながる、心のギフト</p>
+        <p className="text-center text-[11px] text-gray-400">Musuhi — 声からはじまる　自分と人とのつながり</p>
       </div>
     </div>
   );
