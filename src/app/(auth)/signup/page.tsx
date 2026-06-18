@@ -10,6 +10,7 @@ function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const giftToken = searchParams.get("giftToken");
+  const returnTitle = searchParams.get("returnTitle");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -96,12 +97,23 @@ function SignupPageInner() {
       // セッション未発行時はログイン画面へ誘導（メール確認必須設定を考慮）
       if (data.emailConfirmationRequired || !data.sessionCreated) {
         setInfo("アカウントを作成しました。メール確認後にログインしてください。");
-        router.push(giftToken ? `/login?giftToken=${giftToken}` : "/login");
+        const loginDest = returnTitle
+          ? `/login?returnTitle=${encodeURIComponent(returnTitle)}`
+          : giftToken
+          ? `/login?giftToken=${giftToken}`
+          : "/login";
+        router.push(loginDest);
         return;
       }
 
       if (typeof window !== "undefined") {
         localStorage.setItem("musuhi-login-session-id", String(Date.now()));
+      }
+
+      if (returnTitle) {
+        router.push(`/gift/new?title=${encodeURIComponent(returnTitle)}`);
+        router.refresh();
+        return;
       }
 
       if (giftToken) {
