@@ -3,6 +3,8 @@
 //  カラーパレット: ネイビー #2A5CAA / ライトブルー #4A7BC8 / グレー各種
 // ─────────────────────────────────────────────────────────────
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.musuhi-voice.com";
+
 const BASE_STYLES = `
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
@@ -44,10 +46,10 @@ function htmlWrapper(content: string): string {
   <div class="wrapper">
     ${content}
     <div class="footer">
+      <img src="${APP_URL}/icons/Musuhi1.png" width="100" alt="Musuhi" style="display:inline-block;margin:0 0 6px;">
       <p class="footer-text">
-        このメールは Musuhi からお送りしています。<br>
-        心のこもった声のギフトで、大切な人とのつながりを育みましょう。<br><br>
-        © Musuhi. All rights reserved.
+        声からはじまる　自分と人とのつながり<br><br>
+        © 2026 Musuhi. All rights reserved.
       </p>
     </div>
   </div>
@@ -56,7 +58,7 @@ function htmlWrapper(content: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  ギフト受信通知メール
+//  ギフト受信通知メール（個別ボイスギフト）
 // ─────────────────────────────────────────────────────────────
 export function giftDeliveryHtml({
   senderName,
@@ -199,6 +201,107 @@ export function collabInviteText({
     "",
     "─",
     "Musuhi — 声でつながる、心のギフト",
+  ].join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────
+//  寄せ音声完成通知メール（お届け先への通知）
+// ─────────────────────────────────────────────────────────────
+export function yosegakiDeliveryHtml({
+  senderName,
+  recipientName,
+  viewUrl,
+}: {
+  senderName: string;
+  recipientName: string;
+  viewUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Musuhi</title>
+</head>
+<body style="margin:0;padding:24px 16px;background:#F5F0E8;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;">
+  <div style="max-width:520px;margin:0 auto;">
+
+    <!-- 導入文 -->
+    <p style="text-align:center;font-size:15px;color:#5a4a38;line-height:1.9;margin:0 0 20px;">
+      ${escapeHtml(senderName)}さんから、あなたへ。<br>
+      素敵なボイスギフトが届いています。
+    </p>
+
+    <!-- 封筒風カード（全体リンク） -->
+    <a href="${viewUrl}" style="display:block;text-decoration:none;" target="_blank">
+      <div style="position:relative;background:linear-gradient(160deg,#FEFBF6 0%,#FAF5EC 100%);border:2px solid #c9b99a;border-radius:12px;box-shadow:0 6px 24px rgba(120,95,55,0.18);overflow:hidden;">
+
+        <!-- 消印アイコン（右上） -->
+        <img src="${APP_URL}/icons/stamp1.png" width="72" height="72" alt="" style="position:absolute;top:4px;right:4px;opacity:0.8;mix-blend-mode:multiply;pointer-events:none;">
+
+        <!-- 内枠装飾 -->
+        <div style="margin:12px;border:1px solid rgba(184,149,106,0.5);border-radius:6px;padding:24px 20px 20px;">
+
+          <!-- 水引画像 -->
+          <div style="text-align:center;margin-bottom:12px;">
+            <img src="${APP_URL}/icons/mizuhiki-bow.png" width="80" height="28" alt="" style="object-fit:contain;">
+          </div>
+
+          <!-- 宛名 -->
+          <p style="text-align:center;font-size:18px;font-weight:700;color:#3a2e1e;margin:0 0 4px;letter-spacing:.03em;">
+            ${escapeHtml(recipientName)}さんへ
+          </p>
+
+          <!-- 差出人（小） -->
+          <p style="text-align:center;font-size:12px;color:#7a6a55;margin:0 0 12px;">
+            ${escapeHtml(senderName)}より
+          </p>
+
+          <!-- 区切り線 -->
+          <hr style="border:none;border-top:1px solid #c9b99a;margin:0 16px;">
+
+        </div>
+
+        <!-- 開封CTAボタン -->
+        <div style="background:linear-gradient(135deg,#4A7BC8 0%,#2A5CAA 100%);padding:14px;text-align:center;">
+          <span style="font-size:14px;font-weight:700;color:#fff;letter-spacing:.05em;">ギフトを開く</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- フッター -->
+    <div style="margin-top:28px;text-align:center;">
+      <hr style="border:none;border-top:1px solid #d4c9b5;margin:0 0 20px;">
+      <img src="${APP_URL}/icons/Musuhi1.png" width="120" alt="Musuhi" style="display:inline-block;margin:0 0 6px;">
+      <p style="font-size:11px;color:#9a8a76;margin:0 0 8px;">声からはじまる　自分と人とのつながり</p>
+      <p style="font-size:11px;color:#b0a090;margin:0;">© 2026 Musuhi. All rights reserved.</p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+export function yosegakiDeliveryText({
+  senderName,
+  recipientName,
+  viewUrl,
+}: {
+  senderName: string;
+  recipientName: string;
+  viewUrl: string;
+}): string {
+  return [
+    `【Musuhi】${senderName}さんから、あなたへ。特別な聴く手紙が届いています`,
+    "",
+    `${senderName}さんから、${recipientName}さんへ。`,
+    "素敵なボイスギフトが届いています。",
+    "",
+    "以下のリンクからギフトをお開きください:",
+    viewUrl,
+    "",
+    "─",
+    "Musuhi — 声からはじまる 自分と人とのつながり",
   ].join("\n");
 }
 
