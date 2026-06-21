@@ -36,7 +36,8 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
     throw new Error("Either html or text must be provided.");
   }
 
-  const defaultFrom = process.env.SMTP_FROM ?? process.env.SMTP_USER;
+  const fromAddress = process.env.SMTP_FROM ?? process.env.SMTP_USER;
+  const defaultFrom = fromAddress ? `"Musuhi｜Voice Gift" <${fromAddress}>` : undefined;
 
   const transporter = createTransporter();
   await transporter.sendMail({
