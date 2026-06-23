@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       where.contributions = { some: { contributorId: user.id } };
     } else if (type === "collaborative") {
       // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting or completed
-      // ただし deliverAt を過ぎた completed は実質 delivered なので除外（cron 未実行でも正しく表示）
+      // deliverAt が過ぎ、かつ録音済み参加者が1名以上 → delivered 相当として除外
+      // （参加者0名で終了したカードは引き続き表示し、企画者が削除できるようにする）
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
@@ -39,13 +40,13 @@ export async function GET(request: NextRequest) {
       where.status = { in: ["collecting", "completed"] };
       where.NOT = {
         AND: [
-          { status: "completed" },
           { deliverAt: { lte: now } },
+          { contributions: { some: { audioUrl: { not: null } } } },
         ],
       };
     } else if (type === "delivered") {
-      // 贈ったタブ: status が delivered のもの、または completed かつ deliverAt を過ぎたもの
-      // （cron が未実行でもお届け済み扱いとして表示する）
+      // 贈ったタブ: status が delivered のもの
+      // + cron 未実行でも deliverAt 過ぎ & 録音済み参加者1名以上は贈った扱い
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
@@ -54,7 +55,13 @@ export async function GET(request: NextRequest) {
         {
           OR: [
             { status: "delivered" },
-            { AND: [{ status: "completed" }, { deliverAt: { lte: now } }] },
+            {
+              AND: [
+                { status: { in: ["collecting", "completed"] } },
+                { deliverAt: { lte: now } },
+                { contributions: { some: { audioUrl: { not: null } } } },
+              ],
+            },
           ],
         },
       ];
