@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth();
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type"); // 'created' | 'contributed' | 'collaborative'
+    const now = new Date();
 
     let where: any = {};
 
@@ -29,19 +30,34 @@ export async function GET(request: NextRequest) {
     } else if (type === "contributed") {
       where.contributions = { some: { contributorId: user.id } };
     } else if (type === "collaborative") {
-      // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting or completed（delivered になるまで表示）
+      // みんなで贈るタブ: 自分が作成 or 招待/参加済み かつ collecting or completed
+      // ただし deliverAt を過ぎた completed は実質 delivered なので除外（cron 未実行でも正しく表示）
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
       ];
       where.status = { in: ["collecting", "completed"] };
+      where.NOT = {
+        AND: [
+          { status: "completed" },
+          { deliverAt: { lte: now } },
+        ],
+      };
     } else if (type === "delivered") {
-      // 贈ったタブ: 自分が作成 or 参加済み かつ delivered
+      // 贈ったタブ: status が delivered のもの、または completed かつ deliverAt を過ぎたもの
+      // （cron が未実行でもお届け済み扱いとして表示する）
       where.OR = [
         { creatorId: user.id },
         { contributions: { some: { contributorId: user.id } } },
       ];
-      where.status = "delivered";
+      where.AND = [
+        {
+          OR: [
+            { status: "delivered" },
+            { AND: [{ status: "completed" }, { deliverAt: { lte: now } }] },
+          ],
+        },
+      ];
     } else {
       where.OR = [
         { creatorId: user.id },
