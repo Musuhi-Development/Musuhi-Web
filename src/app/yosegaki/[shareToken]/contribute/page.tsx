@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ImageIcon, Mic, Square } from "lucide-react";
 import Link from "next/link";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
 
 export default function ContributePage() {
   const { shareToken } = useParams() as { shareToken: string };
@@ -383,9 +384,9 @@ export default function ContributePage() {
               <>
                 <div className="flex items-center gap-2 text-green-600">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <p className="text-sm font-bold">録音完了 ({audioDuration}秒)</p>
+                  <p className="text-sm font-bold">録音完了</p>
                 </div>
-                <audio src={audioUrl} controls className="w-full" />
+                <WaveformPlayer src={audioUrl} duration={audioDuration} />
                 <button
                   type="button"
                   onClick={() => { setAudioUrl(""); setAudioDuration(0); }}

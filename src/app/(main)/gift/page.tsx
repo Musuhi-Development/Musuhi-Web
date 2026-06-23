@@ -51,6 +51,8 @@ function GiftPageInner() {
 
   // 3点メニュー
   const [menuGiftId, setMenuGiftId] = useState<string | null>(null);
+  // 寄せ音声カードの3点メニュー
+  const [menuYosegakiId, setMenuYosegakiId] = useState<string | null>(null);
 
   // 編集モーダル
   type EditState = { gift: any; title: string; message: string; sendAt: string; recordingId: string };
@@ -111,9 +113,62 @@ function GiftPageInner() {
     return () => document.removeEventListener("click", close);
   }, [menuGiftId]);
 
+  useEffect(() => {
+    if (!menuYosegakiId) return;
+    const close = () => setMenuYosegakiId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [menuYosegakiId]);
+
   const voiceGiftFilter = activeFilter === "collaborative" ? "received" : activeFilter;
   const { voiceGifts, loading, error, refresh } = useVoiceGifts(voiceGiftFilter as VoiceGiftFilter);
   const router = useRouter();
+
+  // みんなで贈るタブ: 3段階優先度ソート & フィルタ
+  const sortedYosegakiList = useMemo(() => {
+    if (!user || yosegakiList.length === 0) return yosegakiList;
+    const now = Date.now();
+
+    const processed = yosegakiList.flatMap((y: any) => {
+      const contributions = y.contributions || [];
+      const recordedContribs = contributions.filter((c: any) => c.audioUrl);
+      const myContrib = contributions.find((c: any) => c.contributorId === user.id);
+      const isInvited = !!myContrib && !myContrib.audioUrl;
+      const isCreator = y.creatorId === user.id;
+      const deadlinePassed = y.deadline ? new Date(y.deadline).getTime() < now : false;
+      const isZeroExpired = deadlinePassed && recordedContribs.length === 0;
+
+      // 参加者0名で終了した企画は未参加招待者には非表示
+      if (isZeroExpired && isInvited && !isCreator) return [];
+
+      let group: number;
+      if (!isZeroExpired && isInvited && !deadlinePassed) {
+        group = 1; // 最上部: 未参加の招待（期限内）
+      } else if (isZeroExpired) {
+        group = 3; // 最下部: 参加者0名終了
+      } else {
+        group = 2; // 中央: 進行中
+      }
+
+      return [{ ...y, _group: group, _deadlinePassed: deadlinePassed, _isZeroExpired: isZeroExpired }];
+    });
+
+    return processed.sort((a: any, b: any) => {
+      if (a._group !== b._group) return a._group - b._group;
+      if (a._group === 1) {
+        // 作成日時 降順（新しい招待が最上位）
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (a._group === 2) {
+        // 締切が近い順（昇順）
+        const aD = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+        const bD = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+        return aD - bD;
+      }
+      // group 3: 更新日時 降順
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [yosegakiList, user]);
 
   // 贈ったタブ: ボイスギフト + 配信済み寄せ音声を sendAt/updatedAt 降順でマージ
   const sentCombinedItems = useMemo(() => {
@@ -130,6 +185,17 @@ function GiftPageInner() {
     }));
     return [...vgItems, ...yoItems].sort((a, b) => b.sortDate - a.sortDate);
   }, [activeFilter, voiceGifts, deliveredYosegakiList]);
+
+  async function handleDeleteYosegaki(yosegakiId: string) {
+    if (!confirm("この企画を削除しますか？（元に戻せません）")) return;
+    try {
+      const res = await fetch(`/api/yosegaki/${yosegakiId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("削除に失敗しました");
+      setYosegakiList((prev) => prev.filter((y: any) => y.id !== yosegakiId));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "削除に失敗しました");
+    }
+  }
 
   async function handleDelete(giftId: string) {
     if (!confirm("このボイスギフトを削除しますか？")) return;
@@ -521,89 +587,124 @@ function GiftPageInner() {
       ? Math.ceil((new Date(yosegaki.deadline).getTime() - Date.now()) / 86400000)
       : null;
     const isDeadlinePassed = deadlineDays !== null && deadlineDays <= 0;
+    // sortedYosegakiList 付与のメタ or 直接計算
+    const isZeroExpired: boolean = yosegaki._isZeroExpired ?? (isDeadlinePassed && recordedContribs.length === 0);
     const deliverDays = yosegaki.deliverAt
       ? Math.ceil((new Date(yosegaki.deliverAt).getTime() - Date.now()) / 86400000)
       : null;
 
     return (
-      <Link key={yosegaki.id} href={`/gift/yosegaki/${yosegaki.id}`} className="block">
-        <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 space-y-2">
-          <div className="flex items-start gap-3">
-            {/* サムネイル */}
-            <div className="flex-shrink-0">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
-                {yosegaki.organizerImageUrl ? (
-                  <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-2xl">🎙️</span>
+      <div key={yosegaki.id} className="relative">
+        <Link href={`/gift/yosegaki/${yosegaki.id}`} className="block">
+          <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 space-y-2">
+            <div className="flex items-start gap-3">
+              {/* サムネイル */}
+              <div className="flex-shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center overflow-hidden">
+                  {yosegaki.organizerImageUrl ? (
+                    <img src={yosegaki.organizerImageUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">🎙️</span>
+                  )}
+                </div>
+              </div>
+
+              {/* テキスト情報 */}
+              <div className={`flex-1 min-w-0 space-y-1 ${isCreator && isZeroExpired ? "pr-8" : ""}`}>
+                {/* 宛名 + 参加状況バッジ */}
+                <div className="flex items-start justify-between gap-1">
+                  <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
+                  <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                    isCreator
+                      ? "bg-blue-100 text-blue-700"
+                      : hasRecorded
+                      ? "bg-green-100 text-green-700"
+                      : isInvited
+                      ? "bg-orange-100 text-orange-600"
+                      : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {isCreator ? "企画者" : hasRecorded ? "参加済み" : "未参加"}
+                  </span>
+                </div>
+                {/* タイトル（宛名と異なる場合のみ） */}
+                {yosegaki.title && yosegaki.title !== yosegaki.recipientName && (
+                  <p className="text-xs text-gray-700 truncate">{yosegaki.title}</p>
+                )}
+                {/* 募集ステータス */}
+                {isZeroExpired ? (
+                  <p className="text-xs font-medium text-gray-400">参加者0名のため、お届けできずに終了</p>
+                ) : isDeadlinePassed ? (
+                  <p className="text-xs font-medium text-blue-500">
+                    {deliverDays !== null && deliverDays >= 0 ? `お届けまで${deliverDays}日` : "お届け待ち"}
+                  </p>
+                ) : deadlineDays !== null && (
+                  <p className={`text-xs font-medium ${deadlineDays <= 1 ? "text-red-500" : deadlineDays <= 3 ? "text-orange-500" : "text-amber-600"}`}>
+                    締切まで{deadlineDays}日
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* テキスト情報 */}
-            <div className="flex-1 min-w-0 space-y-1">
-              {/* 宛名 + 参加状況バッジ */}
-              <div className="flex items-start justify-between gap-1">
-                <p className="text-sm font-bold text-[#2A5CAA] truncate">{yosegaki.recipientName}へ</p>
-                <span className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                  isCreator
-                    ? "bg-blue-100 text-blue-700"
-                    : hasRecorded
-                    ? "bg-green-100 text-green-700"
-                    : isInvited
-                    ? "bg-orange-100 text-orange-600"
-                    : "bg-gray-100 text-gray-500"
-                }`}>
-                  {isCreator ? "企画者" : hasRecorded ? "参加済み" : "未参加"}
-                </span>
+            {/* 参加者アイコン列 */}
+            <div className="flex items-center gap-1 pt-0.5">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
+                {yosegaki.creator?.avatarUrl ? (
+                  <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (yosegaki.organizerName?.[0] || "企").toUpperCase()
+                )}
               </div>
-              {/* タイトル（宛名と異なる場合のみ） */}
-              {yosegaki.title && yosegaki.title !== yosegaki.recipientName && (
-                <p className="text-xs text-gray-700 truncate">{yosegaki.title}</p>
+              {visibleContribs.map((c: any, i: number) => {
+                const name = c.participantName || c.contributor?.displayName || "参";
+                return (
+                  <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
+                    {c.contributor?.avatarUrl ? (
+                      <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      name[0].toUpperCase()
+                    )}
+                  </div>
+                );
+              })}
+              {recordedContribs.length > 3 && (
+                <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
+                  +{recordedContribs.length - 3}
+                </div>
               )}
-              {/* 募集ステータス */}
-              {isDeadlinePassed ? (
-                <p className="text-xs font-medium text-blue-500">
-                  {deliverDays !== null && deliverDays >= 0 ? `お届けまで${deliverDays}日` : "お届け待ち"}
-                </p>
-              ) : deadlineDays !== null && (
-                <p className={`text-xs font-medium ${deadlineDays <= 1 ? "text-red-500" : deadlineDays <= 3 ? "text-orange-500" : "text-amber-600"}`}>
-                  締切まで{deadlineDays}日
-                </p>
-              )}
+              <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
             </div>
           </div>
+        </Link>
 
-          {/* 参加者アイコン列 */}
-          <div className="flex items-center gap-1 pt-0.5">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-[8px] font-bold overflow-hidden ring-1 ring-white">
-              {yosegaki.creator?.avatarUrl ? (
-                <img src={yosegaki.creator.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                (yosegaki.organizerName?.[0] || "企").toUpperCase()
-              )}
-            </div>
-            {visibleContribs.map((c: any, i: number) => {
-              const name = c.participantName || c.contributor?.displayName || "参";
-              return (
-                <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-200 to-orange-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden ring-1 ring-white">
-                  {c.contributor?.avatarUrl ? (
-                    <img src={c.contributor.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    name[0].toUpperCase()
-                  )}
-                </div>
-              );
-            })}
-            {recordedContribs.length > 3 && (
-              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
-                +{recordedContribs.length - 3}
+        {/* 三点リーダー（企画者 & 参加者0名終了のみ） */}
+        {isCreator && isZeroExpired && (
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setMenuYosegakiId((prev) => prev === yosegaki.id ? null : yosegaki.id); }}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="メニューを開く"
+            >
+              <MoreVertical size={16} />
+            </button>
+            {menuYosegakiId === yosegaki.id && (
+              <div
+                className="absolute top-8 right-0 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[140px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => { setMenuYosegakiId(null); handleDeleteYosegaki(yosegaki.id); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 text-left"
+                >
+                  <Trash2 size={14} className="flex-shrink-0" />
+                  削除
+                </button>
               </div>
             )}
-            <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>
           </div>
-        </div>
-      </Link>
+        )}
+      </div>
     );
   }
 
@@ -878,7 +979,7 @@ function GiftPageInner() {
                 再試行
               </button>
             </div>
-          ) : yosegakiList.length === 0 ? (
+          ) : sortedYosegakiList.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-3xl shadow-md">
               <Heart size={48} className="mx-auto mb-3 opacity-40 text-gray-400" />
               <p className="text-gray-500 text-sm">参加中の寄せ音声はありません</p>
@@ -888,7 +989,7 @@ function GiftPageInner() {
             </div>
           ) : (
             <div className="space-y-3">
-              {yosegakiList.map((yosegaki: any) =>
+              {sortedYosegakiList.map((yosegaki: any) =>
                 renderYosegakiCard(yosegaki)
               )}
             </div>
