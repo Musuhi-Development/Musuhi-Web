@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ImageIcon, Mic, Square, X, ArrowLeft } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -311,7 +312,7 @@ export default function YosegakiContributePage() {
           {audioUrl ? (
             <div className="space-y-2">
               <div className="bg-white border border-gray-200 rounded-xl p-3">
-                <audio src={audioUrl} controls className="w-full h-10" />
+                <WaveformPlayer src={audioUrl} duration={audioDuration} />
               </div>
               <button
                 type="button"
