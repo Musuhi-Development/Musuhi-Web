@@ -2,10 +2,15 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { YosegakiViewClient, type CardData } from "./YosegakiViewClient";
 
-type Props = { params: Promise<{ shareToken: string }> };
+type Props = {
+  params: Promise<{ shareToken: string }>;
+  searchParams: Promise<{ sender?: string }>;
+};
 
-export default async function YosegakiViewPage({ params }: Props) {
+export default async function YosegakiViewPage({ params, searchParams }: Props) {
   const { shareToken } = await params;
+  const { sender } = await searchParams;
+  const senderView = sender === "1";
 
   const yosegaki = await prisma.yosegaki.findUnique({
     where: { shareToken },
@@ -65,6 +70,7 @@ export default async function YosegakiViewPage({ params }: Props) {
       description={yosegaki.description ?? ""}
       senderName={senderName}
       cards={cards}
+      senderView={senderView}
     />
   );
 }
