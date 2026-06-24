@@ -109,7 +109,7 @@ export function YosegakiViewClient({ title, recipientName, description, senderNa
           href="/signup"
           className="inline-block px-8 py-3 bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-sm rounded-full shadow-md"
         >
-          企画者にお返しを贈る
+          贈り主にお礼の声を届ける
         </Link>
       </div>
 
