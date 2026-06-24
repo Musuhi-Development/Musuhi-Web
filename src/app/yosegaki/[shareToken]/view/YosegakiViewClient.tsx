@@ -27,18 +27,28 @@ type Props = {
   description: string;
   senderName: string;
   cards: CardData[];
+  senderView?: boolean;
 };
 
-export function YosegakiViewClient({ title, recipientName, description, senderName, cards }: Props) {
+export function YosegakiViewClient({ title, recipientName, description, senderName, cards, senderView = false }: Props) {
   const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] pb-24">
       {/* ヘッダー */}
       <div className="bg-gradient-to-b from-[#2A5CAA] to-[#4A7BC8] px-5 pt-10 pb-8 text-white text-center">
-        <p className="text-xs opacity-80 mb-1">みんなからの声の寄せ書き</p>
-        <h1 className="text-xl font-bold leading-tight">{title}</h1>
-        <p className="text-sm opacity-80 mt-1">{cards.length}人から届きました</p>
+        {senderView ? (
+          <>
+            <p className="text-xs opacity-80 mb-1">お届け済みの寄せ書き</p>
+            <h1 className="text-xl font-bold leading-tight">{title}</h1>
+          </>
+        ) : (
+          <>
+            <p className="text-xs opacity-80 mb-1">みんなからの声の寄せ書き</p>
+            <h1 className="text-xl font-bold leading-tight">{title}</h1>
+            <p className="text-sm opacity-80 mt-1">{cards.length}人から届きました</p>
+          </>
+        )}
       </div>
 
       <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
@@ -101,17 +111,19 @@ export function YosegakiViewClient({ title, recipientName, description, senderNa
         </div>
       </div>
 
-      {/* フッター */}
-      <div className="bg-gradient-to-b from-transparent to-[#e8e0d5] px-5 pt-8 pb-10 text-center space-y-3">
-        <p className="text-xs text-gray-500 font-medium">Powered by Musuhi</p>
-        <p className="text-xs text-gray-500">あなたも大切な人へ『声の贈りもの』を届けませんか？</p>
-        <Link
-          href="/signup"
-          className="inline-block px-8 py-3 bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-sm rounded-full shadow-md"
-        >
-          贈り主にお礼の声を届ける
-        </Link>
-      </div>
+      {/* フッター：未登録受取人向けのみ表示 */}
+      {!senderView && (
+        <div className="bg-gradient-to-b from-transparent to-[#e8e0d5] px-5 pt-8 pb-10 text-center space-y-3">
+          <p className="text-xs text-gray-500 font-medium">Powered by Musuhi</p>
+          <p className="text-xs text-gray-500">あなたも大切な人へ『声の贈りもの』を届けませんか？</p>
+          <Link
+            href="/signup"
+            className="inline-block px-8 py-3 bg-gradient-to-r from-[#2A5CAA] to-[#4A7BC8] text-white font-bold text-sm rounded-full shadow-md"
+          >
+            贈り主にお礼の声を届ける
+          </Link>
+        </div>
+      )}
 
       {/* 詳細モーダル */}
       {selectedCard && (

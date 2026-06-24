@@ -150,7 +150,7 @@ export default function YosegakiDetailPage() {
   }, [user]);
   useEffect(() => {
     if (yosegaki?.status === "delivered" && yosegaki?.shareToken) {
-      router.replace(`/yosegaki/${yosegaki.shareToken}/view`);
+      router.replace(`/yosegaki/${yosegaki.shareToken}/view?sender=1`);
     }
   }, [yosegaki?.status, yosegaki?.shareToken]);
 
