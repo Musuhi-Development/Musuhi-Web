@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
+import FooterNav from "@/components/shared/FooterNav";
 
 const TILT_CLASSES = [
   "-rotate-[2deg]", "rotate-[1.5deg]", "-rotate-[1deg]", "rotate-[2.5deg]",
@@ -132,64 +133,72 @@ export function YosegakiViewClient({ title, recipientName, description, senderNa
           onClick={() => setSelectedCard(null)}
         >
           <div
-            className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 画像 */}
-            <div
-              className={`relative w-full aspect-video ${
-                selectedCard.isOrganizer
-                  ? "bg-gradient-to-br from-amber-100 to-rose-100"
-                  : "bg-gradient-to-br from-teal-100 to-blue-100"
-              }`}
+            {/* ×ボタン：スクロールに関わらず常に右上に固定 */}
+            <button
+              type="button"
+              onClick={() => setSelectedCard(null)}
+              className="absolute top-3 right-3 z-10 w-9 h-9 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-sm"
+              aria-label="閉じる"
             >
-              {selectedCard.imageUrl ? (
-                <img src={selectedCard.imageUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-5xl">🎵</div>
-              )}
-              <button
-                type="button"
-                onClick={() => setSelectedCard(null)}
-                className="absolute top-3 right-3 w-8 h-8 bg-black/40 rounded-full flex items-center justify-center text-white"
-                aria-label="閉じる"
-              >
-                <X size={16} />
-              </button>
-            </div>
+              <X size={18} />
+            </button>
 
-            <div className="p-5 space-y-4">
-              {/* タイトルと参加者名 */}
-              <div>
-                <p className="text-base font-bold text-gray-800">{selectedCard.title}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {selectedCard.isOrganizer && (
-                    <img src="/icons/mizuhiki-bow.png" alt="" className="w-5 h-4 object-contain" aria-hidden />
-                  )}
-                  <p className="text-sm text-gray-500">{selectedCard.participantName}</p>
-                </div>
+            {/* スクロール可能なコンテンツ */}
+            <div className="overflow-y-auto">
+              {/* 画像 */}
+              <div
+                className={`relative w-full aspect-video ${
+                  selectedCard.isOrganizer
+                    ? "bg-gradient-to-br from-amber-100 to-rose-100"
+                    : "bg-gradient-to-br from-teal-100 to-blue-100"
+                }`}
+              >
+                {selectedCard.imageUrl ? (
+                  <img src={selectedCard.imageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-5xl">🎵</div>
+                )}
               </div>
 
-              {/* 音声プレーヤー */}
-              {selectedCard.audioUrl && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <WaveformPlayer
-                    src={selectedCard.audioUrl}
-                    duration={selectedCard.audioDuration ?? undefined}
-                  />
+              <div className="p-5 space-y-4">
+                {/* タイトルと参加者名 */}
+                <div>
+                  <p className="text-base font-bold text-gray-800 pr-8">{selectedCard.title}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    {selectedCard.isOrganizer && (
+                      <img src="/icons/mizuhiki-bow.png" alt="" className="w-5 h-4 object-contain" aria-hidden />
+                    )}
+                    <p className="text-sm text-gray-500">{selectedCard.participantName}</p>
+                  </div>
                 </div>
-              )}
 
-              {/* メッセージ */}
-              {selectedCard.message && (
-                <p className="text-sm text-gray-700 leading-[1.8rem] whitespace-pre-wrap">
-                  {selectedCard.message}
-                </p>
-              )}
+                {/* 音声プレーヤー */}
+                {selectedCard.audioUrl && (
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <WaveformPlayer
+                      src={selectedCard.audioUrl}
+                      duration={selectedCard.audioDuration ?? undefined}
+                    />
+                  </div>
+                )}
+
+                {/* メッセージ */}
+                {selectedCard.message && (
+                  <p className="text-sm text-gray-700 leading-[1.8rem] whitespace-pre-wrap">
+                    {selectedCard.message}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* 贈り手ビュー時はフッターナビを表示 */}
+      {senderView && <FooterNav />}
     </div>
   );
 }
