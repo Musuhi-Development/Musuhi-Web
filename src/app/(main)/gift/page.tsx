@@ -496,8 +496,9 @@ function GiftPageInner() {
   // 贈ったタブ内の配信済み寄せ音声カード
   function renderDeliveredYosegakiCard(yosegaki: any) {
     const contributions = yosegaki.contributions || [];
-    const totalCount = contributions.length + 1; // +1 for organizer
-    const visibleContribs = contributions.slice(0, 3);
+    const recordedContribs = contributions.filter((c: any) => c.audioUrl);
+    const totalCount = recordedContribs.length + 1; // +1 for organizer（音声投稿済みのみカウント）
+    const visibleContribs = recordedContribs.slice(0, 3);
     const snippet = yosegaki.description
       ? yosegaki.description.slice(0, 55) + (yosegaki.description.length > 55 ? "…" : "")
       : null;
@@ -552,9 +553,9 @@ function GiftPageInner() {
                     </div>
                   );
                 })}
-                {contributions.length > 3 && (
+                {recordedContribs.length > 3 && (
                   <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[7px] font-semibold text-gray-500 ring-1 ring-white">
-                    +{contributions.length - 3}
+                    +{recordedContribs.length - 3}
                   </div>
                 )}
                 <p className="text-[10px] text-gray-500 ml-0.5">{totalCount}名参加</p>

@@ -148,6 +148,11 @@ export default function YosegakiDetailPage() {
   useEffect(() => {
     if (user && !participantName) setParticipantName(user.displayName || user.name || "");
   }, [user]);
+  useEffect(() => {
+    if (yosegaki?.status === "delivered" && yosegaki?.shareToken) {
+      router.replace(`/yosegaki/${yosegaki.shareToken}/view`);
+    }
+  }, [yosegaki?.status, yosegaki?.shareToken]);
 
   async function fetchYosegaki() {
     setLoading(true);
