@@ -61,19 +61,30 @@ export function WaveformPlayer({ src, duration, peaks, className }: WaveformPlay
     if (!audio) return;
 
     const handleTime = () => setCurrent(audio.currentTime);
-    const handleLoaded = () => setTotal(audio.duration || duration || 0);
+    const resolveTotal = () => {
+      // MediaRecorder生成のwebmはduration=Infinityになるため、有限値のみ採用しpropにフォールバック
+      const d = Number.isFinite(audio.duration) && audio.duration > 0
+        ? audio.duration
+        : (duration ?? 0);
+      setTotal(d);
+    };
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrent(0);
     };
 
     audio.addEventListener("timeupdate", handleTime);
-    audio.addEventListener("loadedmetadata", handleLoaded);
+    audio.addEventListener("loadedmetadata", resolveTotal);
+    audio.addEventListener("durationchange", resolveTotal);
     audio.addEventListener("ended", handleEnded);
+
+    // すでにメタデータ取得済みの場合（キャッシュ等）は即時反映
+    if (audio.readyState >= 1) resolveTotal();
 
     return () => {
       audio.removeEventListener("timeupdate", handleTime);
-      audio.removeEventListener("loadedmetadata", handleLoaded);
+      audio.removeEventListener("loadedmetadata", resolveTotal);
+      audio.removeEventListener("durationchange", resolveTotal);
       audio.removeEventListener("ended", handleEnded);
     };
   }, [duration]);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, getSessionUser } from "@/lib/auth";
+import { sendEmail } from "@/lib/mailer";
+import { yosegakiDeliveryHtml, yosegakiDeliveryText } from "@/lib/email-templates";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -96,6 +98,36 @@ export async function PATCH(request: Request, { params }: Params) {
       },
       include: yosegakiInclude,
     });
+
+    // 「今すぐ贈る」等でstatus=deliveredに変更された場合、未登録受取人へメール送信
+    if (status === "delivered" && existing.status !== "delivered" && existing.recipientEmail) {
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.musuhi-voice.com";
+      const senderDisplayName =
+        existing.senderName ||
+        existing.organizerName ||
+        yosegaki.creator.displayName ||
+        yosegaki.creator.name ||
+        "Musuhi";
+      const viewUrl = `${APP_URL}/yosegaki/${existing.shareToken}/view`;
+      try {
+        await sendEmail({
+          to: existing.recipientEmail,
+          subject: `【Musuhi】${senderDisplayName}さんから、あなたへ。特別な聴く手紙が届いています`,
+          html: yosegakiDeliveryHtml({
+            senderName: senderDisplayName,
+            recipientName: existing.recipientName,
+            viewUrl,
+          }),
+          text: yosegakiDeliveryText({
+            senderName: senderDisplayName,
+            recipientName: existing.recipientName,
+            viewUrl,
+          }),
+        });
+      } catch (emailError) {
+        console.error(`Failed to send delivery email for yosegaki ${id}:`, emailError);
+      }
+    }
 
     return NextResponse.json({ yosegaki });
   } catch (error: any) {
