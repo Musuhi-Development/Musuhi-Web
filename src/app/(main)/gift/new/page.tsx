@@ -516,7 +516,7 @@ function NewGiftPageInner() {
         recordingIds: selectedRecordingIds,
         sendNow: sendMode === "now",
       };
-      if (sendMode === "scheduled") payload.sendAt = sendAt;
+      if (sendMode === "scheduled") payload.sendAt = new Date(sendAt).toISOString();
 
       const res = await fetch("/api/voice-gifts", {
         method: "POST",
