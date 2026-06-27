@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name, avatarUrl } = await request.json();
+    const { email, password, name, displayName, avatarUrl } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -64,13 +64,13 @@ export async function POST(request: Request) {
         id: data.user.id,
         email: signupEmail,
         name: name || null,
-        displayName: name || null,
+        displayName: displayName || name || null,
         avatarUrl: avatarUrl || null,
       },
       update: {
         email: signupEmail,
         ...(name !== undefined && { name: name || null }),
-        ...(name !== undefined && { displayName: name || null }),
+        ...(displayName !== undefined && { displayName: displayName || name || null }),
         ...(avatarUrl !== undefined && { avatarUrl: avatarUrl || null }),
       },
     });
