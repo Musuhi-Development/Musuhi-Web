@@ -431,41 +431,41 @@ export default function RecordingModal({
             </Transition.Child>
           </div>
         </div>
-      </Dialog>
 
-      {/* カスタムタグ入力ダイアログ（z-[60]で外側Dialogより前面に表示） */}
-      {showTagDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
-            <h3 className="text-base font-bold text-gray-800 mb-4">カスタムタグを追加</h3>
-            <input
-              autoFocus
-              type="text"
-              maxLength={8}
-              value={tagInputValue}
-              onChange={(e) => setTagInputValue(e.target.value)}
-              placeholder="最大8文字"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2A5CAA]"
-            />
-            <p className="text-xs text-gray-400 mt-1 text-right">{tagInputValue.length}/8</p>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={cancelCustomTag}
-                className="flex-1 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={confirmCustomTag}
-                disabled={!tagInputValue.trim()}
-                className="flex-1 py-2 text-sm font-bold text-white bg-[#2A5CAA] rounded-lg disabled:opacity-40 hover:bg-[#1e50a2] transition-colors"
-              >
-                追加
-              </button>
+        {/* カスタムタグ入力ダイアログ — Dialog内に配置してHeadless UIのaria管理対象に含める */}
+        {showTagDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
+              <h3 className="text-base font-bold text-gray-800 mb-4">カスタムタグを追加</h3>
+              <input
+                autoFocus
+                type="text"
+                maxLength={8}
+                value={tagInputValue}
+                onChange={(e) => setTagInputValue(e.target.value)}
+                placeholder="最大8文字"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2A5CAA]"
+              />
+              <p className="text-xs text-gray-400 mt-1 text-right">{tagInputValue.length}/8</p>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={cancelCustomTag}
+                  className="flex-1 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={confirmCustomTag}
+                  disabled={!tagInputValue.trim()}
+                  className="flex-1 py-2 text-sm font-bold text-white bg-[#2A5CAA] rounded-lg disabled:opacity-40 hover:bg-[#1e50a2] transition-colors"
+                >
+                  追加
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </Transition>
   );
 }
