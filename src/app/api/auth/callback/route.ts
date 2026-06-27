@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
           id: data.user.id,
           email: data.user.email,
           name: data.user.user_metadata?.name || null,
+          displayName: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+          avatarUrl: data.user.user_metadata?.avatar_url || null,
         },
       });
     }

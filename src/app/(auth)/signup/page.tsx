@@ -3,45 +3,65 @@
 import { Suspense, useState, FormEvent, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Camera, Loader2 } from "lucide-react";
+import { Mail, Lock, User as UserIcon, AtSign, AlertCircle, CheckCircle, Camera, Loader2, Eye, EyeOff } from "lucide-react";
 import { InlineOverlay } from "@/components/ui/Overlay";
+import { supabase } from "@/lib/supabase";
 
 function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const giftToken = searchParams.get("giftToken");
   const returnTitle = searchParams.get("returnTitle");
-  const [name, setName] = useState("");
+  const [userId, setUserId] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleGoogleSignup() {
+    if (!supabase) {
+      setError("認証サービスが設定されていません");
+      return;
+    }
+    setGoogleLoading(true);
+    setError("");
+
+    const redirectTo = `${window.location.origin}/api/auth/callback${
+      returnTitle ? `?returnTitle=${encodeURIComponent(returnTitle)}` :
+      giftToken ? `?giftToken=${giftToken}` : ""
+    }`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+
+    if (error) {
+      setError("Googleログインに失敗しました");
+      setGoogleLoading(false);
+    }
+  }
 
   async function handleAvatarUpload(file: File) {
     setUploadingAvatar(true);
-
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       const uploadRes = await fetch("/api/upload/avatar", {
         method: "POST",
         body: formData,
       });
-
-      if (!uploadRes.ok) {
-        throw new Error("アバター画像のアップロードに失敗しました");
-      }
-
+      if (!uploadRes.ok) throw new Error("アバター画像のアップロードに失敗しました");
       const { url } = await uploadRes.json();
       setAvatarUrl(url);
     } catch (error) {
-      console.error("Avatar upload error:", error);
       alert(error instanceof Error ? error.message : "アバター画像のアップロードに失敗しました");
     } finally {
       setUploadingAvatar(false);
@@ -50,21 +70,13 @@ function SignupPageInner() {
 
   function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (file) {
-      handleAvatarUpload(file);
-    }
+    if (file) handleAvatarUpload(file);
   }
 
   async function handleSignup(e: FormEvent) {
     e.preventDefault();
     setError("");
     setInfo("");
-
-    // Validation
-    if (password !== confirmPassword) {
-      setError("パスワードが一致しません");
-      return;
-    }
 
     if (password.length < 6) {
       setError("パスワードは6文字以上で入力してください");
@@ -76,13 +88,12 @@ function SignupPageInner() {
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          name,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name: userId,
+          displayName: displayName || userId,
           avatarUrl: avatarUrl || null,
         }),
       });
@@ -94,7 +105,6 @@ function SignupPageInner() {
         return;
       }
 
-      // セッション未発行時はログイン画面へ誘導（メール確認必須設定を考慮）
       if (data.emailConfirmationRequired || !data.sessionCreated) {
         setInfo("アカウントを作成しました。メール確認後にログインしてください。");
         const loginDest = returnTitle
@@ -118,16 +128,13 @@ function SignupPageInner() {
 
       if (giftToken) {
         try {
-          const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, {
-            method: "POST",
-          });
+          const joinRes = await fetch(`/api/voice-gifts/share/${giftToken}/join`, { method: "POST" });
           if (joinRes.ok) {
             const joinData = await joinRes.json();
             router.push(`/gift/${joinData.voiceGiftId}`);
             router.refresh();
             return;
           }
-          // join失敗（送信済みギフト等）でもギフトページへ遷移
           const shareRes = await fetch(`/api/voice-gifts/share/${giftToken}`);
           if (shareRes.ok) {
             const shareData = await shareRes.json();
@@ -142,7 +149,6 @@ function SignupPageInner() {
         }
       }
 
-      // サインアップ直後にセッションがある場合のみホームへ
       router.push("/home");
       router.refresh();
     } catch (err) {
@@ -165,8 +171,7 @@ function SignupPageInner() {
 
         {/* Signup Form */}
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <UserPlus size={28} className="text-[#2A5CAA]" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
             新規登録
           </h2>
 
@@ -184,19 +189,69 @@ function SignupPageInner() {
             </div>
           )}
 
+          {/* Google Signup Button */}
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+          >
+            {googleLoading ? (
+              <Loader2 size={20} className="animate-spin text-gray-500" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.2-3z"/>
+                <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.6 0-14.2 4.2-17.7 10.7z" transform="translate(0,0.5)"/>
+                <path fill="#FBBC05" d="M24 43c5.6 0 10.6-1.9 14.5-5.1l-6.7-5.5C29.8 34.1 27 35 24 35c-5.8 0-10.7-3.1-11.8-8.5l-7 5.4C8.6 39.4 15.8 43 24 43z" transform="translate(0,-0.5)"/>
+                <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-0.7 2.3-2.2 4.3-4.1 5.7l6.7 5.5C42.4 36 44.5 30 44.5 23c0-1-.1-2-.2-3z" transform="translate(0,0)"/>
+              </svg>
+            )}
+            <span className="text-sm font-medium text-gray-700">Googleで登録</span>
+          </button>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">またはメールアドレスで登録</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSignup} className="space-y-4">
+            {/* ユーザーID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                名前
+                ユーザーID
+              </label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="musuhi_taro123"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
+                  required
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">※後から変更できません</p>
+            </div>
+
+            {/* 名前（表示名） */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                名前（表示名）
               </label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="山田太郎"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
                   required
                 />
               </div>
@@ -208,15 +263,15 @@ function SignupPageInner() {
                 プロフィール画像（任意）
               </label>
               <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#4A7BC8] to-[#2A5CAA] flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    name.charAt(0).toUpperCase() || "?"
+                    (displayName || userId).charAt(0).toUpperCase() || "?"
                   )}
                   {uploadingAvatar && (
                     <InlineOverlay>
-                      <Loader2 className="text-white animate-spin" size={24} />
+                      <Loader2 className="text-white animate-spin" size={20} />
                     </InlineOverlay>
                   )}
                 </div>
@@ -226,7 +281,7 @@ function SignupPageInner() {
                   disabled={uploadingAvatar || loading}
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors disabled:opacity-50"
                 >
-                  <Camera size={18} />
+                  <Camera size={16} />
                   {avatarUrl ? "変更" : "画像を選択"}
                 </button>
                 <input
@@ -239,23 +294,7 @@ function SignupPageInner() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                名前
-              </label>
-              <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="山田太郎"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  required
-                />
-              </div>
-            </div>
-
+            {/* メールアドレス */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 メールアドレス
@@ -273,6 +312,7 @@ function SignupPageInner() {
               </div>
             </div>
 
+            {/* パスワード */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 パスワード
@@ -280,32 +320,22 @@ function SignupPageInner() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="6文字以上"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
+                  className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
                   required
                   minLength={6}
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                パスワード（確認）
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="もう一度入力"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2A5CAA] focus:border-transparent"
-                  required
-                  minLength={6}
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
@@ -320,10 +350,7 @@ function SignupPageInner() {
                   登録中...
                 </>
               ) : (
-                <>
-                  <UserPlus size={20} />
-                  新規登録
-                </>
+                "Musuhiをはじめる >"
               )}
             </button>
           </form>
