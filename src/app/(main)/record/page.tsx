@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Image as ImageIcon, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft } from "lucide-react";
+import { Image as ImageIcon, ChevronDown, Camera, FolderOpen, Loader2, X, ArrowLeft, Plus } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
@@ -23,12 +23,32 @@ export default function RecordPage() {
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
   const [todayQuestion] = useState<string>(() => getDailyQuestion());
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [showTagDialog, setShowTagDialog] = useState(false);
+  const [tagInputValue, setTagInputValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
+    setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
+  };
+
+  const openTagDialog = () => {
+    setTagInputValue("");
+    setShowTagDialog(true);
+  };
+
+  const confirmCustomTag = () => {
+    const trimmed = tagInputValue.trim();
+    if (!trimmed) return;
+    setCustomTags(prev => [...prev, trimmed]);
+    setSelectedTags(prev => [...prev, trimmed]);
+    setShowTagDialog(false);
+  };
+
+  const cancelCustomTag = () => {
+    setShowTagDialog(false);
   };
 
   const handleRecordingComplete = (blob: Blob, recordedDuration: number) => {
@@ -283,6 +303,31 @@ export default function RecordPage() {
                   {tag}
                 </button>
               ))}
+              {customTags.map(tag => (
+                <button
+                  key={`custom-${tag}`}
+                  onClick={() => toggleTag(tag)}
+                  disabled={saving}
+                  className={clsx(
+                    "px-3 py-1.5 text-sm rounded-full border-2 transition-colors",
+                    selectedTags.includes(tag)
+                      ? "bg-orange-100 border-orange-400 text-orange-700 font-medium"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  {tag}
+                </button>
+              ))}
+              {customTags.length < 3 && (
+                <button
+                  onClick={openTagDialog}
+                  disabled={saving}
+                  aria-label="カスタムタグを追加"
+                  className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-gray-400 hover:border-orange-300 hover:text-orange-400 transition-colors disabled:opacity-40"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -338,6 +383,41 @@ export default function RecordPage() {
 
         </div>
       </div>
+
+      {/* カスタムタグ入力ダイアログ */}
+      {showTagDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
+            <h3 className="text-base font-bold text-gray-800 mb-4">カスタムタグを追加</h3>
+            <input
+              autoFocus
+              type="text"
+              maxLength={8}
+              value={tagInputValue}
+              onChange={(e) => setTagInputValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmCustomTag(); }}
+              placeholder="最大8文字"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+            />
+            <p className="text-xs text-gray-400 mt-1 text-right">{tagInputValue.length}/8</p>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={cancelCustomTag}
+                className="flex-1 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmCustomTag}
+                disabled={!tagInputValue.trim()}
+                className="flex-1 py-2 text-sm font-bold text-white bg-orange-400 rounded-lg disabled:opacity-40 hover:bg-orange-500 transition-colors"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

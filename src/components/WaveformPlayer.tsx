@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Pause } from "lucide-react";
 import { clsx } from "clsx";
 
-const BAR_COUNT = 48;
+const BAR_COUNT = 32;
 
 /**
  * 将来的に実音声の解析結果（0〜1 に正規化したピーク配列）を `peaks` として渡せば、
@@ -115,7 +115,7 @@ export function WaveformPlayer({ src, duration, peaks, className }: WaveformPlay
   };
 
   return (
-    <div className={clsx("flex items-center gap-3", className)}>
+    <div className={clsx("flex items-center gap-2 min-w-0", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <button
@@ -134,7 +134,7 @@ export function WaveformPlayer({ src, duration, peaks, className }: WaveformPlay
         aria-valuemax={Math.round(total)}
         aria-valuenow={Math.round(current)}
         tabIndex={0}
-        className="relative flex-1 flex items-center gap-[2px] h-9 cursor-pointer"
+        className="relative flex-1 min-w-0 flex items-center gap-px h-9 cursor-pointer overflow-hidden"
         onClick={(event) => seekFromEvent(event.clientX, event.currentTarget)}
       >
         {bars.map((peak, index) => {
@@ -152,7 +152,7 @@ export function WaveformPlayer({ src, duration, peaks, className }: WaveformPlay
         })}
       </div>
 
-      <span className="shrink-0 text-[11px] tabular-nums text-gray-500 w-[72px] text-right">
+      <span className="shrink-0 text-[11px] tabular-nums text-gray-500 whitespace-nowrap">
         {formatTime(current)} / {formatTime(total)}
       </span>
     </div>
