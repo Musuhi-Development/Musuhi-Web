@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, Fragment, useEffect } from "react";
-import { X, Image as ImageIcon, ChevronDown, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, ChevronDown, Loader2, Plus } from "lucide-react";
 import { clsx } from "clsx";
 import { useRouter } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
@@ -38,6 +38,9 @@ export default function RecordingModal({
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
   const [todayQuestion] = useState<string>(() => getDailyQuestion());
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [tagInputValue, setTagInputValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,13 +55,24 @@ export default function RecordingModal({
       setUploadingImage(false);
       setMemo("");
       setSaving(false);
+      setCustomTags([]);
+      setShowTagInput(false);
+      setTagInputValue("");
     }
   }, [isOpen]);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
+    setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
+  };
+
+  const confirmCustomTag = () => {
+    const trimmed = tagInputValue.trim();
+    if (!trimmed) return;
+    setCustomTags(prev => [...prev, trimmed]);
+    setSelectedTags(prev => [...prev, trimmed]);
+    setShowTagInput(false);
   };
 
   const handleRecordingComplete = (blob: Blob, recordedDuration: number) => {
@@ -323,6 +337,66 @@ export default function RecordingModal({
                               {tag}
                             </button>
                           ))}
+                          {customTags.map(tag => (
+                            <button
+                              key={`custom-${tag}`}
+                              onClick={() => toggleTag(tag)}
+                              disabled={saving}
+                              className={clsx(
+                                "px-3 py-1.5 text-sm rounded-full transition-all",
+                                selectedTags.includes(tag)
+                                  ? "bg-[#2A5CAA] text-white shadow-md"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              )}
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                          {customTags.length < 3 && (
+                            showTagInput ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  maxLength={8}
+                                  value={tagInputValue}
+                                  onChange={(e) => setTagInputValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); confirmCustomTag(); }
+                                    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setShowTagInput(false); }
+                                  }}
+                                  placeholder="最大8文字"
+                                  disabled={saving}
+                                  className="w-28 text-sm border border-[#2A5CAA]/50 rounded-full px-3 py-1.5 focus:outline-none focus:border-[#2A5CAA]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={confirmCustomTag}
+                                  disabled={!tagInputValue.trim() || saving}
+                                  className="text-sm font-bold text-[#2A5CAA] disabled:text-gray-300"
+                                >
+                                  追加
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowTagInput(false)}
+                                  disabled={saving}
+                                  className="text-gray-400 hover:text-gray-600"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setTagInputValue(""); setShowTagInput(true); }}
+                                disabled={saving}
+                                aria-label="カスタムタグを追加"
+                                className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#2A5CAA]/50 hover:text-[#2A5CAA]/70 transition-colors disabled:opacity-40"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            )
+                          )}
                         </div>
                       </div>
 
