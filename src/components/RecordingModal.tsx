@@ -39,7 +39,7 @@ export default function RecordingModal({
   const [saving, setSaving] = useState(false);
   const [todayQuestion] = useState<string>(() => getDailyQuestion());
   const [customTags, setCustomTags] = useState<string[]>([]);
-  const [showTagInput, setShowTagInput] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
   const [tagInputValue, setTagInputValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,7 +56,7 @@ export default function RecordingModal({
       setMemo("");
       setSaving(false);
       setCustomTags([]);
-      setShowTagInput(false);
+      setShowTagDialog(false);
       setTagInputValue("");
     }
   }, [isOpen]);
@@ -72,7 +72,12 @@ export default function RecordingModal({
     if (!trimmed) return;
     setCustomTags(prev => [...prev, trimmed]);
     setSelectedTags(prev => [...prev, trimmed]);
-    setShowTagInput(false);
+    setShowTagDialog(false);
+  };
+
+  const cancelCustomTag = () => {
+    setShowTagDialog(false);
+    setTagInputValue("");
   };
 
   const handleRecordingComplete = (blob: Blob, recordedDuration: number) => {
@@ -201,7 +206,7 @@ export default function RecordingModal({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={showTagDialog ? () => {} : onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -353,49 +358,14 @@ export default function RecordingModal({
                             </button>
                           ))}
                           {customTags.length < 3 && (
-                            showTagInput ? (
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  maxLength={8}
-                                  value={tagInputValue}
-                                  onChange={(e) => setTagInputValue(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") { e.preventDefault(); confirmCustomTag(); }
-                                    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setShowTagInput(false); }
-                                  }}
-                                  placeholder="最大8文字"
-                                  disabled={saving}
-                                  className="w-28 text-sm border border-[#2A5CAA]/50 rounded-full px-3 py-1.5 focus:outline-none focus:border-[#2A5CAA]"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={confirmCustomTag}
-                                  disabled={!tagInputValue.trim() || saving}
-                                  className="text-sm font-bold text-[#2A5CAA] disabled:text-gray-300"
-                                >
-                                  追加
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowTagInput(false)}
-                                  disabled={saving}
-                                  className="text-gray-400 hover:text-gray-600"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { setTagInputValue(""); setShowTagInput(true); }}
-                                disabled={saving}
-                                aria-label="カスタムタグを追加"
-                                className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#2A5CAA]/50 hover:text-[#2A5CAA]/70 transition-colors disabled:opacity-40"
-                              >
-                                <Plus size={16} />
-                              </button>
-                            )
+                            <button
+                              onClick={() => { setTagInputValue(""); setShowTagDialog(true); }}
+                              disabled={saving}
+                              aria-label="カスタムタグを追加"
+                              className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#2A5CAA]/50 hover:text-[#2A5CAA]/70 transition-colors disabled:opacity-40"
+                            >
+                              <Plus size={16} />
+                            </button>
                           )}
                         </div>
                       </div>
@@ -462,6 +432,40 @@ export default function RecordingModal({
           </div>
         </div>
       </Dialog>
+
+      {/* カスタムタグ入力ダイアログ（z-[60]で外側Dialogより前面に表示） */}
+      {showTagDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
+            <h3 className="text-base font-bold text-gray-800 mb-4">カスタムタグを追加</h3>
+            <input
+              autoFocus
+              type="text"
+              maxLength={8}
+              value={tagInputValue}
+              onChange={(e) => setTagInputValue(e.target.value)}
+              placeholder="最大8文字"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2A5CAA]"
+            />
+            <p className="text-xs text-gray-400 mt-1 text-right">{tagInputValue.length}/8</p>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={cancelCustomTag}
+                className="flex-1 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmCustomTag}
+                disabled={!tagInputValue.trim()}
+                className="flex-1 py-2 text-sm font-bold text-white bg-[#2A5CAA] rounded-lg disabled:opacity-40 hover:bg-[#1e50a2] transition-colors"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Transition>
   );
 }
