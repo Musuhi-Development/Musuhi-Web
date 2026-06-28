@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse, NextRequest, after } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
@@ -305,29 +305,30 @@ export async function POST(request: Request) {
       },
     });
 
-    // ─── メール送信（非同期・失敗してもレスポンスはブロックしない）───
+    // ─── メール送信（after() でレスポンス後も Vercel 関数を完走させる）───
     const emailSenderName =
       voiceGift.senderName || voiceGift.owner.displayName || voiceGift.owner.name || "Musuhi ユーザー";
     const giftUrl = `${APP_URL}/gift/share/${voiceGift.shareToken}`;
 
-    // 1) ギフト受信通知 — メールアドレス宛の受信者
-    if (status === "sent" && normalizedRecipientEmails.length > 0) {
-      const deliveryEmailOptions = {
-        senderName: emailSenderName,
-        giftTitle: voiceGift.title,
-        giftMessage: voiceGift.message,
-        giftUrl,
-      };
-      Promise.allSettled(
-        normalizedRecipientEmails.map((to) =>
-          sendEmail({
-            to,
-            subject: `【Musuhi】 ${emailSenderName}さんから、あなたへ。特別な「聞く手紙」が届いています`,
-            html: giftDeliveryHtml(deliveryEmailOptions),
-            text: giftDeliveryText(deliveryEmailOptions),
-          })
-        )
-      ).then((results) => {
+    after(async () => {
+      // 1) ギフト受信通知 — メールアドレス宛の受信者
+      if (status === "sent" && normalizedRecipientEmails.length > 0) {
+        const deliveryEmailOptions = {
+          senderName: emailSenderName,
+          giftTitle: voiceGift.title,
+          giftMessage: voiceGift.message,
+          giftUrl,
+        };
+        const results = await Promise.allSettled(
+          normalizedRecipientEmails.map((to) =>
+            sendEmail({
+              to,
+              subject: `【Musuhi】 ${emailSenderName}さんから、あなたへ。特別な「聞く手紙」が届いています`,
+              html: giftDeliveryHtml(deliveryEmailOptions),
+              text: giftDeliveryText(deliveryEmailOptions),
+            })
+          )
+        );
         results.forEach((r, i) => {
           if (r.status === "rejected") {
             console.error(
@@ -336,52 +337,48 @@ export async function POST(request: Request) {
             );
           }
         });
-      });
-    }
+      }
 
-    // 2) コラボ招待 — 共同作成メンバーへメール
-    if (normalizedParticipantIds.length > 0) {
-      prisma.user
-        .findMany({
-          where: { id: { in: normalizedParticipantIds } },
-          select: { email: true },
-        })
-        .then((participants) => {
-          const inviteEmails = participants.map((p) => p.email).filter(Boolean) as string[];
-          if (inviteEmails.length === 0) return;
-
-          const inviteOptions = {
-            inviterName: emailSenderName,
-            giftTitle: voiceGift.title,
-            giftMessage: voiceGift.message,
-            inviteUrl: giftUrl,
-          };
-          return Promise.allSettled(
-            inviteEmails.map((to) =>
-              sendEmail({
-                to,
-                subject: `【Musuhi】${emailSenderName} さんから声のギフト作りに招待されました`,
-                html: collabInviteHtml(inviteOptions),
-                text: collabInviteText(inviteOptions),
-              })
-            )
-          );
-        })
-        .then((results) => {
-          results?.forEach((r, i) => {
-            if (r.status === "rejected") {
-              console.error(
-                `[voice-gifts] collab invite email failed to participant[${i}]:`,
-                r.reason
-              );
-            }
+      // 2) コラボ招待 — 共同作成メンバーへメール
+      if (normalizedParticipantIds.length > 0) {
+        try {
+          const participants = await prisma.user.findMany({
+            where: { id: { in: normalizedParticipantIds } },
+            select: { email: true },
           });
-        })
-        .catch((err) => {
+          const inviteEmails = participants.map((p) => p.email).filter(Boolean) as string[];
+          if (inviteEmails.length > 0) {
+            const inviteOptions = {
+              inviterName: emailSenderName,
+              giftTitle: voiceGift.title,
+              giftMessage: voiceGift.message,
+              inviteUrl: giftUrl,
+            };
+            const results = await Promise.allSettled(
+              inviteEmails.map((to) =>
+                sendEmail({
+                  to,
+                  subject: `【Musuhi】${emailSenderName} さんから声のギフト作りに招待されました`,
+                  html: collabInviteHtml(inviteOptions),
+                  text: collabInviteText(inviteOptions),
+                })
+              )
+            );
+            results.forEach((r, i) => {
+              if (r.status === "rejected") {
+                console.error(
+                  `[voice-gifts] collab invite email failed to participant[${i}]:`,
+                  r.reason
+                );
+              }
+            });
+          }
+        } catch (err) {
           console.error("[voice-gifts] collab invite email lookup failed:", err);
-        });
-    }
-    // ───────────────────────────────────────────────────────────
+        }
+      }
+    });
+    // ────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ voiceGift }, { status: 201 });
   } catch (error: any) {
