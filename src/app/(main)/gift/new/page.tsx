@@ -277,7 +277,7 @@ function NewGiftPageInner() {
 
   const maxScheduleDate = useMemo(() => {
     const max = new Date(minScheduleDate);
-    max.setDate(max.getDate() + 7);
+    max.setMonth(max.getMonth() + 6);
     return max;
   }, [minScheduleDate]);
 
@@ -450,7 +450,7 @@ function NewGiftPageInner() {
       }
       const selectedDate = new Date(sendAt);
       if (selectedDate < minScheduleDate || selectedDate > maxScheduleDate) {
-        alert("送信日時は1週間以内で選択してください");
+        alert("送信日時は6ヶ月以内で選択してください");
         return;
       }
       if (selectedDate.getMinutes() !== 0) {
@@ -1256,7 +1256,7 @@ function NewGiftPageInner() {
           {giftStyle === "solo" && sendMode === "scheduled" && (
             <div className="mt-3">
               <label className="text-xs font-bold text-gray-500 mb-1 block">
-                送信日時（1週間以内）
+                送信日時（6ヶ月以内）
               </label>
               <DateTimePickerInput
                 value={sendAt}
