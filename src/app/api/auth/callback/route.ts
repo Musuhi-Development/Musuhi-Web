@@ -1,22 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
+  const giftToken = searchParams.get("giftToken");
+  const returnTitle = searchParams.get("returnTitle");
+
+  if (!code) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Collect cookies to set on the response (PKCE verifier needs request cookies)
+  const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          pendingCookies.push(...cookiesToSet);
+        },
+      },
+    }
+  );
+
   try {
-    if (!supabase) {
-      console.error("Supabase client is not configured");
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get("code");
-
-    if (!code) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    // Exchange code for session
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
@@ -29,26 +43,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Get or create user in our database
-    let user = await prisma.user.findUnique({
-      where: { email: data.user.email },
-    });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.user_metadata?.name || null,
-          displayName: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-          avatarUrl: data.user.user_metadata?.avatar_url || null,
-        },
+    // Determine redirect destination (gift/returnTitle params take priority)
+    let redirectPath: string;
+    if (returnTitle) {
+      redirectPath = `/gift/new?title=${encodeURIComponent(returnTitle)}`;
+    } else if (giftToken) {
+      redirectPath = `/gift/share/${giftToken}`;
+    } else {
+      // New users → profile creation, existing users → home
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.user.email },
       });
+      redirectPath = existingUser ? "/home" : "/mypage/edit";
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || null,
+            displayName:
+              data.user.user_metadata?.full_name ||
+              data.user.user_metadata?.name ||
+              null,
+            avatarUrl: data.user.user_metadata?.avatar_url || null,
+          },
+        });
+      }
     }
 
-    // Set session cookies and redirect
-    const response = NextResponse.redirect(new URL("/home", request.url));
+    const response = NextResponse.redirect(new URL(redirectPath, request.url));
 
+    // Apply cookies collected by @supabase/ssr (includes PKCE cleanup)
+    pendingCookies.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
+    });
+
+    // Set our custom session cookies that getSessionUser() reads
     if (data.session) {
       response.cookies.set("sb-access-token", data.session.access_token, {
         httpOnly: true,
