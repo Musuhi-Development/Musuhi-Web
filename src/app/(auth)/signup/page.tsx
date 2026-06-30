@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, User as UserIcon, AtSign, AlertCircle, CheckCircle, Camera, Loader2, Eye, EyeOff } from "lucide-react";
 import { InlineOverlay } from "@/components/ui/Overlay";
-import { supabase } from "@/lib/supabase";
+import { createBrowserClient } from "@supabase/ssr";
 
 function SignupPageInner() {
   const router = useRouter();
@@ -26,12 +26,15 @@ function SignupPageInner() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   async function handleGoogleSignup() {
-    if (!supabase) {
-      setError("認証サービスが設定されていません");
-      return;
-    }
     setGoogleLoading(true);
     setError("");
+
+    // createBrowserClient stores the PKCE code_verifier in cookies so the
+    // server-side callback route can access it during exchangeCodeForSession.
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     const redirectTo = `${window.location.origin}/api/auth/callback${
       returnTitle ? `?returnTitle=${encodeURIComponent(returnTitle)}` :
@@ -149,7 +152,8 @@ function SignupPageInner() {
         }
       }
 
-      router.push("/home");
+      // 新規登録成功 → プロフィール作成画面へ
+      router.push("/mypage/edit");
       router.refresh();
     } catch (err) {
       setError("サインアップに失敗しました");
