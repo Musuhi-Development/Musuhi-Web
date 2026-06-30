@@ -33,7 +33,17 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      // "Invalid login credentials" はメールが既存の場合に Supabase v2 が返すエラー
+      const message =
+        error.message === "Invalid login credentials" ||
+        error.message === "User already registered"
+          ? "このメールアドレスはすでに登録されています。ログインしてください。"
+          : error.message === "Email not confirmed"
+          ? "メールアドレスの確認が完了していません。確認メールをご確認ください。"
+          : error.message === "Signup is disabled"
+          ? "現在新規登録を受け付けていません。"
+          : error.message;
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     if (!data.user) {
