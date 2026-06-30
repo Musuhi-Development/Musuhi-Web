@@ -116,10 +116,10 @@ export async function PUT(request: Request, { params }: Params) {
       const parsedSendAt = sendAt ? new Date(sendAt) : null;
       if (parsedSendAt) {
         const maxSendAt = new Date();
-        maxSendAt.setDate(maxSendAt.getDate() + 7);
+        maxSendAt.setMonth(maxSendAt.getMonth() + 6);
         if (parsedSendAt > maxSendAt) {
           return NextResponse.json(
-            { error: "sendAt must be within 7 days" },
+            { error: "sendAt must be within 6 months" },
             { status: 400 }
           );
         }
