@@ -240,7 +240,7 @@ function SignupPageInner() {
                   required
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">※後から変更できません</p>
+              <p className="mt-1 text-xs text-gray-500">他のユーザーにも公開される「背番号」のようなIDです。本名やメールアドレスではなく、お好きな半角英数字で設定してください（一度設定すると後から変更できません）</p>
             </div>
 
             {/* 名前（表示名） */}
