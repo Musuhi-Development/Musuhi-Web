@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, User as UserIcon, AtSign, AlertCircle, CheckCircle, Camera, Loader2, Eye, EyeOff } from "lucide-react";
 import { InlineOverlay } from "@/components/ui/Overlay";
-import { createBrowserClient } from "@supabase/ssr";
 
 function SignupPageInner() {
   const router = useRouter();
@@ -22,35 +21,7 @@ function SignupPageInner() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  async function handleGoogleSignup() {
-    setGoogleLoading(true);
-    setError("");
-
-    // createBrowserClient stores the PKCE code_verifier in cookies so the
-    // server-side callback route can access it during exchangeCodeForSession.
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    const redirectTo = `${window.location.origin}/api/auth/callback${
-      returnTitle ? `?returnTitle=${encodeURIComponent(returnTitle)}` :
-      giftToken ? `?giftToken=${giftToken}` : ""
-    }`;
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-
-    if (error) {
-      setError("Googleログインに失敗しました");
-      setGoogleLoading(false);
-    }
-  }
 
   async function handleAvatarUpload(file: File) {
     setUploadingAvatar(true);
@@ -192,36 +163,6 @@ function SignupPageInner() {
               <p className="text-sm text-emerald-700">{info}</p>
             </div>
           )}
-
-          {/* Google Signup Button */}
-          <button
-            type="button"
-            onClick={handleGoogleSignup}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
-          >
-            {googleLoading ? (
-              <Loader2 size={20} className="animate-spin text-gray-500" />
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.2-3z"/>
-                <path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.6 0-14.2 4.2-17.7 10.7z" transform="translate(0,0.5)"/>
-                <path fill="#FBBC05" d="M24 43c5.6 0 10.6-1.9 14.5-5.1l-6.7-5.5C29.8 34.1 27 35 24 35c-5.8 0-10.7-3.1-11.8-8.5l-7 5.4C8.6 39.4 15.8 43 24 43z" transform="translate(0,-0.5)"/>
-                <path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-0.7 2.3-2.2 4.3-4.1 5.7l6.7 5.5C42.4 36 44.5 30 44.5 23c0-1-.1-2-.2-3z" transform="translate(0,0)"/>
-              </svg>
-            )}
-            <span className="text-sm font-medium text-gray-700">Googleで登録</span>
-          </button>
-
-          {/* Divider */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-gray-500">またはメールアドレスで登録</span>
-            </div>
-          </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             {/* ユーザーID */}
